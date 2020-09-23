@@ -27,7 +27,7 @@
 
 const std::string PROGRAM = "Saya";
 
-const std::string VERSION = "alpha"; 
+const std::string VERSION = "pre-alpha"; 
 
 extern bool cfg_quiet;
 

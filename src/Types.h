@@ -22,6 +22,28 @@
 #include "config.h"
 #include <cstdint>
 
+#define ENABLE_BASE_OPERATORS_ON(T)                                       \
+friend constexpr T operator+(T d1, int d2) { return T(int(d1) + d2); }    \
+friend constexpr T operator-(T d1, int d2) { return T(int(d1) - d2); }    \
+friend constexpr T operator-(T d) { return T(-int(d)); }                  \
+friend inline T& operator+=(T& d1, int d2) { return d1 = d1 + d2; }       \
+friend inline T& operator-=(T& d1, int d2) { return d1 = d1 - d2; }       \
+
+
+#define ENABLE_INCR_OPERATORS_ON(T)                                       \
+friend inline T& operator++(T& d) { return d = T(int(d) + 1); }           \
+friend inline T& operator--(T& d) { return d = T(int(d) - 1); }
+
+
+#define ENABLE_FULL_OPERATORS_ON(T)                                       \
+ENABLE_BASE_OPERATORS_ON(T)                                               \
+friend constexpr T operator*(int i, T d) { return T(i * int(d)); }        \
+friend constexpr T operator*(T d, int i) { return T(int(d) * i); }        \
+friend constexpr T operator/(T d, int i) { return T(int(d) / i); }        \
+friend constexpr int operator/(T d1, T d2) { return int(d1) / int(d2); }  \
+friend inline T& operator*=(T& d, int i) { return d = T(int(d) * i); }    \
+friend inline T& operator/=(T& d, int i) { return d = T(int(d) / i); }
+
 class Types {
 public:
     enum Direction : int {
@@ -37,10 +59,10 @@ public:
     };
 
     enum Color : int {
-        RED = 0, BLACK, COLOR_NB = 2
+        RED = 0, BLACK, COLOR_INVALID, COLOR_NB = 2
     };
 
-    enum Vertices : std::uint8_t {
+    enum Vertices : int {
                                                                             // invalid
     VTX_A0 = 0, VTX_B0, VTX_C0, VTX_D0, VTX_E0, VTX_F0, VTX_G0, VTX_H0, VTX_I0, VTX_J0,
         VTX_A1, VTX_B1, VTX_C1, VTX_D1, VTX_E1, VTX_F1, VTX_G1, VTX_H1, VTX_I1, VTX_J1,
@@ -56,6 +78,8 @@ public:
         NO_VERTEX
     };
 
+    ENABLE_FULL_OPERATORS_ON(Vertices)
+    ENABLE_INCR_OPERATORS_ON(Vertices)
 
     enum File : int {
                                                                                 // invalid
@@ -66,6 +90,5 @@ public:
         RANK_0 = 0, RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_9, RANK_NB
     };
 };
-
 
 #endif

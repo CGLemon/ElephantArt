@@ -34,6 +34,8 @@ static constexpr int BITBOARD_WIDTH = MARCRO_WIDTH;
 static constexpr int BITBOARD_HEIGHT = MARCRO_HEIGHT;
 static constexpr int BITBOARD_SHIFT = MARCRO_SHIFT;
 
+const BitBoard ZeroBB(0ULL, 0ULL);
+
 const BitBoard FirstPosition(0ULL, 1ULL);
 
 const BitBoard onBoard(0x7fdff7fdf, 0xf7fdff7fdff7fdff);
@@ -67,16 +69,28 @@ const BitBoard KingArea = (Rank0BB | Rank1BB | Rank2BB | Rank7BB | Rank8BB | Ran
 
 class BitUtils {
 public:
-    inline static bool on_board(BitBoard bitboard) {
+    inline static bool on_board(const BitBoard bitboard) {
         return onBoard & bitboard;
     }
 
-    inline static bool on_board(Types::Vertices v) {
+    inline static bool on_board(const Types::Vertices v) {
         return onBoard & (FirstPosition << v);
     }
 
-    inline static bool on_area(BitBoard bitboard, BitBoard area_board) {
+    inline static bool on_board(const int v) {
+        return onBoard & (FirstPosition << v);
+    }
+
+    inline static bool on_area(const BitBoard bitboard, const BitBoard area_board) {
         return area_board & bitboard;
+    }
+
+    inline static bool on_area(const Types::Vertices v, const BitBoard area_board) {
+        return area_board & (FirstPosition << v);
+    }
+
+    inline static bool on_area(const int v, const BitBoard area_board) {
+        return area_board & (FirstPosition << v);
     }
 
     inline static BitBoard shift(Types::Direction d, BitBoard bitboard) {
@@ -86,7 +100,11 @@ public:
         return (bitboard >> (-d)) & onBoard;
     }
 
-    inline static BitBoard vertex2bitboard(Types::Vertices v) {
+    inline static BitBoard vertex2bitboard(const Types::Vertices v) {
+        return FirstPosition << v;
+    }
+
+    inline static BitBoard vertex2bitboard(const int v) {
         return FirstPosition << v;
     }
 
@@ -98,7 +116,7 @@ public:
         return b & (b-1);
     }
 
-    inline static int lsb(BitBoard b) {
+    inline static Types::Vertices lsb(BitBoard b) {
 
         /*
          * bitScanForward
@@ -112,7 +130,7 @@ public:
          * @return index (0..63) of least significant one bit
          */
         static constexpr int index64[64] = {
-            0,   1, 48,  2, 57, 49, 28,  3,
+             0,  1, 48,  2, 57, 49, 28,  3,
             61, 58, 50, 42, 38, 29, 17,  4,
             62, 55, 59, 36, 53, 51, 43, 22,
             45, 39, 33, 30, 24, 18, 12,  5,
@@ -135,12 +153,12 @@ public:
         }
 
         if (bit == 0ULL) {
-            return -1;
+            return Types::NO_VERTEX;
         }
 
         res += bitScanForward(bit);
 
-        return res;
+        return static_cast<Types::Vertices>(res);
     }
    
     // Counts the number of set bits in the BitBoard.

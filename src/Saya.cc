@@ -26,14 +26,12 @@
 #include <sstream>
 
 
-std::string get_License() {
+const static std::string get_License() {
 
     auto out = std::ostringstream{};
 
     out << "    ";
-    out << PROGRAM << " " << VERSION << "  ";
-    out << "Copyright (C) 2020  Hung-Zhe Lin";
-    out << std::endl;
+    out << PROGRAM << " " << VERSION << " Copyright (C) 2020  Hung-Zhe, Lin"   << std::endl;
 
     out << "    This program comes with ABSOLUTELY NO WARRANTY."               << std::endl;
     out << "    This is free software, and you are welcome to redistribute it" << std::endl;
@@ -48,14 +46,10 @@ int main(int argc, char** argv) {
     std::cout << get_License();
     init_basic_parameters();
 
-    BitBoard bb(0xa12090f104, 0x0);
+    Board b;
 
-    auto cnt = BitUtils::count_few(bb);
-    printf("cnt %d\n", cnt);
-    BitUtils::dump_bitboard(bb);
-    
-    auto res = BitUtils::lsb(bb);
-    printf("res %d\n", res);
+    b.reset_board();
+    b.dump_board();
 
     return 0;
 }

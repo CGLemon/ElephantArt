@@ -26,6 +26,7 @@
 #include <array>
 #include <vector>
 #include <iostream>
+#include <string>
 
 class Board {
 public:
@@ -44,6 +45,7 @@ public:
         PIECE_NB = 16
     };
 
+    ENABLE_BASE_OPERATORS_ON(Piece);
 
     void reset_board();
 
@@ -57,19 +59,23 @@ public:
 
     static int get_y(const int vtx);
 
-    static const std::array<Piece, NUM_VERTICES> &get_startvec();
+    static std::string get_start_position();
 
-    const std::array<Piece, NUM_VERTICES> &get_boardvec() const;
+    Piece get_piece(const int x, const int y) const;
+
+    Piece get_piece(const int vtx) const;
 
     bool is_on_board(const int vtx) const;
 
     void fen_stream(std::ostream &out) const;
 
+    void fen2board(std::string &fen);
+
     std::uint64_t calc_hash() const;
 
     static constexpr std::array<Types::Direction, 8> m_dirs =
         {Types::NORTH, Types::EAST, Types::SOUTH, Types::WEST,
-        Types::NORTH_EAST, Types::SOUTH_EAST, Types::SOUTH_WEST, Types::NORTH_WEST};
+         Types::NORTH_EAST, Types::SOUTH_EAST, Types::SOUTH_WEST, Types::NORTH_WEST};
 
 
     static void init_mask();
@@ -100,13 +106,15 @@ private:
     std::array<Piece, NUM_VERTICES> m_state;
 
     std::array<BitBoard, 2> m_bb_color;
+
+    BitBoard m_bb_pawn;
+    BitBoard m_bb_horse;
+    BitBoard m_bb_rook;
+    BitBoard m_bb_elephant;
+    BitBoard m_bb_advisor;
+    BitBoard m_bb_cannon;
+
     std::array<Types::Vertices, 2> m_king_vertex;
-    std::array<std::array<Types::Vertices, 2>, 2> m_advisor_vertex;
-    std::array<std::array<Types::Vertices, 2>, 2> m_elephant_vertex;
-    std::array<std::array<Types::Vertices, 2>, 2> m_horse_vertex;
-    std::array<std::array<Types::Vertices, 2>, 2> m_rook_vertex;
-    std::array<std::array<Types::Vertices, 2>, 2> m_cannon_vertex;
-    std::array<std::array<Types::Vertices, 5>, 2> m_pawn_vertex;
 
     Types::Color m_tomove;
 
@@ -131,8 +139,7 @@ inline int Board::get_vertex(const int x, const int y) {
     assert(x >= 0 || x < WIDTH);
     assert(y >= 0 || y < HEIGHT);
 
-    const auto vertex = x + y * SHIFT;
-    return vertex;
+    return x + y * SHIFT;
 }
 
 inline int Board::get_index(const int x, const int y) {

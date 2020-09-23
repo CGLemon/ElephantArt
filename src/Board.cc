@@ -23,7 +23,6 @@
 #include <algorithm>
 #include <sstream>
 
-
 constexpr std::array<Board::Piece, Board::NUM_VERTICES> Board::START_VERTICES;
 
 constexpr std::array<Types::Direction, 8> Board::m_dirs;
@@ -41,39 +40,134 @@ void Board::reset_board() {
     m_tomove = Types::RED;
     m_movenum = 0;
 
+    auto start_position = get_start_position();
+    fen2board(start_position);
+
     m_hash = calc_hash();
     m_lastmove = Move();
+}
 
-    for (auto c = 0; c < 2; ++c) {
-        m_king_vertex[c] = Types::NO_VERTEX;
-        m_advisor_vertex[c].fill(Types::NO_VERTEX);
-        m_elephant_vertex[c].fill(Types::NO_VERTEX);
-        m_horse_vertex[c].fill(Types::NO_VERTEX);
-        m_rook_vertex[c].fill(Types::NO_VERTEX);
-        m_cannon_vertex[c].fill(Types::NO_VERTEX);
-        m_pawn_vertex[c].fill(Types::NO_VERTEX);
-    }
+void Board::fen2board(std::string &fen) {
+
+    auto king_vertex_black = Types::NO_VERTEX;
+    auto king_vertex_red = Types::NO_VERTEX;     
+
+    auto bb_black = ZeroBB;
+    auto bb_red = ZeroBB;
+
+    auto bb_pawn = ZeroBB;
+    auto bb_horse = ZeroBB;
+    auto bb_rook = ZeroBB;
+    auto bb_elephant = ZeroBB;
+    auto bb_advisor = ZeroBB;
+    auto bb_cannon = ZeroBB;
 
 
-    for (int y = 0; y < HEIGHT; ++y) {
-        for (int x = 0; x < WIDTH; ++x) {
-            const auto vtx = get_vertex(x, y);
-            const auto p = static_cast<int>(m_state[vtx]);
-            if (p >= 0 && p < 7) {
-                m_bb_color[Types::RED] |= BitUtils::vertex2bitboard(Types::Vertices(vtx));
-            }
-            if (p >= 7 && p < 14) {
-                m_bb_color[Types::BLACK] |= BitUtils::vertex2bitboard(Types::Vertices(vtx));
-            }
+    auto fen_format = std::stringstream{fen};
+    auto fen_stream = std::string{};
+
+    fen_format >> fen_stream;
+
+    auto vtx = Types::VTX_A9;
+    for (const auto &c : fen_stream) {
+        bool skip = false;
+        if (c == 'p') {
+            auto bb = BitUtils::vertex2bitboard(vtx);
+            bb_pawn |= bb;
+            bb_black |= bb;
+        } else if (c == 'c') {
+            auto bb = BitUtils::vertex2bitboard(vtx);
+            bb_cannon |= bb;
+            bb_black |= bb;
+        } else if (c == 'r') {
+            auto bb = BitUtils::vertex2bitboard(vtx);
+            bb_rook |= bb;
+            bb_black |= bb;
+        } else if (c == 'n') {
+            auto bb = BitUtils::vertex2bitboard(vtx);
+            bb_horse |= bb;
+            bb_black |= bb;
+        } else if (c == 'b') {
+            auto bb = BitUtils::vertex2bitboard(vtx);
+            bb_elephant |= bb;
+            bb_black |= bb;
+        } else if (c == 'a') {
+            auto bb = BitUtils::vertex2bitboard(vtx);
+            bb_advisor |= bb;
+            bb_black |= bb;
+        } else if (c == 'k') {
+            king_vertex_black = vtx;
+            bb_black |= BitUtils::vertex2bitboard(vtx);
+        } else if (c == 'P') {
+            auto bb = BitUtils::vertex2bitboard(vtx);
+            bb_pawn |= bb;
+            bb_red |= bb;
+        } else if (c == 'C') {
+            auto bb = BitUtils::vertex2bitboard(vtx);
+            bb_cannon |= bb;
+            bb_red|= bb;
+        } else if (c == 'R') {
+            auto bb = BitUtils::vertex2bitboard(vtx);
+            bb_rook |= bb;
+            bb_red |= bb;
+        } else if (c == 'N') {
+            auto bb = BitUtils::vertex2bitboard(vtx);
+            bb_horse |= bb;
+            bb_red |= bb;
+        } else if (c == 'B') {
+            auto bb = BitUtils::vertex2bitboard(vtx);
+            bb_elephant |= bb;
+            bb_red |= bb;
+        } else if (c == 'A') {
+            auto bb = BitUtils::vertex2bitboard(vtx);
+            bb_advisor |= bb;
+            bb_red |= bb;
+        } else if (c == 'K') {
+            king_vertex_red = vtx;
+            bb_red |= BitUtils::vertex2bitboard(vtx);
+        } else if (c >= '1' && c <= '9') {
+            vtx += (std::atoi(&c) - 1);
+        } else if (c == '/') {
+            assert(!is_on_board(vtx));
+            vtx -= (2 * SHIFT - 1);
+            skip = true;
+        }
+
+        if (vtx == Types::VTX_J0) {
+            break;
+        }
+        if (!skip) {
+            ++vtx;
         }
     }
+
+    fen_format >> fen_stream;
+    if (fen_stream == "w" || fen_stream == "r") {
+        m_tomove = Types::RED;
+    } else if (fen_stream == "b") {
+        m_tomove = Types::BLACK;
+    }
+
+
+    m_king_vertex[Types::RED] = king_vertex_red;
+    m_king_vertex[Types::BLACK] = king_vertex_black;    
+
+    m_bb_color[Types::RED] = bb_red;
+    m_bb_color[Types::BLACK] = bb_black;
+
+    m_bb_pawn = bb_pawn;
+    m_bb_horse = bb_horse;
+    m_bb_rook = bb_rook;
+    m_bb_elephant = bb_elephant;
+    m_bb_advisor = bb_advisor;
+    m_bb_cannon = bb_cannon;
 }
 
 void Board::init_mask() {
 
     // horse mask
     for (int v = 0; v < NUM_VERTICES; ++v) {
-        const auto bb = BitUtils::vertex2bitboard(Types::Vertices(v));
+        const auto bb = BitUtils::vertex2bitboard(v);
         auto mask = BitBoard(0ULL);
 
         if (BitUtils::on_board(bb)) {
@@ -84,13 +178,11 @@ void Board::init_mask() {
             }
         }
         m_house_mask[v] = mask;
-        // printf("vertex : %d\n", v);
-        // BitUtils::dump_bitboard(m_house_mask[v]);
     }
 
     // elephant mask
     for (int v = 0; v < NUM_VERTICES; ++v) {
-        const auto bb = BitUtils::vertex2bitboard(Types::Vertices(v));
+        const auto bb = BitUtils::vertex2bitboard(v);
         auto mask = BitBoard(0ULL);
         if (BitUtils::on_board(bb)) {
             for (int k = 4; k < 8; ++k) {
@@ -100,13 +192,11 @@ void Board::init_mask() {
             }
         }
         m_elephant_mask[v] = mask;
-        // printf("vertex : %d\n", v);
-        // BitUtils::dump_bitboard(m_elephant_mask[v]);
     }
 
     // advisor
     for (int v = 0; v < NUM_VERTICES; ++v) {
-        const auto bb = BitUtils::vertex2bitboard(Types::Vertices(v));
+        const auto bb = BitUtils::vertex2bitboard(v);
         auto mask = BitBoard(0ULL);
         if (BitUtils::on_area(bb, KingArea)) {
             for (int k = 4; k < 8; ++k) {
@@ -117,13 +207,11 @@ void Board::init_mask() {
             mask &= KingArea;
         }
         m_advisor_mask[v] = mask;
-        // printf("vertex : %d\n", v);
-        // BitUtils::dump_bitboard(m_advisor_mask[v]);
     }
 
     // king
     for (int v = 0; v < NUM_VERTICES; ++v) {
-        const auto bb = BitUtils::vertex2bitboard(Types::Vertices(v));
+        const auto bb = BitUtils::vertex2bitboard(v);
         auto mask = BitBoard(0ULL);
         if (BitUtils::on_area(bb, KingArea)) {
             for (int k = 0; k < 4; ++k) {
@@ -134,8 +222,6 @@ void Board::init_mask() {
             mask &= KingArea;
         }
         m_king_mask[v] = mask;
-        // printf("vertex : %d\n", v);
-        // BitUtils::dump_bitboard(m_king_mask[v]);
     }
 }
 
@@ -152,7 +238,7 @@ void Board::piece_stream(std::ostream &out, Piece p) const {
 }
 
 void Board::piece_stream(std::ostream &out, const int x, const int y) const {
-    auto p = m_state[get_vertex(x, y)];
+    auto p = get_piece(x, y);
     piece_stream(out, p);
 }
 
@@ -187,8 +273,8 @@ void Board::fen_stream(std::ostream &out) const {
         auto skip = size_t{0};
         for (int x = 0; x < WIDTH; ++x) {
             const auto vtx = get_vertex(x, y);
-            const auto p = m_state[vtx];
-            if (p == EMPTY_PIECE) { 
+            const auto pis = get_piece(vtx);
+            if (pis == EMPTY_PIECE) { 
                 skip++;
                 continue; 
             }
@@ -197,7 +283,7 @@ void Board::fen_stream(std::ostream &out) const {
                 out << skip;
                 skip = 0;
             }
-            piece_stream(out, p);
+            piece_stream(out, pis);
         }
         if (skip != 0) {
             out << skip;
@@ -209,7 +295,7 @@ void Board::fen_stream(std::ostream &out) const {
     }
 
     out << " ";
-    m_tomove == Types::RED ? out << "w" : out << "r";
+    m_tomove == Types::RED ? out << "w" : out << "b";
 
     out << " - - 0 " << m_movenum+1;
 }
@@ -224,15 +310,17 @@ void Board::board_stream(std::ostream &out) const {
         for (int x = 0; x < WIDTH; ++x) {
             out << " | ";
 
-            const auto coordinate_x = WIDTH - x - 1;
+            const auto coordinate_x = x;
             const auto coordinate_y = HEIGHT - y - 1;
             piece_stream(out, coordinate_x, coordinate_y);
         }
-        out << " |";
+        out << " | ";
+        out << HEIGHT - y - 1;
         Utils::strip_stream(out, 1);
     }
     Utils::space_stream(out, 1);
-    out << "+---+---+---+---+---+---+---+---+---+";
+    out << "+---+---+---+---+---+---+---+---+---+" << std::endl;
+    out << "   a   b   c   d   e   f   g   h   i";
     Utils::strip_stream(out, 1);
 
     info_stream(out);
@@ -245,9 +333,9 @@ std::uint64_t Board::calc_hash() const {
     for (int y = 0; y < HEIGHT; ++y) {
         for (int x = 0; x < WIDTH; ++x) {
             const auto vtx = get_vertex(x, y);
-            const auto p = static_cast<int>(m_state[vtx]);
+            const auto pis = get_piece(vtx);
             if (is_on_board(vtx)) {
-                res ^= Zobrist::zobrist[p][vtx];
+                res ^= Zobrist::zobrist[pis][vtx];
             } 
         }
     }
@@ -258,7 +346,7 @@ std::uint64_t Board::calc_hash() const {
 }
 
 bool Board::is_on_board(const int vtx) const {
-    return m_state[vtx] != INVAL_PIECE;
+    return START_VERTICES[vtx] != INVAL_PIECE;
 }
 
 void Board::dump_board() const {
@@ -267,32 +355,74 @@ void Board::dump_board() const {
     Utils::auto_printf(out);
 }
 
-const std::array<Board::Piece, Board::NUM_VERTICES>& Board::get_startvec() {
-    return START_VERTICES;
+std::string Board::get_start_position() {
+    return std::string{"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"};
 }
 
-const std::array<Board::Piece, Board::NUM_VERTICES>& Board::get_boardvec() const {
-    return m_state;
+
+Board::Piece Board::get_piece(const int x, const int y) const {
+    return get_piece(get_vertex(x, y));
+}
+
+
+Board::Piece Board::get_piece(const int vtx) const {
+
+    auto color = Types::COLOR_INVALID;
+    auto p = INVAL_PIECE;
+
+    if (BitUtils::on_area(vtx, m_bb_color[Types::RED])) {
+        color = Types::RED;
+    } else if (BitUtils::on_area(vtx, m_bb_color[Types::BLACK])) {
+        color = Types::BLACK;
+    }
+
+    if (color == Types::COLOR_INVALID) {
+        if (is_on_board(vtx)) {
+            return EMPTY_PIECE;
+        } else {
+            return INVAL_PIECE;
+        }
+    }
+
+    if (BitUtils::on_area(vtx, m_bb_pawn)) {
+        p = R_PAWN;
+    } else if (BitUtils::on_area(vtx, m_bb_horse)) {
+        p = R_HORSE;
+    } else if (BitUtils::on_area(vtx, m_bb_cannon)) {
+        p = R_CANNON;
+    } else if (BitUtils::on_area(vtx, m_bb_rook)) {
+        p = R_ROOK;
+    } else if (BitUtils::on_area(vtx, m_bb_elephant)) {
+        p = R_ELEPHANT;
+    } else if (BitUtils::on_area(vtx, m_bb_advisor)) {
+        p = R_ADVISOR;
+    } else {
+        assert(vtx == m_king_vertex[color]);
+        p = R_KING;
+    }
+
+    if (color == Types::BLACK) {
+        p += 7;
+    }
+
+    return p;
 }
 
 void Board::generate_king_move(Types::Color color, std::vector<Move> &MoveList) const {
-    const auto v = m_king_vertex[color];
-    // const auto king_bitboard = BitUtils::vertex2bitboard(v);
-    const auto mask = m_king_mask[v];
 
+    const auto v = m_king_vertex[color];
+    const auto mask = m_king_mask[v];
     const auto block_bitboard = mask & m_bb_color[color];
     auto legal_bitboard = mask ^ block_bitboard;
 
     while(legal_bitboard) {
         const auto res = BitUtils::lsb(legal_bitboard);
-        assert(res != -1);
+        assert(res != Types::NO_VERTEX);
 
         const auto from = v;
-        const auto to = static_cast<Types::Vertices>(res);
+        const auto to = res;
 
         legal_bitboard = BitUtils::reset_ls1b(legal_bitboard);
-
         MoveList.emplace_back(std::move(Move(from, to)));
     }
 }
-
