@@ -15,5 +15,26 @@
     You should have received a copy of the GNU General Public License
     along with Saya.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "UCCI.h"
 
+#ifndef ASCII_H_INCLUDE
+#define ASCII_H_INCLUDE
+
+#include "Engine.h"
+#include "Utils.h"
+
+#include <memory>
+#include <string>
+
+class ASCII {
+public:
+    void init();
+
+    void loop();
+
+private:
+    std::unique_ptr<Engine> m_ascii_engine{nullptr};
+
+    std::string execute(Utils::CommandParser &parser);
+};
+
+#endif

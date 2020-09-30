@@ -63,8 +63,8 @@ const BitBoard Rank8BB = Rank0BB << (BITBOARD_SHIFT * 8);
 const BitBoard Rank9BB = Rank0BB << (BITBOARD_SHIFT * 9);
 
 const BitBoard Square = onBoard | FileJBB;
-const BitBoard RedArea = Rank0BB | Rank1BB | Rank2BB | Rank3BB | Rank4BB;
-const BitBoard BlackArea = Rank5BB | Rank6BB | Rank7BB | Rank8BB | Rank9BB;
+const BitBoard RedSide = Rank0BB | Rank1BB | Rank2BB | Rank3BB | Rank4BB;
+const BitBoard BlackSide = Rank5BB | Rank6BB | Rank7BB | Rank8BB | Rank9BB;
 const BitBoard KingArea = (Rank0BB | Rank1BB | Rank2BB | Rank7BB | Rank8BB | Rank9BB) & (FileDBB | FileEBB | FileFBB);
 
 class BitUtils {
@@ -201,7 +201,6 @@ public:
         return b == vertex2bitboard(v);
     }
 
-
    /*
     * Displays the bitboard (include invalid edge and extra bit).
     */
@@ -220,9 +219,6 @@ public:
     constexpr Move(const Types::Vertices from_, const Types::Vertices to_) :
                        m_data(static_cast<std::uint16_t>(to_) + (static_cast<std::uint16_t>(from_) << 8)) {}
 
-    constexpr Move(const Types::Vertices from_, const Types::Vertices to_, const Promotion promo_) :
-                       m_data(static_cast<std::uint16_t>(to_) + (static_cast<std::uint16_t>(from_) << 8)), m_promotion(promo_) {}
-
     Types::Vertices get_from() const;
 
     Types::Vertices get_to() const;
@@ -239,15 +235,14 @@ public:
 
     bool valid() const;
 
-    std::string to_string() const;
+    bool is_ok() const;
 
+    std::string to_string() const;
 
     static constexpr std::uint16_t INVALID = 0;
 
 private:
     std::uint16_t m_data{INVALID};
-
-    Promotion m_promotion{Promotion::None};
 
     static constexpr std::uint16_t TO_MASK = 0x00ff;
 

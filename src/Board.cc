@@ -23,9 +23,11 @@
 #include <algorithm>
 #include <sstream>
 
-constexpr std::array<Board::Piece, Board::NUM_VERTICES> Board::START_VERTICES;
+constexpr std::array<Types::Piece, Board::NUM_VERTICES> Board::START_VERTICES;
 
 constexpr std::array<Types::Direction, 8> Board::m_dirs;
+
+std::array<std::array<BitBoard, Board::NUM_VERTICES>, 2> Board::m_pawn_attack;
 
 std::array<BitBoard, Board::NUM_VERTICES> Board::m_house_mask;
 
@@ -163,6 +165,38 @@ void Board::fen2board(std::string &fen) {
     m_bb_cannon = bb_cannon;
 }
 
+void Board::init_pawn_attack() {
+    const auto lambda_pawn_attack = [](const int vtx, const int color) -> BitBoard {
+
+        auto BitBoard = tie(0ULL, 0ULL);
+        if (color == Types::BLACK) {
+            BitBoard |= BitUtils::vertex2bitboard(vtx + Types::SOUTH);
+            if (BitUtils::on_area(vtx, RedSide)) {
+                BitBoard |= BitUtils::vertex2bitboard(vtx + Types::WEST);
+                BitBoard |= BitUtils::vertex2bitboard(vtx + Types::EAST);
+            }
+            BitBoard &= onBoard;
+        } else if (color == Types::RED) {
+            BitBoard |= BitUtils::vertex2bitboard(vtx + Types::NORTH);
+            if (BitUtils::on_area(vtx, BlackSide)) {
+                BitBoard |= BitUtils::vertex2bitboard(vtx + Types::WEST);
+                BitBoard |= BitUtils::vertex2bitboard(vtx + Types::EAST);
+            }
+            BitBoard &= onBoard;
+        }
+
+        return BitBoard;
+    };
+
+    for (int y = 0; y < HEIGHT; ++y) {
+        for (int x = 0; x < WIDTH; ++x) {
+            const auto vtx = get_vertex(x, y);
+            m_pawn_attack[Types::RED][vtx] = lambda_pawn_attack(vtx, Types::RED);
+            m_pawn_attack[Types::BLACK][vtx] = lambda_pawn_attack(vtx, Types::BLACK);
+        }
+    }
+}
+
 void Board::init_mask() {
 
     // horse mask
@@ -225,16 +259,16 @@ void Board::init_mask() {
     }
 }
 
-void Board::piece_stream(std::ostream &out, Piece p) const {
+void Board::piece_stream(std::ostream &out, Types::Piece p) const {
 
-    p == R_PAWN      ? out << "P" : p == B_PAWN      ? out << "p" :
-    p == R_HORSE     ? out << "N" : p == B_HORSE     ? out << "n" :
-    p == R_CANNON    ? out << "C" : p == B_CANNON    ? out << "c" :
-    p == R_ROOK      ? out << "R" : p == B_ROOK      ? out << "r" :
-    p == R_ELEPHANT  ? out << "B" : p == B_ELEPHANT  ? out << "b" :
-    p == R_ADVISOR   ? out << "A" : p == B_ADVISOR   ? out << "a" :
-    p == R_KING      ? out << "K" : p == B_KING      ? out << "k" :
-    p == EMPTY_PIECE ? out << " " : out << "error";
+    p == Types::R_PAWN      ? out << "P" : p == Types::B_PAWN      ? out << "p" :
+    p == Types::R_HORSE     ? out << "N" : p == Types::B_HORSE     ? out << "n" :
+    p == Types::R_CANNON    ? out << "C" : p == Types::B_CANNON    ? out << "c" :
+    p == Types::R_ROOK      ? out << "R" : p == Types::B_ROOK      ? out << "r" :
+    p == Types::R_ELEPHANT  ? out << "B" : p == Types::B_ELEPHANT  ? out << "b" :
+    p == Types::R_ADVISOR   ? out << "A" : p == Types::B_ADVISOR   ? out << "a" :
+    p == Types::R_KING      ? out << "K" : p == Types::B_KING      ? out << "k" :
+    p == Types::EMPTY_PIECE ? out << " " : out << "error";
 }
 
 void Board::piece_stream(std::ostream &out, const int x, const int y) const {
@@ -274,7 +308,7 @@ void Board::fen_stream(std::ostream &out) const {
         for (int x = 0; x < WIDTH; ++x) {
             const auto vtx = get_vertex(x, y);
             const auto pis = get_piece(vtx);
-            if (pis == EMPTY_PIECE) { 
+            if (pis == Types::EMPTY_PIECE) { 
                 skip++;
                 continue; 
             }
@@ -346,7 +380,7 @@ std::uint64_t Board::calc_hash() const {
 }
 
 bool Board::is_on_board(const int vtx) const {
-    return START_VERTICES[vtx] != INVAL_PIECE;
+    return START_VERTICES[vtx] != Types::INVAL_PIECE;
 }
 
 void Board::dump_board() const {
@@ -360,15 +394,15 @@ std::string Board::get_start_position() {
 }
 
 
-Board::Piece Board::get_piece(const int x, const int y) const {
+Types::Piece Board::get_piece(const int x, const int y) const {
     return get_piece(get_vertex(x, y));
 }
 
 
-Board::Piece Board::get_piece(const int vtx) const {
+Types::Piece Board::get_piece(const int vtx) const {
 
-    auto color = Types::COLOR_INVALID;
-    auto p = INVAL_PIECE;
+    auto color = Types::INVALID_COLOR;
+    auto p = Types::INVAL_PIECE;
 
     if (BitUtils::on_area(vtx, m_bb_color[Types::RED])) {
         color = Types::RED;
@@ -376,29 +410,29 @@ Board::Piece Board::get_piece(const int vtx) const {
         color = Types::BLACK;
     }
 
-    if (color == Types::COLOR_INVALID) {
+    if (color == Types::INVALID_COLOR) {
         if (is_on_board(vtx)) {
-            return EMPTY_PIECE;
+            return Types::EMPTY_PIECE;
         } else {
-            return INVAL_PIECE;
+            return Types::INVAL_PIECE;
         }
     }
 
     if (BitUtils::on_area(vtx, m_bb_pawn)) {
-        p = R_PAWN;
+        p = Types::R_PAWN;
     } else if (BitUtils::on_area(vtx, m_bb_horse)) {
-        p = R_HORSE;
+        p = Types::R_HORSE;
     } else if (BitUtils::on_area(vtx, m_bb_cannon)) {
-        p = R_CANNON;
+        p = Types::R_CANNON;
     } else if (BitUtils::on_area(vtx, m_bb_rook)) {
-        p = R_ROOK;
+        p = Types::R_ROOK;
     } else if (BitUtils::on_area(vtx, m_bb_elephant)) {
-        p = R_ELEPHANT;
+        p = Types::R_ELEPHANT;
     } else if (BitUtils::on_area(vtx, m_bb_advisor)) {
-        p = R_ADVISOR;
+        p = Types::R_ADVISOR;
     } else {
         assert(vtx == m_king_vertex[color]);
-        p = R_KING;
+        p = Types::R_KING;
     }
 
     if (color == Types::BLACK) {
@@ -425,4 +459,17 @@ void Board::generate_king_move(Types::Color color, std::vector<Move> &MoveList) 
         legal_bitboard = BitUtils::reset_ls1b(legal_bitboard);
         MoveList.emplace_back(std::move(Move(from, to)));
     }
+}
+
+void Board::generate_pawn_move(Types::Color color, std::vector<Move> &MoveList) const {
+    auto bb_p = m_bb_pawn;
+    while (bb_p) {
+        const auto vtx = BitUtils::lsb(bb_p);
+        bb_p = BitUtils::reset_ls1b(bb_p);
+
+        // auto mask = m_pawn_attack[vtx];
+        // const auto block_bitboard = mask & m_bb_color[color];
+        // auto legal_bitboard = mask ^ block_bitboard;
+    }
+
 }

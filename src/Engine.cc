@@ -15,5 +15,38 @@
     You should have received a copy of the GNU General Public License
     along with Saya.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "UCCI.h"
 
+#include "Engine.h"
+
+void Engine::init(int g) {
+
+    set_option("num_games", g);
+    const auto games = static_cast<size_t>(option<int>("num_games"));
+
+    while (m_positions.size() < games) {
+        m_positions.emplace_back(std::make_shared<Position>());
+    }
+
+    while (m_positions.size() > games) {
+        m_positions.pop_back();
+    }
+
+    for (auto &p : m_positions) {
+        p->init();
+    }
+
+    m_position = m_positions[m_default];
+}
+
+void Engine::reset_game() {
+    if (m_position == nullptr) {
+        return;
+    }
+
+    m_position->init();
+}
+
+
+void Engine::display() const {
+    m_position->display();
+}

@@ -67,16 +67,16 @@ Types::Vertices Move::get_to() const {
     return static_cast<Types::Vertices>(m_data & TO_MASK);
 }
 
-Move::Promotion Move::get_promotion() const {
-    return m_promotion;
-}
-
 std::uint16_t Move::get_data() const {
     return m_data;
 }
 
 bool Move::valid() const {
     return m_data != INVALID;
+}
+
+bool Move::is_ok() const {
+    return get_from() != get_to();
 }
 
 std::string Move::to_string() const {
@@ -108,7 +108,7 @@ std::string Move::to_string() const {
 
 bool Move::hit(BitBoard &b) const {
 
-    if (!valid() || get_from() == get_to()) {
+    if (!valid() || !is_ok()) {
         return false;
     }
 

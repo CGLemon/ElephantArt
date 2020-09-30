@@ -24,12 +24,19 @@
 #define MARCRO_SHIFT 10
 
 #include <string>
+#include <unordered_map>
 
 const std::string PROGRAM = "Saya";
 
 const std::string VERSION = "pre-alpha"; 
 
 extern bool cfg_quiet;
+
+template<typename T>
+T option(std::string name);
+
+template<typename T>
+bool set_option(std::string name, T val);
 
 void init_basic_parameters();
 

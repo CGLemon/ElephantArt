@@ -19,12 +19,59 @@
 #include "config.h"
 #include "Zobrist.h"
 #include "Board.h"
+#include "Utils.h"
 
-bool cfg_quiet;
+#include <string>
+#include <mutex>
+
+std::unordered_map<std::string, Utils::Option> options_map;
+std::mutex map_mutex;
+
+#define OPTIONS_EXPASSION(T)                        \
+template<>                                          \
+T option<T>(std::string name) {                     \
+    return options_map.find(name)->second.get<T>(); \
+}
+
+OPTIONS_EXPASSION(std::string)
+OPTIONS_EXPASSION(bool)
+OPTIONS_EXPASSION(int)
+OPTIONS_EXPASSION(float)
+
+#undef OPTIONS_EXPASSION
+
+
+#define OPTIONS_SET_EXPASSION(T)                     \
+template<>                                           \
+bool set_option<T>(std::string name, T val) {        \
+    auto res = options_map.find(name);               \
+    if (res != std::end(options_map)) {              \
+        std::lock_guard<std::mutex> lock(map_mutex); \
+        res->second.set<T>(val);                     \
+        return true;                                 \
+    }                                                \
+    return false;                                    \
+}
+
+OPTIONS_SET_EXPASSION(std::string)
+OPTIONS_SET_EXPASSION(bool)
+OPTIONS_SET_EXPASSION(int)
+OPTIONS_SET_EXPASSION(float)
+
+#undef OPTIONS_SET_EXPASSION
+
+void init_options_map() {
+
+    options_map["name"] << Utils::Option::setoption(PROGRAM);
+    options_map["version"] << Utils::Option::setoption(VERSION);
+
+    options_map["quiet"] << Utils::Option::setoption(false);
+    options_map["num_games"] << Utils::Option::setoption(1, 32, 1);
+}
 
 void init_basic_parameters() {
 
     Zobrist::init_zobrist();
     Board::init_mask();
-    cfg_quiet = false;
+    init_options_map();
 }

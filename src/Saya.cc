@@ -16,20 +16,18 @@
     along with Saya.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "BitBoard.h"
-#include "Board.h"
-
-#include "config.h"
+#include "ASCII.h"
 
 #include <iostream>
 #include <string>
 #include <sstream>
-
+#include <memory>
 
 const static std::string get_License() {
 
     auto out = std::ostringstream{};
 
+    
     out << "    ";
     out << PROGRAM << " " << VERSION << " Copyright (C) 2020  Hung-Zhe, Lin"   << std::endl;
 
@@ -40,16 +38,20 @@ const static std::string get_License() {
     return out.str();
 }
 
+static void ascii_loop() {
+    auto ascii = std::make_shared<ASCII>();
+
+    ascii->init();
+    ascii->loop();
+}
+
 
 int main(int argc, char** argv) {
 
     std::cout << get_License();
     init_basic_parameters();
 
-    Board b;
-
-    b.reset_board();
-    b.dump_board();
+    ascii_loop();
 
     return 0;
 }

@@ -38,15 +38,6 @@ public:
 
     static constexpr int NUM_VERTICES = SHIFT * HEIGHT;
 
-    enum Piece : int {
-        R_PAWN = 0, R_HORSE, R_CANNON, R_ROOK, R_ELEPHANT, R_ADVISOR, R_KING,
-        B_PAWN = 7, B_HORSE, B_CANNON, B_ROOK, B_ELEPHANT, B_ADVISOR, B_KING,
-        EMPTY_PIECE, INVAL_PIECE, 
-        PIECE_NB = 16
-    };
-
-    ENABLE_BASE_OPERATORS_ON(Piece);
-
     void reset_board();
 
     void dump_board() const;
@@ -61,9 +52,12 @@ public:
 
     static std::string get_start_position();
 
-    Piece get_piece(const int x, const int y) const;
+    Types::Piece get_piece(const int x, const int y) const;
 
-    Piece get_piece(const int vtx) const;
+    Types::Piece get_piece(const int vtx) const;
+
+    
+
 
     bool is_on_board(const int vtx) const;
 
@@ -74,26 +68,66 @@ public:
     std::uint64_t calc_hash() const;
 
     static constexpr std::array<Types::Direction, 8> m_dirs =
-        {Types::NORTH, Types::EAST, Types::SOUTH, Types::WEST,
+        {Types::NORTH,      Types::EAST,       Types::SOUTH,      Types::WEST,
          Types::NORTH_EAST, Types::SOUTH_EAST, Types::SOUTH_WEST, Types::NORTH_WEST};
 
 
     static void init_mask();
 
 private:
-    static constexpr std::array<Piece, NUM_VERTICES> START_VERTICES = {
-        R_ROOK,      R_HORSE,     R_ELEPHANT,  R_ADVISOR,   R_KING,      R_ADVISOR,   R_ELEPHANT,  R_HORSE,     R_ROOK,      INVAL_PIECE,
-        EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, INVAL_PIECE,
-        EMPTY_PIECE, R_CANNON,    EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, R_CANNON,    EMPTY_PIECE, INVAL_PIECE,
-        R_PAWN,      EMPTY_PIECE, R_PAWN,      EMPTY_PIECE, R_PAWN,      EMPTY_PIECE, R_PAWN,      EMPTY_PIECE, R_PAWN,      INVAL_PIECE,
-        EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, INVAL_PIECE,
-                                                         // 楚河  漢界
-        EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, INVAL_PIECE,
-        B_PAWN,      EMPTY_PIECE, B_PAWN,      EMPTY_PIECE, B_PAWN,      EMPTY_PIECE, B_PAWN,      EMPTY_PIECE, B_PAWN,      INVAL_PIECE,
-        EMPTY_PIECE, B_CANNON,    EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, B_CANNON,    EMPTY_PIECE, INVAL_PIECE,
-        EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, EMPTY_PIECE, INVAL_PIECE,
-        B_ROOK,      B_HORSE,     B_ELEPHANT,  B_ADVISOR,   B_KING,      B_ADVISOR,   B_ELEPHANT,  B_HORSE,     B_ROOK,      INVAL_PIECE
+    #define P_  Types::R_PAWN
+    #define H_  Types::R_HORSE
+    #define C_  Types::R_CANNON
+    #define R_  Types::R_ROOK
+    #define E_  Types::R_ELEPHANT
+    #define A_  Types::R_ADVISOR
+    #define K_  Types::R_KING
+
+    #define p_  Types::B_PAWN
+    #define h_  Types::B_HORSE
+    #define c_  Types::B_CANNON
+    #define r_  Types::B_ROOK
+    #define e_  Types::B_ELEPHANT
+    #define a_  Types::B_ADVISOR
+    #define k_  Types::B_KING
+
+    #define ET    Types::EMPTY_PIECE
+    #define invalid_  Types::INVAL_PIECE
+
+    static constexpr std::array<Types::Piece, NUM_VERTICES> START_VERTICES = {
+        R_, H_, E_, A_, K_, A_, E_, H_, R_, invalid_,
+        ET, ET, ET, ET, ET, ET, ET, ET, ET, invalid_,
+        ET, C_, ET, ET, ET, ET, ET, C_, ET, invalid_,
+        P_, ET, P_, ET, P_, ET, P_, ET, P_, invalid_,
+        ET, ET, ET, ET, ET, ET, ET, ET, ET, invalid_,
+                 // 楚河  漢界
+        ET, ET, ET, ET, ET, ET, ET, ET, ET, invalid_,
+        p_, ET, p_, ET, p_, ET, p_, ET, p_, invalid_,
+        ET, c_, ET, ET, ET, ET, ET, c_, ET, invalid_,
+        ET, ET, ET, ET, ET, ET, ET, ET, ET, invalid_,
+        r_, h_, e_, a_, k_, a_, e_, h_, r_, invalid_,
     };
+
+    #undef P_
+    #undef H_
+    #undef C_
+    #undef R_
+    #undef E_
+    #undef A_
+    #undef K_
+
+    #undef p_
+    #undef h_
+    #undef c_
+    #undef r_
+    #undef e_
+    #undef a_
+    #undef k_
+
+    #undef ET
+    #undef invalid_
+
+    static std::array<std::array<BitBoard, NUM_VERTICES>, 2> m_pawn_attack;
 
     static std::array<BitBoard, NUM_VERTICES> m_house_mask;
 
@@ -103,8 +137,8 @@ private:
 
     static std::array<BitBoard, NUM_VERTICES> m_king_mask;
 
-    std::array<Piece, NUM_VERTICES> m_state;
-
+    static void init_pawn_attack();
+    
     std::array<BitBoard, 2> m_bb_color;
 
     BitBoard m_bb_pawn;
@@ -126,7 +160,9 @@ private:
 
     void generate_king_move(Types::Color color, std::vector<Move> &MoveList) const;
 
-    void piece_stream(std::ostream &out, Piece p) const;
+    void generate_pawn_move(Types::Color color, std::vector<Move> &MoveList) const;
+
+    void piece_stream(std::ostream &out, Types::Piece p) const;
 
     void piece_stream(std::ostream &out, const int x, const int y) const;
 

@@ -15,5 +15,28 @@
     You should have received a copy of the GNU General Public License
     along with Saya.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "UCCI.h"
 
+#ifndef POSITION_H_INCLUDE
+#define POSITION_H_INCLUDE
+
+#include "Board.h"
+
+#include <vector>
+#include <memory>
+
+
+class Position {
+public:
+    void init();
+
+    Board board;
+
+    void display() const;
+
+private:
+    std::vector<std::shared_ptr<const Board>> m_history;
+
+
+};
+
+#endif

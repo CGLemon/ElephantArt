@@ -26,6 +26,9 @@
 #include <sstream>
 #include <atomic>
 
+#include <vector>
+#include <string>
+#include <memory>
 
 namespace Utils {
 
@@ -40,9 +43,112 @@ void strip_stream(std::ostream &out, const size_t times);
 
 template <class T> 
 void atomic_add(std::atomic<T> &f, T d) {
-  T old = f.load();
-  while (!f.compare_exchange_weak(old, old + d)) {}
+    T old = f.load();
+    while (!f.compare_exchange_weak(old, old + d)) {}
 }
+
+class CommandParser {
+public:
+    CommandParser() = delete;
+
+    CommandParser(std::string input);
+
+    bool valid() const;
+
+    size_t get_count() const;
+
+    std::string get_command(size_t id) const;
+
+    std::string get_commands() const;
+
+    bool find(std::string input, int id = -1) const;
+
+private:
+    std::vector<std::shared_ptr<const std::string>> m_commands;
+
+    size_t m_count;
+
+    void parser(std::string &input);
+};
+
+class Option {
+private:
+    enum class type {
+        Invalid,
+        String,
+        Bool,
+        Integer,
+        Float,
+    };
+
+    type m_type{type::Invalid};
+    std::string m_value{};
+    int m_max{0};
+    int m_min{0};
+
+    Option(type t, std::string val, int max, int min) :
+               m_type(t), m_value(val), m_max(max), m_min(min) {}
+
+    operator int() const {
+        assert(m_type == type::Integer);
+        return std::stoi(m_value);
+    }
+
+    operator bool() const {
+        assert(m_type == type::Bool);
+        return (m_value == "true");
+    }
+
+    operator float() const {
+        assert(m_type == type::Float);
+        return std::stof(m_value);
+    }
+
+    operator std::string() const {
+        assert(m_type == type::String);
+        return m_value;
+    }
+
+    bool boundary_valid() const;
+
+    template<typename T>
+    void adjust();
+
+    void option_handle() const;
+
+public:
+    Option() = default;
+
+    void operator<<(const Option& o) { *this = o; }
+
+    template<typename T>
+    static Option setoption(T val, int max = 0, int min = 0);
+
+    template<typename T>
+    T get() const;
+
+    template<typename T>
+    void set(T value);
+};
+
+
+template<typename T>
+void Option::adjust() {
+    if (!boundary_valid()) {
+        return;
+    }
+
+    const auto upper = static_cast<T>(m_max);
+    const auto lower = static_cast<T>(m_min);
+    const auto val = (T)*this;
+
+    if (val > upper) {
+        set<T>(upper);
+    } else if (val < lower) {
+        set<T>(lower);
+    }
+}
+
 
 } // namespace Utils
 

@@ -15,5 +15,16 @@
     You should have received a copy of the GNU General Public License
     along with Saya.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "UCCI.h"
 
+#include "Position.h"
+
+void Position::init() {
+    board.reset_board();
+    m_history.clear();
+}
+
+
+void Position::display() const {
+
+    board.dump_board();
+}

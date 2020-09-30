@@ -58,9 +58,22 @@ public:
         NORTH_WEST = NORTH + WEST
     };
 
+    ENABLE_BASE_OPERATORS_ON(Direction);
+
     enum Color : int {
-        RED = 0, BLACK, COLOR_INVALID, COLOR_NB = 2
+        RED = 0, BLACK, INVALID_COLOR, COLOR_NB = 2
     };
+
+    enum Piece : int {
+        R_PAWN = 0, R_HORSE, R_CANNON, R_ROOK, R_ELEPHANT, R_ADVISOR, R_KING,
+        B_PAWN = 7, B_HORSE, B_CANNON, B_ROOK, B_ELEPHANT, B_ADVISOR, B_KING,
+        EMPTY_PIECE,
+        INVAL_PIECE, 
+        PIECE_NB = 16
+    };
+
+    ENABLE_BASE_OPERATORS_ON(Piece);
+
 
     enum Vertices : int {
                                                                             // invalid
@@ -90,5 +103,9 @@ public:
         RANK_0 = 0, RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_9, RANK_NB
     };
 };
+
+#undef ENABLE_BASE_OPERATORS_ON
+#undef ENABLE_INCR_OPERATORS_ON
+#undef ENABLE_FULL_OPERATORS_ON
 
 #endif
