@@ -46,6 +46,8 @@ public:
 
     static int get_index(const int x, const int y);
 
+    static Types::Color swap_color(const Types::Color color);
+
     static int get_x(const int vtx);
 
     static int get_y(const int vtx);
@@ -56,8 +58,9 @@ public:
 
     Types::Piece get_piece(const int vtx) const;
 
-    
+    Types::Color get_to_move() const;
 
+    void generate_movelist(Types::Color color, std::vector<Move> &MoveList) const;
 
     bool is_on_board(const int vtx) const;
 
@@ -133,7 +136,7 @@ private:
 
     static std::array<BitBoard, NUM_VERTICES> m_elephant_mask;
 
-    static std::array<BitBoard, NUM_VERTICES> m_advisor_mask;
+    static std::array<BitBoard, NUM_VERTICES> m_advisor_attack;
 
     static std::array<BitBoard, NUM_VERTICES> m_king_mask;
 
@@ -158,9 +161,14 @@ private:
 
     std::uint64_t m_hash;
 
+    template<Types::Piece_t>
+    void generate_move(Types::Color color, std::vector<Move> &MoveList) const;
+
     void generate_king_move(Types::Color color, std::vector<Move> &MoveList) const;
 
     void generate_pawn_move(Types::Color color, std::vector<Move> &MoveList) const;
+
+    void generate_advisor_move(Types::Color color, std::vector<Move> &MoveList) const;
 
     void piece_stream(std::ostream &out, Types::Piece p) const;
 

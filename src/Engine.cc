@@ -17,6 +17,7 @@
 */
 
 #include "Engine.h"
+#include <sstream>
 
 void Engine::init(int g) {
 
@@ -49,4 +50,20 @@ void Engine::reset_game() {
 
 void Engine::display() const {
     m_position->display();
+}
+
+std::vector<Move> Engine::get_movelist() const {
+    return m_position->get_movelist();
+}
+
+std::string Engine::movelist_to_string() const {
+
+    auto out = std::ostringstream{};
+    const auto movelist = m_position->get_movelist();
+
+    for (const auto &m: movelist) {
+        out << m.to_string() << " ";
+    }
+
+    return out.str();
 }

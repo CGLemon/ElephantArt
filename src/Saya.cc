@@ -17,6 +17,7 @@
 */
 
 #include "ASCII.h"
+#include "config.h"
 
 #include <iostream>
 #include <string>
@@ -51,7 +52,14 @@ int main(int argc, char** argv) {
     std::cout << get_License();
     init_basic_parameters();
 
-    ascii_loop();
+    auto args = ArgsParser(argc, argv);
+    args.dump();
+
+    if (option<std::string>("mode") == "ascii") {
+        ascii_loop();
+    } else if (option<std::string>("mode") == "ucci") {
+        std::cout << "UCCI" << std::endl;
+    }
 
     return 0;
 }

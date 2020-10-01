@@ -65,8 +65,12 @@ void init_options_map() {
     options_map["name"] << Utils::Option::setoption(PROGRAM);
     options_map["version"] << Utils::Option::setoption(VERSION);
 
+    options_map["mode"] << Utils::Option::setoption(std::string{"ascii"});
+    options_map["help"] << Utils::Option::setoption(false);
+
     options_map["quiet"] << Utils::Option::setoption(false);
     options_map["num_games"] << Utils::Option::setoption(1, 32, 1);
+    options_map["reserve_movelist"] << Utils::Option::setoption(60);
 }
 
 void init_basic_parameters() {
@@ -75,3 +79,51 @@ void init_basic_parameters() {
     Board::init_mask();
     init_options_map();
 }
+
+
+ArgsParser::ArgsParser(int argc, char** argv) {
+
+    auto out = std::ostringstream{};
+    for (int i = 0; i < argc; ++i) {
+        out << argv[i] << " ";
+    }
+
+    auto parser = Utils::CommandParser(out.str());
+
+    assert((int)parser.get_count() == argc);
+
+    
+    const auto is_parameter = [](const std::string &para) -> bool {
+        if (para.empty()) {
+            return false;
+        }
+        return para[0] != '-';
+    };
+
+    using List = std::vector<std::string>;
+
+    auto help = parser.find(List{"--help", "-h"});
+    if (help) {
+        set_option("help", true);
+    }
+
+    auto mode = parser.find_next(List{"--mode", "-m"});
+    if (is_parameter(mode)) {
+        if (mode == "ascii" || mode == "ucci") {
+            set_option("mode", mode);
+        }
+    }
+}
+
+void ArgsParser::help() const {
+    Utils::auto_printf("Argumnet\n");
+    Utils::auto_printf(" --help, -h\n");
+    Utils::auto_printf(" --mode, -m [ascii/ucci]\n");  
+}
+
+void ArgsParser::dump() const {
+    if (option<bool>("help")) {
+        help();
+    }
+}
+

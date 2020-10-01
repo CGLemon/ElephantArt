@@ -22,6 +22,7 @@
 #include "Position.h"
 
 #include <memory>
+#include <string>
 
 class Engine {
 public:
@@ -31,6 +32,10 @@ public:
 
     void display() const;
     
+    std::vector<Move> get_movelist() const;
+
+    std::string movelist_to_string() const;
+
 private:
     std::vector<std::shared_ptr<Position>> m_positions;
 

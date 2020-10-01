@@ -33,6 +33,10 @@ public:
 
     void display() const;
 
+    std::vector<Move> get_movelist() const;
+
+    Types::Color get_to_move() const;
+
 private:
     std::vector<std::shared_ptr<const Board>> m_history;
 

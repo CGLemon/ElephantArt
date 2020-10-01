@@ -58,11 +58,17 @@ public:
         NORTH_WEST = NORTH + WEST
     };
 
-    ENABLE_BASE_OPERATORS_ON(Direction);
+    ENABLE_BASE_OPERATORS_ON(Direction)
 
     enum Color : int {
         RED = 0, BLACK, INVALID_COLOR, COLOR_NB = 2
     };
+
+    enum Piece_t : int {
+        PAWN = 0, HORSE, CANNON, ROOK, ELEPHANT, ADVISOR, KING, PIECE_T_NB = 7
+    };
+
+    ENABLE_BASE_OPERATORS_ON(Piece_t)
 
     enum Piece : int {
         R_PAWN = 0, R_HORSE, R_CANNON, R_ROOK, R_ELEPHANT, R_ADVISOR, R_KING,
@@ -72,7 +78,7 @@ public:
         PIECE_NB = 16
     };
 
-    ENABLE_BASE_OPERATORS_ON(Piece);
+    ENABLE_BASE_OPERATORS_ON(Piece)
 
 
     enum Vertices : int {

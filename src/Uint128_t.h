@@ -315,13 +315,13 @@ inline Uint128_t Uint128_t::operator+(const int i) const {
 
 inline Uint128_t Uint128_t::operator-(const Uint128_t &rhs) const {
     std::uint64_t new_lower = LOWER - rhs.LOWER;
-    std::uint64_t carry = static_cast<std::uint64_t>(new_lower < LOWER);
+    std::uint64_t carry = static_cast<std::uint64_t>(new_lower > LOWER);
     return Uint128_t(UPPER - rhs.UPPER - carry, new_lower);
 }
 
 inline Uint128_t Uint128_t::operator-(const int i) const {
     std::uint64_t new_lower = LOWER - i;
-    std::uint64_t carry = static_cast<std::uint64_t>(new_lower < LOWER);
+    std::uint64_t carry = static_cast<std::uint64_t>(new_lower > LOWER);
     return Uint128_t(UPPER - carry, new_lower);
 }
 

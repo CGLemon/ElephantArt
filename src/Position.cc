@@ -28,3 +28,16 @@ void Position::display() const {
 
     board.dump_board();
 }
+
+Types::Color Position::get_to_move() const {
+    return board.get_to_move();
+}
+
+std::vector<Move> Position::get_movelist() const {
+
+    auto res = std::vector<Move>{};
+    const auto color = get_to_move();
+    board.generate_movelist(color, res);
+
+    return res;
+}

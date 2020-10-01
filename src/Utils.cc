@@ -108,7 +108,7 @@ std::string CommandParser::get_commands() const {
     return out.str();
 }
 
-bool CommandParser::find(std::string input, int id) const {
+bool CommandParser::find(const std::string input, int id) const {
     if (id < 0) {
         auto begin = std::cbegin(m_commands);
         auto end = std::cend(m_commands);
@@ -120,6 +120,49 @@ bool CommandParser::find(std::string input, int id) const {
 
     return input == get_command((size_t)id);
 }
+
+bool CommandParser::find(const std::vector<std::string> inputs, int id) const {
+
+    bool exist = false;
+
+    for (const auto &in : inputs) {
+        exist |= find(in, id);
+        if (exist) {
+            break;
+        }
+    }
+
+    return exist;
+}
+
+std::string CommandParser::find_next(const std::string input) const {
+    auto begin = std::cbegin(m_commands);
+    auto end = std::cend(m_commands);
+    auto res = std::find_if(begin, end,
+                                [input](std::shared_ptr<const std::string> in)
+                                    { return input == *in; } );
+
+    if (res == end || (res+1) == end) {
+        return std::string{};
+    }
+
+    return std::string{**(res + 1)};
+}
+
+std::string CommandParser::find_next(const std::vector<std::string> inputs) const {
+
+    auto out = std::string{};
+
+    for (const auto &in : inputs) {
+        out = find_next(in);
+        if (!out.empty()) {
+            break;
+        }
+    }
+
+    return out;
+}
+
 
 bool Option::boundary_valid() const {
     option_handle();

@@ -33,7 +33,7 @@ std::array<BitBoard, Board::NUM_VERTICES> Board::m_house_mask;
 
 std::array<BitBoard, Board::NUM_VERTICES> Board::m_elephant_mask;
 
-std::array<BitBoard, Board::NUM_VERTICES> Board::m_advisor_mask;
+std::array<BitBoard, Board::NUM_VERTICES> Board::m_advisor_attack;
 
 std::array<BitBoard, Board::NUM_VERTICES> Board::m_king_mask;
 
@@ -199,6 +199,9 @@ void Board::init_pawn_attack() {
 
 void Board::init_mask() {
 
+
+    init_pawn_attack();
+
     // horse mask
     for (int v = 0; v < NUM_VERTICES; ++v) {
         const auto bb = BitUtils::vertex2bitboard(v);
@@ -240,7 +243,7 @@ void Board::init_mask() {
             }
             mask &= KingArea;
         }
-        m_advisor_mask[v] = mask;
+        m_advisor_attack[v] = mask;
     }
 
     // king
@@ -389,6 +392,14 @@ void Board::dump_board() const {
     Utils::auto_printf(out);
 }
 
+Types::Color Board::swap_color(const Types::Color color) {
+    assert(color == Types::RED || color == Types::BLACK);
+    if (color == Types::RED) {
+        return Types::BLACK;
+    }
+    return Types::RED;
+}
+
 std::string Board::get_start_position() {
     return std::string{"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"};
 }
@@ -442,34 +453,78 @@ Types::Piece Board::get_piece(const int vtx) const {
     return p;
 }
 
-void Board::generate_king_move(Types::Color color, std::vector<Move> &MoveList) const {
+Types::Color Board::get_to_move() const {
+    return m_tomove;
+}
 
-    const auto v = m_king_vertex[color];
-    const auto mask = m_king_mask[v];
-    const auto block_bitboard = mask & m_bb_color[color];
-    auto legal_bitboard = mask ^ block_bitboard;
-
+const auto lambda_separate_bitboarad = [](Types::Vertices vtx,
+                                          BitBoard &legal_bitboard,
+                                          std::vector<Move> &MoveList) -> void {
     while(legal_bitboard) {
         const auto res = BitUtils::lsb(legal_bitboard);
         assert(res != Types::NO_VERTEX);
 
-        const auto from = v;
+        const auto from = vtx;
         const auto to = res;
 
         legal_bitboard = BitUtils::reset_ls1b(legal_bitboard);
         MoveList.emplace_back(std::move(Move(from, to)));
     }
+};
+
+
+template<>
+void Board::generate_move<Types::KING>(Types::Color color, std::vector<Move> &MoveList) const {
+    const auto vtx = m_king_vertex[color];
+    const auto mask = m_king_mask[vtx];
+    const auto block_bitboard = mask & m_bb_color[color];
+    auto legal_bitboard = mask ^ block_bitboard;
+
+    lambda_separate_bitboarad(vtx, legal_bitboard, MoveList);
 }
 
-void Board::generate_pawn_move(Types::Color color, std::vector<Move> &MoveList) const {
-    auto bb_p = m_bb_pawn;
+template<>
+void Board::generate_move<Types::PAWN>(Types::Color color, std::vector<Move> &MoveList) const {
+
+    auto bb_p = m_bb_pawn & m_bb_color[color];
     while (bb_p) {
         const auto vtx = BitUtils::lsb(bb_p);
+        assert(vtx != Types::NO_VERTEX);
         bb_p = BitUtils::reset_ls1b(bb_p);
 
-        // auto mask = m_pawn_attack[vtx];
-        // const auto block_bitboard = mask & m_bb_color[color];
-        // auto legal_bitboard = mask ^ block_bitboard;
-    }
+        const auto mask = m_pawn_attack[color][vtx];
+        const auto block_bitboard = mask & m_bb_color[color];
+        auto legal_bitboard = (mask ^ block_bitboard) | (mask & m_bb_color[swap_color(color)]);
 
+        lambda_separate_bitboarad(vtx, legal_bitboard, MoveList);
+    }
+}
+
+template<>
+void Board::generate_move<Types::ADVISOR>(Types::Color color, std::vector<Move> &MoveList) const {
+
+    auto bb_a = m_bb_advisor & m_bb_color[color];
+    while (bb_a) {
+        const auto vtx = BitUtils::lsb(bb_a);
+        assert(vtx != Types::NO_VERTEX);
+        bb_a = BitUtils::reset_ls1b(bb_a);
+
+        const auto mask = m_advisor_attack[vtx];
+        const auto block_bitboard = mask & m_bb_color[color];
+        auto legal_bitboard = (mask ^ block_bitboard) | (mask & m_bb_color[swap_color(color)]);
+
+        lambda_separate_bitboarad(vtx, legal_bitboard, MoveList);
+    }
+}
+
+void Board::generate_movelist(Types::Color color, std::vector<Move> &MoveList) const {
+
+    MoveList.clear();
+    MoveList.reserve(option<int>("reserve_movelist"));
+
+    generate_move<Types::KING>(color, MoveList);
+    generate_move<Types::PAWN>(color, MoveList);
+    generate_move<Types::ADVISOR>(color, MoveList);
+
+    MoveList.shrink_to_fit();
 }

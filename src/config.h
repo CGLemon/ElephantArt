@@ -40,5 +40,19 @@ bool set_option(std::string name, T val);
 
 void init_basic_parameters();
 
+class ArgsParser {
+public:
+    ArgsParser() = delete;
+
+    ArgsParser(int argc, char** argv);
+
+    void dump() const;
+
+private:
+    void help() const;
+};
+
+
+
 
 #endif

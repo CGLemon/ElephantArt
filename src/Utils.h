@@ -47,6 +47,9 @@ void atomic_add(std::atomic<T> &f, T d) {
     while (!f.compare_exchange_weak(old, old + d)) {}
 }
 
+/**
+ * Transform the string to words, and store one by one.
+ */
 class CommandParser {
 public:
     CommandParser() = delete;
@@ -61,7 +64,13 @@ public:
 
     std::string get_commands() const;
 
-    bool find(std::string input, int id = -1) const;
+    bool find(const std::string input, int id = -1) const;
+
+    bool find(const std::vector<std::string> inputs, int id = -1) const;
+
+    std::string find_next(const std::string input) const;
+
+    std::string find_next(const std::vector<std::string> inputs) const;
 
 private:
     std::vector<std::shared_ptr<const std::string>> m_commands;
@@ -70,6 +79,12 @@ private:
 
     void parser(std::string &input);
 };
+
+
+/**
+ * Option stores parameters, maximal and minimal.
+ * When we put a value in it. It will adjust the value automatically.
+ */
 
 class Option {
 private:
@@ -121,17 +136,21 @@ public:
 
     void operator<<(const Option& o) { *this = o; }
 
+    // Get Option object.
     template<typename T>
     static Option setoption(T val, int max = 0, int min = 0);
 
+    // Get the value. We need to assign type.
     template<typename T>
     T get() const;
 
+    // Set the value.
     template<typename T>
     void set(T value);
 };
 
-
+// Adjust the value. Be sure the value is not bigger 
+// than maximal and smaller than minimal.
 template<typename T>
 void Option::adjust() {
     if (!boundary_valid()) {

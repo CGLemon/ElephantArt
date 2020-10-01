@@ -59,13 +59,27 @@ void ASCII::loop() {
 std::string ASCII::execute(Utils::CommandParser &parser) {
 
     auto out = std::ostringstream{};
+    const auto cnt = parser.get_count();
+
+    const auto lambda_syntax_not_understood = [&](Utils::CommandParser &p) -> void {
+        if (cnt <= 1) { return; }
+
+        for (auto i = size_t{1}; i < cnt; ++i) {
+            out << p.get_command(i) << " ";
+        }
+        out << ": syntax not understood" << std::endl;
+    };
 
     if (parser.find("dump-legal-move")) {
 
+        if (cnt != 1) {
+            lambda_syntax_not_understood(parser);
+        }
 
+        const auto ascii_out = m_ascii_engine->movelist_to_string();
+        out << ascii_out << std::endl;
     } else {
         out << "unknown command" << std::endl;
-        // out << "syntax not understood" << std::endl;
     }
 
     return out.str();
