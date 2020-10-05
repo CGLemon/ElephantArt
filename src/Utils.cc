@@ -83,86 +83,94 @@ size_t CommandParser::get_count() const {
     return m_count;
 }
 
-std::string CommandParser::get_command(size_t id) const {
+std::optional<CommandParser::Reuslt> CommandParser::get_command(size_t id) const {
+
+    if (!valid() || id > m_count) {
+        return std::nullopt;
+    }
+
+    return std::optional<Reuslt>(Reuslt(*m_commands[id], (int)id));
+}
+
+std::optional<CommandParser::Reuslt> CommandParser::get_commands(size_t b) const {
+    return get_slice(b, m_count);
+}
+
+std::optional<CommandParser::Reuslt> CommandParser::get_slice(size_t b, size_t e) const {
+
+     if (!valid() || b >= m_count || e > m_count || b >= e) {
+         return std::nullopt;
+     }
+
+     auto out = std::ostringstream{};
+     auto begin = std::next(std::begin(m_commands), b);
+     auto end = std::next(std::begin(m_commands), e);
+     auto stop = std::prev(end, 1);
+
+     if (begin != end) {
+         std::for_each(begin, stop, [&](auto in)
+                                        {  out << *in << " "; });
+     }
+
+     out << **stop;
+     return std::optional<Reuslt>(Reuslt(out.str(), -1));
+}
+
+
+std::optional<CommandParser::Reuslt> CommandParser::find(const std::string input, int id) const {
 
     if (!valid()) {
-        return std::string{};
+        return std::nullopt;
     }
 
-    if (id > m_count) {
-        id = m_count;
-    }
-
-    return *m_commands[id];
-}
-
-std::string CommandParser::get_commands() const {
-
-    auto out = std::ostringstream{};
-    for (const auto &c : m_commands) {
-        out << *c;
-        if (*c != **std::crbegin(m_commands)) {
-            out << " ";
-        }
-    }
-    return out.str();
-}
-
-bool CommandParser::find(const std::string input, int id) const {
     if (id < 0) {
-        auto begin = std::cbegin(m_commands);
-        auto end = std::cend(m_commands);
-        auto res = std::find_if(begin, end,
-                                    [input](std::shared_ptr<const std::string> in)
-                                        { return input == *in; } );
-        return res != end;
-    }
-
-    return input == get_command((size_t)id);
-}
-
-bool CommandParser::find(const std::vector<std::string> inputs, int id) const {
-
-    bool exist = false;
-
-    for (const auto &in : inputs) {
-        exist |= find(in, id);
-        if (exist) {
-            break;
+        for (auto i = size_t{0}; i < get_count(); ++i) {
+            const auto res = get_command((size_t)i);
+            if (res->str == input) {
+                return res;
+            }
+        }
+    } else {
+        if (const auto res = get_command((size_t)id)) {
+            return res->str == input ? res : std::nullopt;
         }
     }
 
-    return exist;
+    return std::nullopt;
 }
 
-std::string CommandParser::find_next(const std::string input) const {
-    auto begin = std::cbegin(m_commands);
-    auto end = std::cend(m_commands);
-    auto res = std::find_if(begin, end,
-                                [input](std::shared_ptr<const std::string> in)
-                                    { return input == *in; } );
-
-    if (res == end || (res+1) == end) {
-        return std::string{};
-    }
-
-    return std::string{**(res + 1)};
-}
-
-std::string CommandParser::find_next(const std::vector<std::string> inputs) const {
-
-    auto out = std::string{};
+std::optional<CommandParser::Reuslt> CommandParser::find(const std::vector<std::string> inputs, int id) const {
 
     for (const auto &in : inputs) {
-        out = find_next(in);
-        if (!out.empty()) {
-            break;
+        if (const auto res = find(in, id)) {
+            return res;
         }
     }
 
-    return out;
+    return std::nullopt;
 }
 
+std::optional<CommandParser::Reuslt> CommandParser::find_next(const std::string input) const {
+
+    const auto res = find(input);
+
+    if (!res || res->idx+1 > (int)get_count()) {
+        return std::nullopt;
+    }
+
+    return get_command(res->idx+1);
+}
+
+std::optional<CommandParser::Reuslt> CommandParser::find_next(const std::vector<std::string> inputs) const {
+
+    for (const auto &in : inputs) {
+        if (const auto res = find_next(in)) {
+            return res;
+        }
+    }
+
+    return std::nullopt;
+}
 
 bool Option::boundary_valid() const {
     option_handle();

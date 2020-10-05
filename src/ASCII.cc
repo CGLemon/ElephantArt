@@ -18,6 +18,7 @@
 
 #include "ASCII.h"
 
+#include <functional>
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -32,10 +33,10 @@ void ASCII::init() {
 void ASCII::loop() {
 
     while (true) {
-        m_ascii_engine->display();
 
-        auto input = std::string{};
+        m_ascii_engine->display();
         std::cout << "Saya : ";
+        auto input = std::string{};
 
         if (std::getline(std::cin, input)) {
 
@@ -43,6 +44,7 @@ void ASCII::loop() {
 
             if (!parser.valid()) {
                 std::cout << " No input command" << std::endl;
+                continue;
             }
 
             if (parser.get_count() == 1 && parser.find("quit")) {
@@ -50,9 +52,10 @@ void ASCII::loop() {
                 break;
             }
 
-            std::cout << execute(parser) << std::endl;
+             std::cout << execute(parser) << std::endl;
         }
     }
+
 }
 
 
@@ -61,26 +64,24 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
     auto out = std::ostringstream{};
     const auto cnt = parser.get_count();
 
-    const auto lambda_syntax_not_understood = [&](Utils::CommandParser &p) -> void {
-        if (cnt <= 1) { return; }
+    const auto lambda_syntax_not_understood =
+        [&](Utils::CommandParser &p, size_t ignore) -> void {
 
-        for (auto i = size_t{1}; i < cnt; ++i) {
-            out << p.get_command(i) << " ";
-        }
+        if (cnt <= ignore) { return; }
+        out << p.get_commands(ignore)->str << " ";
         out << ": syntax not understood" << std::endl;
     };
 
-    if (parser.find("dump-legal-move")) {
+    if (const auto res = parser.find("dump-legal-move", 0)) {
 
-        if (cnt != 1) {
-            lambda_syntax_not_understood(parser);
-        }
-
-        const auto ascii_out = m_ascii_engine->movelist_to_string();
+        lambda_syntax_not_understood(parser, 1);
+        const auto ascii_out = m_ascii_engine->gather_movelist();
         out << ascii_out << std::endl;
+
     } else {
         out << "unknown command" << std::endl;
     }
 
     return out.str();
 }
+

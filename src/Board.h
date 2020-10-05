@@ -66,7 +66,7 @@ public:
 
     void fen_stream(std::ostream &out) const;
 
-    void fen2board(std::string &fen);
+    bool fen2board(std::string &fen);
 
     std::uint64_t calc_hash() const;
 

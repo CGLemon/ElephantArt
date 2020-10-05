@@ -49,7 +49,7 @@ void Board::reset_board() {
     m_lastmove = Move();
 }
 
-void Board::fen2board(std::string &fen) {
+bool Board::fen2board(std::string &fen) {
 
     auto king_vertex_black = Types::NO_VERTEX;
     auto king_vertex_red = Types::NO_VERTEX;     
@@ -69,6 +69,8 @@ void Board::fen2board(std::string &fen) {
     auto fen_stream = std::string{};
 
     fen_format >> fen_stream;
+
+    auto success = bool{true};
 
     auto vtx = Types::VTX_A9;
     for (const auto &c : fen_stream) {
@@ -130,7 +132,10 @@ void Board::fen2board(std::string &fen) {
         } else if (c >= '1' && c <= '9') {
             vtx += (std::atoi(&c) - 1);
         } else if (c == '/') {
-            assert(!is_on_board(vtx));
+            if(is_on_board(vtx)) {
+                success = false;
+                break;
+            }
             vtx -= (2 * SHIFT - 1);
             skip = true;
         }
@@ -143,6 +148,7 @@ void Board::fen2board(std::string &fen) {
         }
     }
 
+    
     fen_format >> fen_stream;
     if (fen_stream == "w" || fen_stream == "r") {
         m_tomove = Types::RED;
@@ -150,19 +156,22 @@ void Board::fen2board(std::string &fen) {
         m_tomove = Types::BLACK;
     }
 
+    if (success) {
+        m_king_vertex[Types::RED] = king_vertex_red;
+        m_king_vertex[Types::BLACK] = king_vertex_black;    
 
-    m_king_vertex[Types::RED] = king_vertex_red;
-    m_king_vertex[Types::BLACK] = king_vertex_black;    
+        m_bb_color[Types::RED] = bb_red;
+        m_bb_color[Types::BLACK] = bb_black;
 
-    m_bb_color[Types::RED] = bb_red;
-    m_bb_color[Types::BLACK] = bb_black;
+        m_bb_pawn = bb_pawn;
+        m_bb_horse = bb_horse;
+        m_bb_rook = bb_rook;
+        m_bb_elephant = bb_elephant;
+        m_bb_advisor = bb_advisor;
+        m_bb_cannon = bb_cannon;
+    }
 
-    m_bb_pawn = bb_pawn;
-    m_bb_horse = bb_horse;
-    m_bb_rook = bb_rook;
-    m_bb_elephant = bb_elephant;
-    m_bb_advisor = bb_advisor;
-    m_bb_cannon = bb_cannon;
+    return success;
 }
 
 void Board::init_pawn_attack() {
@@ -460,7 +469,7 @@ Types::Color Board::get_to_move() const {
 const auto lambda_separate_bitboarad = [](Types::Vertices vtx,
                                           BitBoard &legal_bitboard,
                                           std::vector<Move> &MoveList) -> void {
-    while(legal_bitboard) {
+    while (legal_bitboard) {
         const auto res = BitUtils::lsb(legal_bitboard);
         assert(res != Types::NO_VERTEX);
 
@@ -522,8 +531,8 @@ void Board::generate_movelist(Types::Color color, std::vector<Move> &MoveList) c
     MoveList.clear();
     MoveList.reserve(option<int>("reserve_movelist"));
 
-    generate_move<Types::KING>(color, MoveList);
-    generate_move<Types::PAWN>(color, MoveList);
+    generate_move<Types::KING>   (color, MoveList);
+    generate_move<Types::PAWN>   (color, MoveList);
     generate_move<Types::ADVISOR>(color, MoveList);
 
     MoveList.shrink_to_fit();

@@ -33,7 +33,7 @@ for (auto i = size_t{0}; i < 64; ++i) {   \
 }
 
 template<>
-void Uint128_t::outStream<Uint128_t::BIN>(std::ostream &out) const {
+void Uint128_t::outStream<Uint128_t::Stream_t::BIN>(std::ostream &out) const {
     BIN_SCAN(UPPER);
     out << " | ";
     BIN_SCAN(LOWER);
@@ -42,7 +42,7 @@ void Uint128_t::outStream<Uint128_t::BIN>(std::ostream &out) const {
 #undef BIN_SCAN
 
 template<>
-void Uint128_t::outStream<Uint128_t::HEX>(std::ostream &out) const {
+void Uint128_t::outStream<Uint128_t::Stream_t::HEX>(std::ostream &out) const {
     out << std::setfill('0') << std::hex;
     out << std::setw(16) << UPPER;
     out << " | ";
@@ -53,11 +53,11 @@ void Uint128_t::outStream<Uint128_t::HEX>(std::ostream &out) const {
 void Uint128_t::dump_status() const {
     auto out = std::ostringstream{};
     out << "binary : ";
-    outStream<BIN>(out);
+    outStream<Stream_t::BIN>(out);
     out << "\n";
   
     out << "hex    : ";
-    outStream<HEX>(out);
+    outStream<Stream_t::HEX>(out);
     out << "\n";
     
     std::cout << out.str() << std::endl;

@@ -56,14 +56,27 @@ std::vector<Move> Engine::get_movelist() const {
     return m_position->get_movelist();
 }
 
-std::string Engine::movelist_to_string() const {
+std::string Engine::gather_movelist() const {
 
-    auto out = std::ostringstream{};
+    auto rep = std::ostringstream{};
     const auto movelist = m_position->get_movelist();
 
     for (const auto &m: movelist) {
-        out << m.to_string() << " ";
+        rep << m.to_string() << " ";
     }
 
-    return out.str();
+    return rep.str();
+}
+
+std::string Engine::fen2board(std::string fen) {
+
+    auto rep = std::ostringstream{};
+    auto success = m_position->fen2board(fen);
+    if (success) {
+        rep << "";
+    } else {
+        rep << "Illegal fen";
+    }
+
+    return rep.str();
 }

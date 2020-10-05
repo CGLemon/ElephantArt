@@ -20,24 +20,26 @@
 #define UINT128_T_H_INCLUDE
 #include <cstdint>
 #include <iostream>
+#include <utility>
+
 class Uint128_t {
 private:
     std::uint64_t UPPER;
     std::uint64_t LOWER;
 
 public:
-    enum STREAM_T {
+    enum class Stream_t {
         BIN,
         HEX
     };
 
     constexpr Uint128_t()
-               : UPPER(0ULL), LOWER(0ULL) {}
+                  : UPPER(0ULL), LOWER(0ULL) {}
 
     constexpr Uint128_t(const Uint128_t &rhs)
                   : UPPER(rhs.UPPER), LOWER(rhs.LOWER) {}
 
-    constexpr Uint128_t(Uint128_t &&rhs)
+    constexpr Uint128_t(const Uint128_t &&rhs)
                   : UPPER(std::move(rhs.UPPER)), LOWER(std::move(rhs.LOWER)) {}
 
     constexpr Uint128_t(std::uint64_t upper, std::uint64_t lower)
@@ -60,7 +62,7 @@ public:
 
     void swap();
 
-    template<STREAM_T T>
+    template<Stream_t T>
     void outStream(std::ostream &out) const;
 
     void dump_status() const;

@@ -25,20 +25,20 @@
 #include <thread>
 
 /*
- * The basic methods follow th below github.
+ * The basic methods follow th below github webside.
  * https://github.com/lemire/testingRNG
  */
 
 
 /*
- * Selecting the different seed from different ways.
+ * Select the different seed from different ways.
  * "THREADS_SEED" is default.
  */
 static constexpr std::uint64_t THREADS_SEED = 0;
 static constexpr std::uint64_t TIME_SEED = 1;
 
 /*
- * Selecting the different Rng that you want.
+ * Select the different random generator that you want.
  */
 enum class random_t {
     SplitMix_64,
@@ -54,14 +54,14 @@ public:
 
     static Random &get_Rng(const std::uint64_t seed = THREADS_SEED);
 
-    // get the random number
+    // Get the random number
     std::uint64_t randuint64();
 
     template<int Range>
     std::uint32_t randfix() {
-      static_assert(0 < Range && Range < std::numeric_limits<std::uint32_t>::max(),
-                        "randfix out of range?\n");
-      return randuint64() % Range;
+          static_assert(0 < Range && Range < std::numeric_limits<std::uint32_t>::max(),
+                            "randfix out of range?\n");
+          return static_cast<std::uint32_t>(randuint64()) % Range;
     }
 
     // It is the interface for STL.

@@ -41,3 +41,7 @@ std::vector<Move> Position::get_movelist() const {
 
     return res;
 }
+
+bool Position::fen2board(std::string &fen) {
+    return fen2board(fen);
+}

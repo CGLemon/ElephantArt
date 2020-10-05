@@ -37,6 +37,8 @@ public:
 
     Types::Color get_to_move() const;
 
+    bool fen2board(std::string &fen);
+
 private:
     std::vector<std::shared_ptr<const Board>> m_history;
 

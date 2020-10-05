@@ -34,7 +34,9 @@ public:
     
     std::vector<Move> get_movelist() const;
 
-    std::string movelist_to_string() const;
+    std::string gather_movelist() const;
+
+    std::string fen2board(std::string fen);
 
 private:
     std::vector<std::shared_ptr<Position>> m_positions;

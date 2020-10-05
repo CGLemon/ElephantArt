@@ -25,10 +25,12 @@
 #include <cassert>
 #include <sstream>
 #include <atomic>
-
+#include <utility>
 #include <vector>
 #include <string>
 #include <memory>
+#include <optional>
+
 
 namespace Utils {
 
@@ -52,6 +54,16 @@ void atomic_add(std::atomic<T> &f, T d) {
  */
 class CommandParser {
 public:
+    struct Reuslt {
+        Reuslt(const std::string &s, const int i) : str(s), idx(i) {};
+
+        Reuslt(const std::string &&s, const int i)
+            : str(std::forward<decltype(s)>(s)), idx(i) {};
+
+        std::string str;
+        int idx;
+    };
+
     CommandParser() = delete;
 
     CommandParser(std::string input);
@@ -60,17 +72,19 @@ public:
 
     size_t get_count() const;
 
-    std::string get_command(size_t id) const;
+    std::optional<Reuslt> get_command(size_t id) const;
 
-    std::string get_commands() const;
+    std::optional<Reuslt> get_commands(size_t begin = 0) const;
 
-    bool find(const std::string input, int id = -1) const;
+    std::optional<Reuslt> get_slice(size_t begin, size_t end) const;
 
-    bool find(const std::vector<std::string> inputs, int id = -1) const;
+    std::optional<Reuslt> find(const std::string input, int id = -1) const;
 
-    std::string find_next(const std::string input) const;
+    std::optional<Reuslt> find(const std::vector<std::string> inputs, int id = -1) const;
 
-    std::string find_next(const std::vector<std::string> inputs) const;
+    std::optional<Reuslt> find_next(const std::string input) const;
+
+    std::optional<Reuslt> find_next(const std::vector<std::string> inputs) const;
 
 private:
     std::vector<std::shared_ptr<const std::string>> m_commands;
@@ -134,7 +148,7 @@ private:
 public:
     Option() = default;
 
-    void operator<<(const Option& o) { *this = o; }
+    void operator<<(const Option &&o) { *this = std::forward<decltype(o)>(o); }
 
     // Get Option object.
     template<typename T>

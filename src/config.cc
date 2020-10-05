@@ -25,7 +25,7 @@
 #include <mutex>
 
 std::unordered_map<std::string, Utils::Option> options_map;
-std::mutex map_mutex;
+// std::mutex map_mutex;
 
 #define OPTIONS_EXPASSION(T)                        \
 template<>                                          \
@@ -40,13 +40,11 @@ OPTIONS_EXPASSION(float)
 
 #undef OPTIONS_EXPASSION
 
-
 #define OPTIONS_SET_EXPASSION(T)                     \
 template<>                                           \
 bool set_option<T>(std::string name, T val) {        \
     auto res = options_map.find(name);               \
     if (res != std::end(options_map)) {              \
-        std::lock_guard<std::mutex> lock(map_mutex); \
         res->second.set<T>(val);                     \
         return true;                                 \
     }                                                \
@@ -102,17 +100,18 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 
     using List = std::vector<std::string>;
 
-    auto help = parser.find(List{"--help", "-h"});
+    const auto help = parser.find(List{"--help", "-h"});
     if (help) {
         set_option("help", true);
     }
 
-    auto mode = parser.find_next(List{"--mode", "-m"});
-    if (is_parameter(mode)) {
-        if (mode == "ascii" || mode == "ucci") {
-            set_option("mode", mode);
+    const auto mode = parser.find_next(List{"--mode", "-m"});
+    if (is_parameter(mode->str)) {
+        if (mode->str == "ascii" || mode->str == "ucci") {
+            set_option("mode", mode->str);
         }
     }
+  
 }
 
 void ArgsParser::help() const {
