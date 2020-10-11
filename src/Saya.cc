@@ -41,9 +41,6 @@ const static std::string get_License() {
 
 static void ascii_loop() {
     auto ascii = std::make_shared<ASCII>();
-
-    ascii->init();
-    ascii->loop();
 }
 
 

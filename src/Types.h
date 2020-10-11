@@ -94,7 +94,10 @@ public:
         VTX_A8, VTX_B8, VTX_C8, VTX_D8, VTX_E8, VTX_F8, VTX_G8, VTX_H8, VTX_I8, VTX_J8,
         VTX_A9, VTX_B9, VTX_C9, VTX_D9, VTX_E9, VTX_F9, VTX_G9, VTX_H9, VTX_I9, VTX_J9,
 
-        NO_VERTEX
+        NO_VERTEX = 90,
+
+        VTX_BEGIN = VTX_A0,
+        VTX_END   = NO_VERTEX
     };
 
     ENABLE_FULL_OPERATORS_ON(Vertices)

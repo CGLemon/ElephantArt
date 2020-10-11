@@ -27,11 +27,15 @@
 
 class ASCII {
 public:
+    ASCII();
+    ASCII(const ASCII&) = delete;
+    ASCII& operator=(const ASCII&) = delete;
+
+private:
     void init();
 
     void loop();
 
-private:
     std::unique_ptr<Engine> m_ascii_engine{nullptr};
 
     std::string execute(Utils::CommandParser &parser);

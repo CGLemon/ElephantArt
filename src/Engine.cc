@@ -19,10 +19,9 @@
 #include "Engine.h"
 #include <sstream>
 
-void Engine::init(int g) {
+void Engine::initialize(int g) {
 
-    set_option("num_games", g);
-    const auto games = static_cast<size_t>(option<int>("num_games"));
+    const auto games = (size_t)g;
 
     while (m_positions.size() < games) {
         m_positions.emplace_back(std::make_shared<Position>());
@@ -33,7 +32,7 @@ void Engine::init(int g) {
     }
 
     for (auto &p : m_positions) {
-        p->init();
+        p->init_game();
     }
 
     m_position = m_positions[m_default];
@@ -44,7 +43,7 @@ void Engine::reset_game() {
         return;
     }
 
-    m_position->init();
+    m_position->init_game();
 }
 
 

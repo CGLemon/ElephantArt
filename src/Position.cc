@@ -18,7 +18,7 @@
 
 #include "Position.h"
 
-void Position::init() {
+void Position::init_game() {
     board.reset_board();
     m_history.clear();
 }

@@ -27,7 +27,7 @@
 
 class Position {
 public:
-    void init();
+    void init_game();
 
     Board board;
 

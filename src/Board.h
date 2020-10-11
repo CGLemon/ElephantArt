@@ -30,36 +30,41 @@
 
 class Board {
 public:
-    static constexpr int WIDTH = BITBOARD_WIDTH;
+    static constexpr auto WIDTH = BITBOARD_WIDTH;
     
-    static constexpr int HEIGHT = BITBOARD_HEIGHT;
+    static constexpr auto HEIGHT = BITBOARD_HEIGHT;
 
-    static constexpr int SHIFT = BITBOARD_SHIFT;
+    static constexpr auto SHIFT = BITBOARD_SHIFT;
 
-    static constexpr int NUM_VERTICES = SHIFT * HEIGHT;
+    static constexpr auto NUM_VERTICES = SHIFT * HEIGHT;
+
+    static constexpr auto INTERSECTIONS = WIDTH * HEIGHT;
+
+    static constexpr auto NUM_SYMMETRIES = 4;
+
+    static constexpr auto IDENTITY_SYMMETRY = 0;
+
+    static std::array<std::array<int, INTERSECTIONS>, NUM_SYMMETRIES> symmetry_nn_idx_table;
+
+    static std::array<std::array<int, NUM_VERTICES>, NUM_SYMMETRIES> symmetry_nn_vtx_table;
 
     void reset_board();
-
     void dump_board() const;
 
+    static std::pair<int, int> get_symmetry(const int x,
+                                            const int y,
+                                            const int symmetry);
+
     static int get_vertex(const int x, const int y);
-
     static int get_index(const int x, const int y);
-
     static Types::Color swap_color(const Types::Color color);
-
     static int get_x(const int vtx);
-
     static int get_y(const int vtx);
-
+    static std::pair<int, int> get_xy(const int vtx);
     static std::string get_start_position();
-
     Types::Piece get_piece(const int x, const int y) const;
-
     Types::Piece get_piece(const int vtx) const;
-
     Types::Color get_to_move() const;
-
     void generate_movelist(Types::Color color, std::vector<Move> &MoveList) const;
 
     bool is_on_board(const int vtx) const;
@@ -68,14 +73,13 @@ public:
 
     bool fen2board(std::string &fen);
 
-    std::uint64_t calc_hash() const;
+    std::uint64_t calc_hash(const int symmetry = IDENTITY_SYMMETRY) const;
 
     static constexpr std::array<Types::Direction, 8> m_dirs =
         {Types::NORTH,      Types::EAST,       Types::SOUTH,      Types::WEST,
          Types::NORTH_EAST, Types::SOUTH_EAST, Types::SOUTH_WEST, Types::NORTH_WEST};
 
-
-    static void init_mask();
+    static void pre_initialize();
 
 private:
     #define P_  Types::R_PAWN
@@ -130,17 +134,38 @@ private:
     #undef ET
     #undef invalid_
 
-    static std::array<std::array<BitBoard, NUM_VERTICES>, 2> m_pawn_attack;
+
+    struct Magic {
+        BitBoard  mask;
+        BitBoard  magic;
+        std::vector<BitBoard> attacks;
+        std::uint64_t size;
+        int shift;
+
+        bool valid;
+
+        std::uint64_t index(BitBoard occupied) const {
+            return (std::uint64_t)((occupied & mask) * magic >> shift);
+        }
+
+        BitBoard attack(BitBoard occupied) const {
+            const auto idx = index(occupied);
+            assert(idx <= size && valid);
+            return attacks[idx];
+        }
+    };
+
+    static std::array<std::array<BitBoard, NUM_VERTICES>, 2> m_pawn_attacks;
+    static std::array<BitBoard, NUM_VERTICES> m_advisor_attacks;
+    static std::array<BitBoard, NUM_VERTICES> m_king_attacks;
 
     static std::array<BitBoard, NUM_VERTICES> m_house_mask;
+    static std::array<Magic, NUM_VERTICES> m_elephant_magics;
 
-    static std::array<BitBoard, NUM_VERTICES> m_elephant_mask;
-
-    static std::array<BitBoard, NUM_VERTICES> m_advisor_attack;
-
-    static std::array<BitBoard, NUM_VERTICES> m_king_mask;
-
-    static void init_pawn_attack();
+    static void init_pawn_attacks();
+    static void init_move_pattens();
+    static void init_magics();
+    static void init_symmetry();
     
     std::array<BitBoard, 2> m_bb_color;
 
@@ -164,18 +189,9 @@ private:
     template<Types::Piece_t>
     void generate_move(Types::Color color, std::vector<Move> &MoveList) const;
 
-    void generate_king_move(Types::Color color, std::vector<Move> &MoveList) const;
-
-    void generate_pawn_move(Types::Color color, std::vector<Move> &MoveList) const;
-
-    void generate_advisor_move(Types::Color color, std::vector<Move> &MoveList) const;
-
     void piece_stream(std::ostream &out, Types::Piece p) const;
-
     void piece_stream(std::ostream &out, const int x, const int y) const;
-
     void info_stream(std::ostream &out) const;
-
     void board_stream(std::ostream &out) const;
 };
 
@@ -199,6 +215,18 @@ inline int Board::get_x(const int vertex) {
 
 inline int Board::get_y(const int vertex) {
     return vertex / SHIFT;
+}
+
+inline std::pair<int, int> Board::get_xy(const int vertex) {
+    return std::make_pair(get_x(vertex), get_y(vertex));
+}
+
+inline Types::Color Board::swap_color(const Types::Color color) {
+    assert(color == Types::RED || color == Types::BLACK);
+    if (color == Types::RED) {
+        return Types::BLACK;
+    }
+    return Types::RED;
 }
 
 #endif

@@ -23,11 +23,17 @@
 #include <sstream>
 #include <iostream>
 
+ASCII::ASCII() {
+    init();
+    loop();
+}
+
+
 void ASCII::init() {
     if (m_ascii_engine == nullptr) {
         m_ascii_engine = std::make_unique<Engine>();
     }
-    m_ascii_engine->init();
+    m_ascii_engine->initialize(option<int>("num_games"));
 }
 
 void ASCII::loop() {
@@ -52,22 +58,19 @@ void ASCII::loop() {
                 break;
             }
 
-             std::cout << execute(parser) << std::endl;
+            std::cout << execute(parser) << std::endl;
         }
     }
-
 }
 
 
 std::string ASCII::execute(Utils::CommandParser &parser) {
 
     auto out = std::ostringstream{};
-    const auto cnt = parser.get_count();
-
     const auto lambda_syntax_not_understood =
         [&](Utils::CommandParser &p, size_t ignore) -> void {
 
-        if (cnt <= ignore) { return; }
+        if (p.get_count() <= ignore) { return; }
         out << p.get_commands(ignore)->str << " ";
         out << ": syntax not understood" << std::endl;
     };

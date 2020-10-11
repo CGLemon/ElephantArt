@@ -16,7 +16,7 @@ if(GPU_BACKEND STREQUAL "CUDA")
     endif()
     string(APPEND CMAKE_CUDA_FLAGS "-cudart shared")
 
-    set(CUDA_STANDARD 17)
+    set(CUDA_STANDARD 14)
     set(CMAKE_CUDA_FLAGS
         "-gencode arch=compute_53,code=sm_53 -gencode arch=compute_70,code=sm_70 -gencode  arch=compute_75,code=compute_75"
     )
@@ -39,7 +39,7 @@ set(CMAKE_EXE_LINKER_FLAGS "-flto -g")
 
 find_package(Threads REQUIRED)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 if (BLAS_BACKEND STREQUAL "EIGEN")

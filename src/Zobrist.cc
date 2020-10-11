@@ -30,33 +30,40 @@ constexpr std::uint64_t Zobrist::zobrist_redtomove;
 std::array<std::array<std::uint64_t, Zobrist::ZOBRIST_SIZE>, 18> Zobrist::zobrist;
 
 template<typename T>
-bool is_same(std::vector<T> &array, T element) {
-    auto begin = std::begin(array);
-    auto end = std::end(array);
-    auto res = std::find(begin, end, element);
-    return res != end;
-} 
+bool collision(std::vector<T> &array) {
+    const auto s = array.size();
+    if (s == 1) {
+        return false;
+    }
 
+    for (auto i = size_t{0}; i < (s-1); ++i) {
+        auto begin = std::cbegin(array);
+        auto element = std::next(begin, i);
+        auto start = std::next(element, 1);
+        auto end = std::cend(array);
+        auto res = std::find(start, end, *element);
+        if (res != end) {
+            return true;
+        }
+    }
+    return false;
+}
 
 void Zobrist::init_zobrist() {
 
     Random<random_t::XoroShiro128Plus> rng(zobrist_seed);
+    while (true) {
+        auto buf = std::vector<std::uint64_t>{};
 
-    auto buf = std::vector<std::uint64_t>{};
-
-    for (int i = 0; i < 18; i++) {
-        for (int j = 0; j < ZOBRIST_SIZE; j++) {
-            zobrist[i][j] = rng.randuint64();
-            buf.emplace_back(zobrist[i][j]);
+        for (int i = 0; i < 18; i++) {
+            for (int j = 0; j < ZOBRIST_SIZE; j++) {
+                zobrist[i][j] = rng.randuint64();
+                buf.emplace_back(zobrist[i][j]);
+            }
         }
-    }
 
-    auto success = bool{true};
-    for (auto &element : buf) {
-        success |= (!is_same<std::uint64_t>(buf, element));
-    }
-
-    if (!success) {
-        printf("The Zobrist seed is bad. Please reset a new zobrist seed.\n");
+        if (!collision(buf)) {
+            break;
+        }
     }
 }

@@ -26,6 +26,7 @@
 #include <iostream>
 #include <sstream>
 #include <cstdint>
+#include <cassert>
 #include <string>
 
 typedef Uint128_t BitBoard;
@@ -33,8 +34,6 @@ typedef Uint128_t BitBoard;
 static constexpr int BITBOARD_WIDTH = MARCRO_WIDTH;
 static constexpr int BITBOARD_HEIGHT = MARCRO_HEIGHT;
 static constexpr int BITBOARD_SHIFT = MARCRO_SHIFT;
-
-const BitBoard ZeroBB(0ULL, 0ULL);
 
 const BitBoard FirstPosition(0ULL, 1ULL);
 
@@ -201,6 +200,12 @@ public:
         return b == vertex2bitboard(v);
     }
 
+    inline static Types::Vertices extract(BitBoard &b) {
+        const auto vtx = BitUtils::lsb(b);
+        assert(vtx != Types::NO_VERTEX);
+        b = BitUtils::reset_ls1b(b);
+        return vtx;
+    }
    /*
     * Displays the bitboard (include invalid edge and extra bit).
     */

@@ -26,7 +26,7 @@
 
 class Engine {
 public:
-    void init(int g = 1);
+    void initialize(int g = 1);
 
     void reset_game();
 

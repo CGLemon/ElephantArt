@@ -29,7 +29,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <optional>
+#include <chrono>
 
 
 namespace Utils {
@@ -42,8 +42,20 @@ void space_stream(std::ostream &out, const size_t times);
 
 void strip_stream(std::ostream &out, const size_t times);
 
+float cached_t_quantile(int v);
 
-template <class T> 
+template <typename T> 
+void adjust_range(T &a, const T max, const T min = (T)0) {
+    assert(max > min);
+    if (a > max) {
+        a = max;
+    }
+    else if (a < min) {
+        a = min;
+    }
+}
+
+template <typename T> 
 void atomic_add(std::atomic<T> &f, T d) {
     T old = f.load();
     while (!f.compare_exchange_weak(old, old + d)) {}
@@ -54,6 +66,8 @@ void atomic_add(std::atomic<T> &f, T d) {
  */
 class CommandParser {
 public:
+    
+
     struct Reuslt {
         Reuslt(const std::string &s, const int i) : str(s), idx(i) {};
 
@@ -62,37 +76,45 @@ public:
 
         std::string str;
         int idx;
+
+        template<typename T> T get() const;
     };
 
     CommandParser() = delete;
 
     CommandParser(std::string input);
 
+    CommandParser(int argc, char** argv);
+
     bool valid() const;
 
     size_t get_count() const;
 
+    std::shared_ptr<Reuslt> get_command(size_t id) const;
+    std::shared_ptr<Reuslt> get_commands(size_t begin = 0) const;
+    std::shared_ptr<Reuslt> get_slice(size_t begin, size_t end) const;
+    std::shared_ptr<Reuslt> find(const std::string input, int id = -1) const;
+    std::shared_ptr<Reuslt> find(const std::vector<std::string> inputs, int id = -1) const;
+    std::shared_ptr<Reuslt> find_next(const std::string input) const;
+    std::shared_ptr<Reuslt> find_next(const std::vector<std::string> inputs) const;
+/*
     std::optional<Reuslt> get_command(size_t id) const;
-
     std::optional<Reuslt> get_commands(size_t begin = 0) const;
-
     std::optional<Reuslt> get_slice(size_t begin, size_t end) const;
-
     std::optional<Reuslt> find(const std::string input, int id = -1) const;
-
     std::optional<Reuslt> find(const std::vector<std::string> inputs, int id = -1) const;
-
     std::optional<Reuslt> find_next(const std::string input) const;
-
     std::optional<Reuslt> find_next(const std::vector<std::string> inputs) const;
+ */
 
 private:
     std::vector<std::shared_ptr<const std::string>> m_commands;
 
     size_t m_count;
 
-    void parser(std::string &input);
+    void parser(std::string &&input);
 };
+
 
 
 /**
@@ -182,6 +204,29 @@ void Option::adjust() {
     }
 }
 
+class Timer {
+public:
+    Timer();
+    void clock();  
+   
+    int get_duration_seconds() const;
+    int get_duration_milliseconds() const;
+    int get_duration_microseconds () const;
+    float get_duration() const;
+
+    void record();
+    void release();
+    float get_record_time(size_t) const;
+    int get_record_count() const;
+    const std::vector<float>& get_record() const;
+
+private:
+    std::chrono::steady_clock::time_point m_clock_time;
+
+    std::vector<float> m_record;
+
+    size_t record_count;
+};
 
 } // namespace Utils
 
