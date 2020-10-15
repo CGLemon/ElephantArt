@@ -204,6 +204,7 @@ void Option::adjust() {
     }
 }
 
+
 class Timer {
 public:
     Timer();
@@ -226,6 +227,23 @@ private:
     std::vector<float> m_record;
 
     size_t record_count;
+};
+
+class BitIterator {
+public :
+    BitIterator() = delete;
+    BitIterator(const size_t s);
+
+    std::vector<bool> get() const;
+    void set(std::uint64_t cnt);
+
+    void next();
+    void back();
+
+private :
+    bool bit_signed(size_t s) const;
+    std::uint64_t m_cnt{0ULL};
+    size_t m_size{0};
 };
 
 } // namespace Utils

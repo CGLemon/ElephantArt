@@ -64,7 +64,7 @@ public:
           return static_cast<std::uint32_t>(randuint64()) % Range;
     }
 
-    // It is the interface for STL.
+    // The interface for STL.
     using result_type = std::uint64_t;
 
     constexpr static result_type min() {

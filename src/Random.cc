@@ -38,11 +38,11 @@ static inline std::uint64_t rotl(const std::uint64_t x, const int k) {
 
 static inline std::uint64_t get_seed(std::uint64_t seed) {
     if (seed == THREADS_SEED) {
-        // Getting the seed from thread id.
+        // Get the seed from thread id.
         auto thread_id = std::hash<std::thread::id>()(std::this_thread::get_id());
         seed = static_cast<std::uint64_t>(thread_id);
     } else if (seed == TIME_SEED) {
-        // Getting the seed from system time.
+        // Get the seed from system time.
         auto get_time = std::chrono::system_clock::now().time_since_epoch().count();
         seed = static_cast<std::uint64_t>(get_time);
     }

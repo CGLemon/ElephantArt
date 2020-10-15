@@ -19,7 +19,7 @@
 #include "BitBoard.h"
 #include "Utils.h"
 
-void BitUtils::dump_bitboard(const BitBoard &bitboard, std::ostream &out) {
+void Utils::dump_bitboard(const BitBoard &bitboard, std::ostream &out) {
     const auto lambda_vertex = [&](int x_, int y_) -> int {
         return x_ + y_ * BITBOARD_SHIFT;
     };
@@ -53,7 +53,7 @@ void BitUtils::dump_bitboard(const BitBoard &bitboard, std::ostream &out) {
     out << std::endl;
 }
 
-void BitUtils::dump_bitboard(const BitBoard &bitboard) {
+void Utils::dump_bitboard(const BitBoard &bitboard) {
     auto out = std::ostringstream{};
     dump_bitboard(bitboard, out);
     Utils::auto_printf(out);

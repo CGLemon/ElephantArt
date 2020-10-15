@@ -137,20 +137,23 @@ private:
 
     struct Magic {
         BitBoard  mask;
-        BitBoard  magic;
+        std::uint64_t  magic;
         std::vector<BitBoard> attacks;
-        std::uint64_t size;
+
+        std::uint64_t limit;
         int shift;
 
         bool valid;
 
         std::uint64_t index(BitBoard occupied) const {
-            return (std::uint64_t)((occupied & mask) * magic >> shift);
+            auto mark = occupied & mask;
+            return (mark.get_upper() * magic +
+                        mark.get_lower() * magic) >> shift;
         }
 
         BitBoard attack(BitBoard occupied) const {
             const auto idx = index(occupied);
-            assert(idx <= size && valid);
+            assert(idx <= limit && valid);
             return attacks[idx];
         }
     };
@@ -159,7 +162,7 @@ private:
     static std::array<BitBoard, NUM_VERTICES> m_advisor_attacks;
     static std::array<BitBoard, NUM_VERTICES> m_king_attacks;
 
-    static std::array<BitBoard, NUM_VERTICES> m_house_mask;
+    static std::array<Magic, NUM_VERTICES> m_horse_magics;
     static std::array<Magic, NUM_VERTICES> m_elephant_magics;
 
     static void init_pawn_attacks();

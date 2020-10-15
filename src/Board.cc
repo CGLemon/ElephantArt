@@ -19,9 +19,11 @@
 #include "Board.h"
 #include "Utils.h"
 #include "Zobrist.h"
+#include "Random.h"
 
 #include <algorithm>
 #include <sstream>
+#include <functional>
 
 constexpr std::array<Types::Piece, Board::NUM_VERTICES> Board::START_VERTICES;
 
@@ -31,7 +33,7 @@ std::array<std::array<int, Board::INTERSECTIONS>, Board::NUM_SYMMETRIES> Board::
 std::array<std::array<int, Board::NUM_VERTICES>, Board::NUM_SYMMETRIES> Board::symmetry_nn_vtx_table;
 
 std::array<std::array<BitBoard, Board::NUM_VERTICES>, 2> Board::m_pawn_attacks;
-std::array<BitBoard, Board::NUM_VERTICES> Board::m_house_mask;
+std::array<Board::Magic, Board::NUM_VERTICES> Board::m_horse_magics;
 std::array<Board::Magic, Board::NUM_VERTICES> Board::m_elephant_magics;
 std::array<BitBoard, Board::NUM_VERTICES> Board::m_advisor_attacks;
 std::array<BitBoard, Board::NUM_VERTICES> Board::m_king_attacks;
@@ -75,59 +77,59 @@ bool Board::fen2board(std::string &fen) {
     for (const auto &c : fen_stream) {
         bool skip = false;
         if (c == 'p') {
-            auto bb = BitUtils::vertex2bitboard(vtx);
+            auto bb = Utils::vertex2bitboard(vtx);
             bb_pawn |= bb;
             bb_black |= bb;
         } else if (c == 'c') {
-            auto bb = BitUtils::vertex2bitboard(vtx);
+            auto bb = Utils::vertex2bitboard(vtx);
             bb_cannon |= bb;
             bb_black |= bb;
         } else if (c == 'r') {
-            auto bb = BitUtils::vertex2bitboard(vtx);
+            auto bb = Utils::vertex2bitboard(vtx);
             bb_rook |= bb;
             bb_black |= bb;
         } else if (c == 'n') {
-            auto bb = BitUtils::vertex2bitboard(vtx);
+            auto bb = Utils::vertex2bitboard(vtx);
             bb_horse |= bb;
             bb_black |= bb;
         } else if (c == 'b') {
-            auto bb = BitUtils::vertex2bitboard(vtx);
+            auto bb = Utils::vertex2bitboard(vtx);
             bb_elephant |= bb;
             bb_black |= bb;
         } else if (c == 'a') {
-            auto bb = BitUtils::vertex2bitboard(vtx);
+            auto bb = Utils::vertex2bitboard(vtx);
             bb_advisor |= bb;
             bb_black |= bb;
         } else if (c == 'k') {
             king_vertex_black = vtx;
-            bb_black |= BitUtils::vertex2bitboard(vtx);
+            bb_black |= Utils::vertex2bitboard(vtx);
         } else if (c == 'P') {
-            auto bb = BitUtils::vertex2bitboard(vtx);
+            auto bb = Utils::vertex2bitboard(vtx);
             bb_pawn |= bb;
             bb_red |= bb;
         } else if (c == 'C') {
-            auto bb = BitUtils::vertex2bitboard(vtx);
+            auto bb = Utils::vertex2bitboard(vtx);
             bb_cannon |= bb;
             bb_red|= bb;
         } else if (c == 'R') {
-            auto bb = BitUtils::vertex2bitboard(vtx);
+            auto bb = Utils::vertex2bitboard(vtx);
             bb_rook |= bb;
             bb_red |= bb;
         } else if (c == 'N') {
-            auto bb = BitUtils::vertex2bitboard(vtx);
+            auto bb = Utils::vertex2bitboard(vtx);
             bb_horse |= bb;
             bb_red |= bb;
         } else if (c == 'B') {
-            auto bb = BitUtils::vertex2bitboard(vtx);
+            auto bb = Utils::vertex2bitboard(vtx);
             bb_elephant |= bb;
             bb_red |= bb;
         } else if (c == 'A') {
-            auto bb = BitUtils::vertex2bitboard(vtx);
+            auto bb = Utils::vertex2bitboard(vtx);
             bb_advisor |= bb;
             bb_red |= bb;
         } else if (c == 'K') {
             king_vertex_red = vtx;
-            bb_red |= BitUtils::vertex2bitboard(vtx);
+            bb_red |= Utils::vertex2bitboard(vtx);
         } else if (c >= '1' && c <= '9') {
             vtx += (std::atoi(&c) - 1);
         } else if (c == '/') {
@@ -227,17 +229,17 @@ void Board::init_pawn_attacks() {
 
         auto BitBoard = tie(0ULL, 0ULL);
         if (color == Types::BLACK) {
-            BitBoard |= BitUtils::vertex2bitboard(vtx + Types::SOUTH);
-            if (BitUtils::on_area(vtx, RedSide)) {
-                BitBoard |= BitUtils::vertex2bitboard(vtx + Types::WEST);
-                BitBoard |= BitUtils::vertex2bitboard(vtx + Types::EAST);
+            BitBoard |= Utils::vertex2bitboard(vtx + Types::SOUTH);
+            if (Utils::on_area(vtx, RedSide)) {
+                BitBoard |= Utils::vertex2bitboard(vtx + Types::WEST);
+                BitBoard |= Utils::vertex2bitboard(vtx + Types::EAST);
             }
             BitBoard &= onBoard;
         } else if (color == Types::RED) {
-            BitBoard |= BitUtils::vertex2bitboard(vtx + Types::NORTH);
-            if (BitUtils::on_area(vtx, BlackSide)) {
-                BitBoard |= BitUtils::vertex2bitboard(vtx + Types::WEST);
-                BitBoard |= BitUtils::vertex2bitboard(vtx + Types::EAST);
+            BitBoard |= Utils::vertex2bitboard(vtx + Types::NORTH);
+            if (Utils::on_area(vtx, BlackSide)) {
+                BitBoard |= Utils::vertex2bitboard(vtx + Types::WEST);
+                BitBoard |= Utils::vertex2bitboard(vtx + Types::EAST);
             }
             BitBoard &= onBoard;
         }
@@ -260,27 +262,26 @@ void Board::init_move_pattens() {
 
     // horse mask
     for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
-        const auto bb = BitUtils::vertex2bitboard(v);
+        const auto bb = Utils::vertex2bitboard(v);
         auto mask = BitBoard(0ULL);
-
-        if (BitUtils::on_board(bb)) {
+        if (Utils::on_board(bb)) {
             for (int k = 0; k < 4; ++k) {
                 const auto dir = Board::m_dirs[k];
-                const auto k_bb = BitUtils::shift(dir, bb);
+                const auto k_bb = Utils::shift(dir, bb);
                 mask |= k_bb;
             }
         }
-        m_house_mask[v] = mask;
+        m_horse_magics[v].mask = mask;
     }
 
     // elephant magic
     for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
-        const auto bb = BitUtils::vertex2bitboard(v);
+        const auto bb = Utils::vertex2bitboard(v);
         auto mask = BitBoard(0ULL);
-        if (BitUtils::on_board(bb)) {
+        if (Utils::on_board(bb)) {
             for (int k = 4; k < 8; ++k) {
                 const auto dir = Board::m_dirs[k];
-                const auto k_bb = BitUtils::shift(dir, bb);
+                const auto k_bb = Utils::shift(dir, bb);
                 mask |= k_bb;
             }
         }
@@ -289,12 +290,12 @@ void Board::init_move_pattens() {
 
     // advisor attacks
     for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
-        const auto bb = BitUtils::vertex2bitboard(v);
+        const auto bb = Utils::vertex2bitboard(v);
         auto mask = BitBoard(0ULL);
-        if (BitUtils::on_area(bb, KingArea)) {
+        if (Utils::on_area(bb, KingArea)) {
             for (int k = 4; k < 8; ++k) {
                 const auto dir = Board::m_dirs[k];
-                const auto k_bb = BitUtils::shift(dir, bb);
+                const auto k_bb = Utils::shift(dir, bb);
                 mask |= k_bb;
             }
             mask &= KingArea;
@@ -304,12 +305,12 @@ void Board::init_move_pattens() {
 
     // king attacks
     for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
-        const auto bb = BitUtils::vertex2bitboard(v);
+        const auto bb = Utils::vertex2bitboard(v);
         auto mask = BitBoard(0ULL);
-        if (BitUtils::on_area(bb, KingArea)) {
+        if (Utils::on_area(bb, KingArea)) {
             for (int k = 0; k < 4; ++k) {
                 const auto dir = Board::m_dirs[k];
-                const auto k_bb = BitUtils::shift(dir, bb);
+                const auto k_bb = Utils::shift(dir, bb);
                 mask |= k_bb;
             }
             mask &= KingArea;
@@ -330,24 +331,116 @@ void Board::init_magics() {
                       }); 
     };
 
-    set_valid(m_elephant_magics);
+    const auto generate_magic = [&](Types::Vertices v,
+                                   std::array<Magic, NUM_VERTICES> &magics,
+                                   std::function<BitBoard(BitBoard &, BitBoard &)> generate_reference) -> void {
+        if (!magics[v].valid) {
+            return;
+        }
+        auto rng = Random<random_t::XoroShiro128Plus>::get_Rng();
+        auto center = Utils::vertex2bitboard(v);
+        auto mask = magics[v].mask;
+        const auto count = Utils::count(mask);
+        const auto begin = 0ULL;
+        const auto end = 1ULL << count;
 
+        magics[v].shift = 64 - count;
+        magics[v].attacks.resize(end);
+        magics[v].attacks.shrink_to_fit();
+        magics[v].limit = magics[v].attacks.size();
 
-    const auto prepare = [](std::array<Magic, NUM_VERTICES> &magics, unsigned anti_shift) -> void {
-
-        const auto MAX_ATTACK_INDEX = 1ULL << anti_shift;
-
-        for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
-            if (magics[v].valid) {
-                magics[v].attacks.resize(MAX_ATTACK_INDEX);
-                magics[v].shift = 128 - MAX_ATTACK_INDEX;
+        auto vtxs = std::vector<Types::Vertices>{};
+        while (mask) {
+            const auto vtx = Utils::extract(mask);
+            vtxs.emplace_back(vtx);
+        }
+        assert(vtxs.size() == (size_t)count);
+        auto bit_iterator = Utils::BitIterator((size_t)count);
+        for (auto b = begin; b < end; ++b) {
+            if (b == begin) {
+                bit_iterator.set(0ULL);
+                auto zeroBB = BitBoard(0ULL);
+                std::fill(std::begin(magics[v].attacks),
+                          std::end(magics[v].attacks), zeroBB);
+                magics[v].magic = rng.randuint64();
             }
-            magics[v].attacks.shrink_to_fit();
+
+            bit_iterator.next();
+            auto res = bit_iterator.get();
+            auto occupancy = BitBoard(0ULL);
+            for (int i = 0; i < count; ++i) {
+                if (res[i]) {
+                    occupancy |= Utils::vertex2bitboard(vtxs[i]);
+                }
+            }
+
+            auto reference = generate_reference(center, occupancy);
+
+            if (!reference) {
+                continue;
+            }
+
+            const auto index = magics[v].index(occupancy);
+            if (magics[v].attacks[index]) {
+                if (magics[v].attacks[index] != reference) {
+                    b = begin-1;
+                }
+            } else {
+                magics[v].attacks[index] = reference;
+            }
         }
     };
+  
 
-    prepare(m_elephant_magics, 4);
+    const auto elephant_reference = [&](BitBoard & center,
+                                        BitBoard & occupancy) -> BitBoard {
+        auto reference = BitBoard(0ULL);
+        for (int k = 4; k < 8; ++k) {
+            const auto dir = Board::m_dirs[k];
+            const auto diagonal = Utils::shift(dir, center);
+            if (!(diagonal & occupancy)) {
+                reference |= Utils::shift(dir, diagonal);
+            }
+        }
+        return reference;
+    };
 
+    const auto horse_reference = [&](BitBoard & center,
+                                     BitBoard & occupancy) -> BitBoard {
+        auto reference = BitBoard(0ULL);
+        auto block = BitBoard(0ULL);
+
+        block |= Utils::shift(Types::NORTH, center);
+        block |= Utils::shift(Types::EAST, center);
+        block |= Utils::shift(Types::SOUTH, center);
+        block |= Utils::shift(Types::WEST, center);
+
+        for (int k = 0; k < 4; ++k) {
+            const auto dir = Board::m_dirs[k];
+            const auto side = Utils::shift(dir, center);
+            if (!(side & occupancy)) {
+                for (int kk = 4; kk < 8; ++kk) {
+                    const auto kdir = Board::m_dirs[kk];
+                    const auto diagonal = Utils::shift(kdir, side);
+                    if (!(diagonal & block)) {
+                        reference |= diagonal;
+                    }
+                }
+            }
+        }   
+        return reference;
+    };
+
+    // Utils::Timer timer;
+    set_valid(m_elephant_magics);
+    set_valid(m_horse_magics);
+
+    for (auto vtx = Types::VTX_BEGIN; vtx < Types::VTX_END; ++vtx) {
+        generate_magic(vtx, m_elephant_magics, elephant_reference);
+        generate_magic(vtx, m_horse_magics, horse_reference);
+    }
+    // auto t = timer.get_duration();
+    // printf("%f second(s)\n", t);
 }
 
 void Board::pre_initialize() {
@@ -501,9 +594,9 @@ Types::Piece Board::get_piece(const int vtx) const {
     auto color = Types::INVALID_COLOR;
     auto p = Types::INVAL_PIECE;
 
-    if (BitUtils::on_area(vtx, m_bb_color[Types::RED])) {
+    if (Utils::on_area(vtx, m_bb_color[Types::RED])) {
         color = Types::RED;
-    } else if (BitUtils::on_area(vtx, m_bb_color[Types::BLACK])) {
+    } else if (Utils::on_area(vtx, m_bb_color[Types::BLACK])) {
         color = Types::BLACK;
     }
 
@@ -515,17 +608,17 @@ Types::Piece Board::get_piece(const int vtx) const {
         }
     }
 
-    if (BitUtils::on_area(vtx, m_bb_pawn)) {
+    if (Utils::on_area(vtx, m_bb_pawn)) {
         p = Types::R_PAWN;
-    } else if (BitUtils::on_area(vtx, m_bb_horse)) {
+    } else if (Utils::on_area(vtx, m_bb_horse)) {
         p = Types::R_HORSE;
-    } else if (BitUtils::on_area(vtx, m_bb_cannon)) {
+    } else if (Utils::on_area(vtx, m_bb_cannon)) {
         p = Types::R_CANNON;
-    } else if (BitUtils::on_area(vtx, m_bb_rook)) {
+    } else if (Utils::on_area(vtx, m_bb_rook)) {
         p = Types::R_ROOK;
-    } else if (BitUtils::on_area(vtx, m_bb_elephant)) {
+    } else if (Utils::on_area(vtx, m_bb_elephant)) {
         p = Types::R_ELEPHANT;
-    } else if (BitUtils::on_area(vtx, m_bb_advisor)) {
+    } else if (Utils::on_area(vtx, m_bb_advisor)) {
         p = Types::R_ADVISOR;
     } else {
         assert(vtx == m_king_vertex[color]);
@@ -547,7 +640,7 @@ const auto lambda_separate_bitboarad = [](Types::Vertices vtx,
                                           BitBoard &legal_bitboard,
                                           std::vector<Move> &MoveList) -> void {
     while (legal_bitboard) {
-        const auto res = BitUtils::extract(legal_bitboard);
+        const auto res = Utils::extract(legal_bitboard);
         assert(res != Types::NO_VERTEX);
 
         const auto from = vtx;
@@ -573,10 +666,10 @@ void Board::generate_move<Types::PAWN>(Types::Color color, std::vector<Move> &Mo
 
     auto bb_p = m_bb_pawn & m_bb_color[color];
     while (bb_p) {
-        const auto vtx = BitUtils::extract(bb_p);
+        const auto vtx = Utils::extract(bb_p);
         const auto attack = m_pawn_attacks[color][vtx];
         const auto block = attack & m_bb_color[color];
-        auto legal_bitboard = (attack ^ block) | (attack & m_bb_color[swap_color(color)]);
+        auto legal_bitboard = attack ^ block;
         lambda_separate_bitboarad(vtx, legal_bitboard, MoveList);
     }
 }
@@ -586,10 +679,10 @@ void Board::generate_move<Types::ADVISOR>(Types::Color color, std::vector<Move> 
 
     auto bb_a = m_bb_advisor & m_bb_color[color];
     while (bb_a) {
-        const auto vtx = BitUtils::extract(bb_a);
+        const auto vtx = Utils::extract(bb_a);
         const auto attack = m_advisor_attacks[vtx];
         const auto block = attack & m_bb_color[color];
-        auto legal_bitboard = (attack ^ block) | (attack & m_bb_color[swap_color(color)]);
+        auto legal_bitboard = attack ^ block;
         lambda_separate_bitboarad(vtx, legal_bitboard, MoveList);
     }
 }
@@ -598,18 +691,27 @@ template<>
 void Board::generate_move<Types::ELEPHANT>(Types::Color color, std::vector<Move> &MoveList) const {
 
     auto bb_e = m_bb_elephant & m_bb_color[color];
-    auto empty = !(m_bb_color[Types::RED] | m_bb_color[Types::BLACK]);
+    auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
     while (bb_e) {
-        const auto vtx = BitUtils::extract(bb_e);
-        // const auto mask = m_elephant_mask[vtx];
-        //const auto mark = mask & empty;
-        //while () {
+        const auto vtx = Utils::extract(bb_e);
+        const auto attack = m_elephant_magics[vtx].attack(occupancy);
+        const auto block = attack & m_bb_color[color];
+        auto legal_bitboard = attack ^ block;
+        lambda_separate_bitboarad(vtx, legal_bitboard, MoveList);
+    }
+}
 
-        //}
-  
-        // auto legal_bitboard = (mask ^ block) | (mask & m_bb_color[swap_color(color)]);
+template<>
+void Board::generate_move<Types::HORSE>(Types::Color color, std::vector<Move> &MoveList) const {
 
-        //lambda_separate_bitboarad(vtx, legal_bitboard, MoveList);
+    auto bb_h = m_bb_horse & m_bb_color[color];
+    auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
+    while (bb_h) {
+        const auto vtx = Utils::extract(bb_h);
+        const auto attack = m_horse_magics[vtx].attack(occupancy);
+        const auto block = attack & m_bb_color[color];
+        auto legal_bitboard = attack ^ block;
+        lambda_separate_bitboarad(vtx, legal_bitboard, MoveList);
     }
 }
 
@@ -619,9 +721,11 @@ void Board::generate_movelist(Types::Color color, std::vector<Move> &MoveList) c
     MoveList.clear();
     MoveList.reserve(option<int>("reserve_movelist"));
 
-    generate_move<Types::KING>   (color, MoveList);
-    generate_move<Types::PAWN>   (color, MoveList);
-    generate_move<Types::ADVISOR>(color, MoveList);
+    generate_move<Types::KING>    (color, MoveList);
+    generate_move<Types::PAWN>    (color, MoveList);
+    generate_move<Types::HORSE>   (color, MoveList);
+    generate_move<Types::ADVISOR> (color, MoveList);
+    generate_move<Types::ELEPHANT>(color, MoveList);
 
     MoveList.shrink_to_fit();
 }

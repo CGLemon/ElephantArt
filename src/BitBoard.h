@@ -66,159 +66,157 @@ const BitBoard RedSide = Rank0BB | Rank1BB | Rank2BB | Rank3BB | Rank4BB;
 const BitBoard BlackSide = Rank5BB | Rank6BB | Rank7BB | Rank8BB | Rank9BB;
 const BitBoard KingArea = (Rank0BB | Rank1BB | Rank2BB | Rank7BB | Rank8BB | Rank9BB) & (FileDBB | FileEBB | FileFBB);
 
-class BitUtils {
-public:
-    inline static bool on_board(const BitBoard bitboard) {
-        return onBoard & bitboard;
+namespace Utils {
+
+inline static bool on_board(const BitBoard bitboard) {
+    return onBoard & bitboard;
+}
+
+inline static bool on_board(const Types::Vertices v) {
+    return onBoard & (FirstPosition << v);
+}
+
+inline static bool on_board(const int v) {
+    return onBoard & (FirstPosition << v);
+}
+
+inline static bool on_area(const BitBoard bitboard, const BitBoard area_board) {
+    return area_board & bitboard;
+}
+
+inline static bool on_area(const Types::Vertices v, const BitBoard area_board) {
+    return area_board & (FirstPosition << v);
+}
+
+inline static bool on_area(const int v, const BitBoard area_board) {
+    return area_board & (FirstPosition << v);
+}
+
+inline static BitBoard shift(Types::Direction d, BitBoard bitboard) {
+    if (d > 0) {
+        return (bitboard << d) & onBoard;
     }
+    return (bitboard >> (-d)) & onBoard;
+}
 
-    inline static bool on_board(const Types::Vertices v) {
-        return onBoard & (FirstPosition << v);
-    }
+inline static BitBoard vertex2bitboard(const Types::Vertices v) {
+    return FirstPosition << v;
+}
 
-    inline static bool on_board(const int v) {
-        return onBoard & (FirstPosition << v);
-    }
+inline static BitBoard vertex2bitboard(const int v) {
+    return FirstPosition << v;
+}
 
-    inline static bool on_area(const BitBoard bitboard, const BitBoard area_board) {
-        return area_board & bitboard;
-    }
+inline static BitBoard ls1b(BitBoard b) {
+    return b & -b;
+}
 
-    inline static bool on_area(const Types::Vertices v, const BitBoard area_board) {
-        return area_board & (FirstPosition << v);
-    }
+inline static BitBoard reset_ls1b(BitBoard b) {
+    return b & (b-1);
+}
 
-    inline static bool on_area(const int v, const BitBoard area_board) {
-        return area_board & (FirstPosition << v);
-    }
-
-    inline static BitBoard shift(Types::Direction d, BitBoard bitboard) {
-        if (d > 0) {
-            return (bitboard << d) & onBoard;
-        }
-        return (bitboard >> (-d)) & onBoard;
-    }
-
-    inline static BitBoard vertex2bitboard(const Types::Vertices v) {
-        return FirstPosition << v;
-    }
-
-    inline static BitBoard vertex2bitboard(const int v) {
-        return FirstPosition << v;
-    }
-
-    inline static BitBoard ls1b(BitBoard b) {
-        return b & -b;
-    }
-
-    inline static BitBoard reset_ls1b(BitBoard b) {
-        return b & (b-1);
-    }
-
-    inline static Types::Vertices lsb(BitBoard b) {
-
-        /*
-         * bitScanForward
-         * @author Martin Läuter (1997)
-         *         Charles E. Leiserson
-         *         Harald Prokop
-         *         Keith H. Randall
-         * "Using de Bruijn Sequences to Index a 1 in a Computer Word"
-         * @param bb bitboard to scan
-         * @precondition bb != 0
-         * @return index (0..63) of least significant one bit
-         */
-        static constexpr int index64[64] = {
-             0,  1, 48,  2, 57, 49, 28,  3,
-            61, 58, 50, 42, 38, 29, 17,  4,
-            62, 55, 59, 36, 53, 51, 43, 22,
-            45, 39, 33, 30, 24, 18, 12,  5,
-            63, 47, 56, 27, 60, 41, 37, 16,
-            54, 35, 52, 21, 44, 32, 23, 11,
-            46, 26, 40, 15, 34, 20, 31, 10,
-            25, 14, 19,  9, 13,  8,  7,  6
-        };
-
-        const auto bitScanForward = [](std::uint64_t bit64) -> int {
-            static constexpr std::uint64_t debruijn64 = 0x03f79d71b4cb0a89;
-            return index64[((bit64 & -bit64) * debruijn64) >> 58];
-        };
-
-        int res = 0;
-        std::uint64_t bit = b.get_lower();
-        if (bit == 0ULL) {
-            bit = b.get_upper();
-            res += 64;
-        }
-
-        if (bit == 0ULL) {
-            return Types::NO_VERTEX;
-        }
-
-        res += bitScanForward(bit);
-
-        return static_cast<Types::Vertices>(res);
-    }
-   
-    // Counts the number of set bits in the BitBoard.
-    inline static int count(BitBoard b) {
-
-        std::uint64_t x_1 = b.get_upper();
-        std::uint64_t x_2 = b.get_lower();
-
-        const auto lambda_uint64_count = [](std::uint64_t x) -> int {
-            x -= (x >> 1) & 0x5555555555555555;
-            x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
-            x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;
-            return (x * 0x0101010101010101) >> 56;
-        };
-
-        return lambda_uint64_count(x_1) + lambda_uint64_count(x_2);
-    }
+inline static Types::Vertices lsb(BitBoard b) {
 
     /*
-     * Like count(BitBoard b) but using algorithm faster on a very sparse BitBoard.
-     * May be slower for more than 4 set bits, but still correct.
-     * Useful when counting bits in a Q, R, N or B BitBoard.
+     * bitScanForward
+     * @author Martin Läuter (1997)
+     *         Charles E. Leiserson
+     *         Harald Prokop
+     *         Keith H. Randall
+     * "Using de Bruijn Sequences to Index a 1 in a Computer Word"
+     * @param bb bitboard to scan
+     * @precondition bb != 0
+     * @return index (0..63) of least significant one bit
      */
-    inline static int count_few(BitBoard b) {
+    static constexpr int index64[64] = {
+         0,  1, 48,  2, 57, 49, 28,  3,
+        61, 58, 50, 42, 38, 29, 17,  4,
+        62, 55, 59, 36, 53, 51, 43, 22,
+        45, 39, 33, 30, 24, 18, 12,  5,
+        63, 47, 56, 27, 60, 41, 37, 16,
+        54, 35, 52, 21, 44, 32, 23, 11,
+        46, 26, 40, 15, 34, 20, 31, 10,
+        25, 14, 19,  9, 13,  8,  7,  6
+    };
 
-        std::uint64_t x_1 = b.get_upper();
-        std::uint64_t x_2 = b.get_lower();
-        const auto lambda_uint64_count_few = [](std::uint64_t x) -> int {
-            int count;
-            for (count = 0; x != 0; ++count) {
-                  x &= x - 1;
-            }
-            return count;
-        };
+    const auto bitScanForward = [](std::uint64_t bit64) -> int {
+        static constexpr std::uint64_t debruijn64 = 0x03f79d71b4cb0a89;
+        return index64[((bit64 & -bit64) * debruijn64) >> 58];
+    };
 
-        return lambda_uint64_count_few(x_1) + lambda_uint64_count_few(x_2);
+    int res = 0;
+    std::uint64_t bit = b.get_lower();
+    if (bit == 0ULL) {
+        bit = b.get_upper();
+        res += 64;
     }
 
-    inline static bool exist(BitBoard b, Types::Vertices v) {
-        return b == vertex2bitboard(v);
+    if (bit == 0ULL) {
+        return Types::NO_VERTEX;
     }
 
-    inline static Types::Vertices extract(BitBoard &b) {
-        const auto vtx = BitUtils::lsb(b);
-        assert(vtx != Types::NO_VERTEX);
-        b = BitUtils::reset_ls1b(b);
-        return vtx;
-    }
-   /*
-    * Displays the bitboard (include invalid edge and extra bit).
-    */
-    static void dump_bitboard(const BitBoard &bitboard, std::ostream &out);
+    res += bitScanForward(bit);
 
-    static void dump_bitboard(const BitBoard &bitboard);
+    return static_cast<Types::Vertices>(res);
+}
+   
+// Counts the number of set bits in the BitBoard.
+inline static int count(BitBoard b) {
 
-};
+    std::uint64_t x_1 = b.get_upper();
+    std::uint64_t x_2 = b.get_lower();
+
+    const auto lambda_uint64_count = [](std::uint64_t x) -> int {
+        x -= (x >> 1) & 0x5555555555555555;
+        x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
+        x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;
+        return (x * 0x0101010101010101) >> 56;
+    };
+
+    return lambda_uint64_count(x_1) + lambda_uint64_count(x_2);
+}
+
+/*
+ * Like count(BitBoard b) but using algorithm faster on a very sparse BitBoard.
+ * May be slower for more than 4 set bits, but still correct.
+ * Useful when counting bits in a Q, R, N or B BitBoard.
+ */
+inline static int count_few(BitBoard b) {
+
+    std::uint64_t x_1 = b.get_upper();
+    std::uint64_t x_2 = b.get_lower();
+    const auto lambda_uint64_count_few = [](std::uint64_t x) -> int {
+        int count;
+        for (count = 0; x != 0; ++count) {
+              x &= x - 1;
+        }
+        return count;
+    };
+
+    return lambda_uint64_count_few(x_1) + lambda_uint64_count_few(x_2);
+}
+
+inline static bool exist(BitBoard b, Types::Vertices v) {
+    return b == vertex2bitboard(v);
+}
+
+inline static Types::Vertices extract(BitBoard &b) {
+    const auto vtx =lsb(b);
+    assert(vtx != Types::NO_VERTEX);
+    b = reset_ls1b(b);
+    return vtx;
+}
+/*
+ * Displays the bitboard (include invalid edge and extra bit).
+ */
+void dump_bitboard(const BitBoard &bitboard, std::ostream &out);
+
+void dump_bitboard(const BitBoard &bitboard);
+
+}
 
 class Move {
 public:
-    enum class Promotion : std::uint8_t { None, Rook, Cannon, Horse };
-
     Move() = default;
 
     constexpr Move(const Types::Vertices from_, const Types::Vertices to_) :
@@ -228,13 +226,11 @@ public:
 
     Types::Vertices get_to() const;
 
-    Promotion get_promotion() const;
-
     std::uint16_t get_data() const;
 
-    BitBoard get_from_bitboard() const {return BitUtils::vertex2bitboard(get_from()); }
+    BitBoard get_from_bitboard() const {return Utils::vertex2bitboard(get_from()); }
 
-    BitBoard get_to_bitboard() const {return BitUtils::vertex2bitboard(get_to()); }
+    BitBoard get_to_bitboard() const {return Utils::vertex2bitboard(get_to()); }
 
     bool hit(BitBoard &b) const;
 

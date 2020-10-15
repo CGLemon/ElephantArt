@@ -72,21 +72,15 @@ void init_options_map() {
 }
 
 void init_basic_parameters() {
-
+    init_options_map();
     Zobrist::init_zobrist();
     Board::pre_initialize();
-    init_options_map();
 }
 
 ArgsParser::ArgsParser(int argc, char** argv) {
 
 
     auto parser = Utils::CommandParser(argc, argv);
-
-    const auto ascii_argsparser = [](Utils::CommandParser &p) -> void {
-    
-    };
-    
     const auto is_parameter = [](const std::string &para) -> bool {
         if (para.empty()) {
             return false;
@@ -101,17 +95,13 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         set_option("help", true);
     }
 
-    const auto mode = parser.find_next(List{"--mode", "-m"});
-    if (is_parameter(mode->str)) {
-        if (mode->str == "ascii" || mode->str == "ucci") {
-            set_option("mode", mode->str);
+    if (const auto res = parser.find_next(List{"--mode", "-m"})) {
+        if (is_parameter(res->str)) {
+            if (res->str == "ascii" || res->str == "ucci") {
+                set_option("mode", res->str);
+            }
         }
     }
-
-    if (option<std::string>("mode") == "ascii") {
-        ascii_argsparser(parser);
-    }
-
 }
 
 void ArgsParser::help() const {

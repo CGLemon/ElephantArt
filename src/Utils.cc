@@ -228,7 +228,6 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::get_command(size_t id) con
     if (!valid() || id > m_count) {
         return nullptr;
     }
-
     return std::make_shared<Reuslt>(Reuslt(*m_commands[id], (int)id));
 }
 
@@ -275,7 +274,6 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::find(const std::string inp
             return res->str == input ? res : nullptr;
         }
     }
-
     return nullptr;
 }
 
@@ -286,7 +284,6 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::find(const std::vector<std
             return res;
         }
     }
-
     return nullptr;
 }
 
@@ -297,7 +294,6 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::find_next(const std::strin
     if (!res || res->idx+1 > (int)get_count()) {
         return nullptr;
     }
-
     return get_command(res->idx+1);
 }
 
@@ -308,7 +304,6 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::find_next(const std::vecto
             return res;
         }
     }
-
     return nullptr;
 }
 
@@ -595,6 +590,39 @@ int Timer::get_record_count() const {
 
 const std::vector<float>& Utils::Timer::get_record() const {
     return m_record;
+}
+
+BitIterator::BitIterator(const size_t s) {
+    if (s < 64) {
+        m_size = s;
+    } else {
+        m_size = 64;
+    }
+    set(0ULL);
+}
+
+std::vector<bool> BitIterator::get() const {
+    auto res = std::vector<bool>{};
+    for (auto i = size_t{0}; i < m_size; ++i) {
+        res.emplace_back(bit_signed(i));
+    }
+    return res;
+}
+
+void BitIterator::set(std::uint64_t cnt) {
+    m_cnt = cnt;
+}
+
+bool BitIterator::bit_signed(size_t s) const {
+    return (m_cnt >> (m_size - s - 1)) & 1ULL;
+}
+
+void BitIterator::next() {
+    m_cnt++;
+}
+
+void BitIterator::back() {
+    m_cnt--;
 }
 
 } // namespace Utils
