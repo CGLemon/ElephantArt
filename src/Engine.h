@@ -26,7 +26,9 @@
 
 class Engine {
 public:
-    void initialize(int g = 1);
+    using Response = std::string;
+
+    void initialize();
 
     void reset_game();
 
@@ -34,9 +36,9 @@ public:
     
     std::vector<Move> get_movelist() const;
 
-    std::string gather_movelist() const;
+    Response gather_movelist() const;
 
-    std::string fen2board(std::string fen);
+    Response fen2board(std::string fen);
 
 private:
     std::vector<std::shared_ptr<Position>> m_positions;

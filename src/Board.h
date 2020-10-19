@@ -21,6 +21,7 @@
 
 #include "Uint128_t.h"
 #include "BitBoard.h"
+#include "Zobrist.h"
 
 #include <cassert>
 #include <array>
@@ -36,9 +37,9 @@ public:
 
     static constexpr auto SHIFT = BITBOARD_SHIFT;
 
-    static constexpr auto NUM_VERTICES = SHIFT * HEIGHT;
+    static constexpr auto NUM_VERTICES = BITBOARD_NUM_VERTICES;
 
-    static constexpr auto INTERSECTIONS = WIDTH * HEIGHT;
+    static constexpr auto INTERSECTIONS = BITBOARD_INTERSECTIONS;
 
     static constexpr auto NUM_SYMMETRIES = 4;
 
@@ -65,7 +66,7 @@ public:
     Types::Piece get_piece(const int x, const int y) const;
     Types::Piece get_piece(const int vtx) const;
     Types::Color get_to_move() const;
-    void generate_movelist(Types::Color color, std::vector<Move> &MoveList) const;
+    int generate_movelist(Types::Color color, std::vector<Move> &MoveList) const;
 
     bool is_on_board(const int vtx) const;
 
@@ -80,6 +81,11 @@ public:
          Types::NORTH_EAST, Types::SOUTH_EAST, Types::SOUTH_WEST, Types::NORTH_WEST};
 
     static void pre_initialize();
+
+    void set_to_move(Types::Color color);
+    void swap_to_move();
+
+    void do_move(Move move);
 
 private:
     #define P_  Types::R_PAWN
@@ -137,7 +143,8 @@ private:
 
     struct Magic {
         BitBoard  mask;
-        std::uint64_t  magic;
+        std::uint64_t  upper_magic;
+        std::uint64_t  lower_magic;
         std::vector<BitBoard> attacks;
 
         std::uint64_t limit;
@@ -147,8 +154,8 @@ private:
 
         std::uint64_t index(BitBoard occupied) const {
             auto mark = occupied & mask;
-            return (mark.get_upper() * magic +
-                        mark.get_lower() * magic) >> shift;
+            return (mark.get_upper() * upper_magic +
+                        mark.get_lower() * lower_magic) >> shift;
         }
 
         BitBoard attack(BitBoard occupied) const {
@@ -164,12 +171,21 @@ private:
 
     static std::array<Magic, NUM_VERTICES> m_horse_magics;
     static std::array<Magic, NUM_VERTICES> m_elephant_magics;
+    static std::array<Magic, NUM_VERTICES> m_rookrank_magics;
+    static std::array<Magic, NUM_VERTICES> m_rookfile_magics;
+
+    static std::array<Magic, NUM_VERTICES> m_cannonrank_magics;
+    static std::array<Magic, NUM_VERTICES> m_cannonfile_magics;
 
     static void init_pawn_attacks();
     static void init_move_pattens();
     static void init_magics();
     static void init_symmetry();
-    
+    static void dump_memory();
+
+    Types::Piece_t get_piece_type(const int vtx) const;
+    BitBoard &get_piece_bitboard(Types::Piece_t pt);
+
     std::array<BitBoard, 2> m_bb_color;
 
     BitBoard m_bb_pawn;
@@ -190,12 +206,15 @@ private:
     std::uint64_t m_hash;
 
     template<Types::Piece_t>
-    void generate_move(Types::Color color, std::vector<Move> &MoveList) const;
+    int generate_move(Types::Color color, std::vector<Move> &MoveList) const;
 
     void piece_stream(std::ostream &out, Types::Piece p) const;
     void piece_stream(std::ostream &out, const int x, const int y) const;
     void info_stream(std::ostream &out) const;
     void board_stream(std::ostream &out) const;
+
+    void update_zobrist(Types::Piece p, Types::Vertices form, Types::Vertices to);
+    void update_zobrist_tomove(Types::Color old_color, Types::Color new_color);
 };
 
 inline int Board::get_vertex(const int x, const int y) {
@@ -230,6 +249,17 @@ inline Types::Color Board::swap_color(const Types::Color color) {
         return Types::BLACK;
     }
     return Types::RED;
+}
+
+inline void Board::update_zobrist(Types::Piece p, Types::Vertices form, Types::Vertices to) {
+    m_hash ^= Zobrist::zobrist[p][form];
+    m_hash ^= Zobrist::zobrist[p][to];
+}
+
+inline void Board::update_zobrist_tomove(Types::Color old_color, Types::Color new_color) {
+    if (old_color != new_color) {
+        m_hash ^= Zobrist::zobrist_redtomove;
+    }
 }
 
 #endif

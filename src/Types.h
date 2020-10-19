@@ -65,7 +65,7 @@ public:
     };
 
     enum Piece_t : int {
-        PAWN = 0, HORSE, CANNON, ROOK, ELEPHANT, ADVISOR, KING, PIECE_T_NB = 7
+        PAWN = 0, HORSE, CANNON, ROOK, ELEPHANT, ADVISOR, KING, EMPTY_PIECE_T, PIECE_T_NB = 7
     };
 
     ENABLE_BASE_OPERATORS_ON(Piece_t)

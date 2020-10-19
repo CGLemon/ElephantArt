@@ -33,7 +33,7 @@ void ASCII::init() {
     if (m_ascii_engine == nullptr) {
         m_ascii_engine = std::make_unique<Engine>();
     }
-    m_ascii_engine->initialize(option<int>("num_games"));
+    m_ascii_engine->initialize();
 }
 
 void ASCII::loop() {

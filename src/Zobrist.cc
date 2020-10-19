@@ -23,11 +23,13 @@
 #include "Zobrist.h"
 #include "config.h"
 
-constexpr std::uint64_t Zobrist::zobrist_seed;
-constexpr std::uint64_t Zobrist::zobrist_empty;
-constexpr std::uint64_t Zobrist::zobrist_redtomove;
+constexpr Zobrist::KEY Zobrist::zobrist_seed;
+constexpr Zobrist::KEY Zobrist::zobrist_empty;
+constexpr Zobrist::KEY Zobrist::zobrist_redtomove;
 
-std::array<std::array<std::uint64_t, Zobrist::ZOBRIST_SIZE>, 18> Zobrist::zobrist;
+std::array<std::array<Zobrist::KEY, Zobrist::ZOBRIST_SIZE>, 18> Zobrist::zobrist;
+std::array<Zobrist::KEY, 5> Zobrist::zobrist_repeat;
+
 
 template<typename T>
 bool collision(std::vector<T> &array) {
@@ -53,7 +55,7 @@ void Zobrist::init_zobrist() {
 
     Random<random_t::XoroShiro128Plus> rng(zobrist_seed);
     while (true) {
-        auto buf = std::vector<std::uint64_t>{};
+        auto buf = std::vector<KEY>{};
 
         for (int i = 0; i < 18; i++) {
             for (int j = 0; j < ZOBRIST_SIZE; j++) {
@@ -62,6 +64,12 @@ void Zobrist::init_zobrist() {
             }
         }
 
+        for (int i = 0; i < 5; ++i) {
+            zobrist_repeat[i] = rng.randuint64();
+            buf.emplace_back(zobrist_repeat[i]);
+        }
+
+        assert(buf.size() == 100 * 18 + 5);
         if (!collision(buf)) {
             break;
         }

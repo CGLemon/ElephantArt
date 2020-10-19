@@ -35,11 +35,11 @@ Types::Color Position::get_to_move() const {
 
 std::vector<Move> Position::get_movelist() const {
 
-    auto res = std::vector<Move>{};
+    auto movelist = std::vector<Move>{};
     const auto color = get_to_move();
-    board.generate_movelist(color, res);
+    board.generate_movelist(color, movelist);
 
-    return res;
+    return movelist;
 }
 
 bool Position::fen2board(std::string &fen) {

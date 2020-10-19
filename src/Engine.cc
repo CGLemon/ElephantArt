@@ -17,11 +17,13 @@
 */
 
 #include "Engine.h"
+#include "config.h"
+
 #include <sstream>
 
-void Engine::initialize(int g) {
+void Engine::initialize() {
 
-    const auto games = (size_t)g;
+    const auto games = (size_t)option<int>("num_games");
 
     while (m_positions.size() < games) {
         m_positions.emplace_back(std::make_shared<Position>());
@@ -55,7 +57,7 @@ std::vector<Move> Engine::get_movelist() const {
     return m_position->get_movelist();
 }
 
-std::string Engine::gather_movelist() const {
+Engine::Response Engine::gather_movelist() const {
 
     auto rep = std::ostringstream{};
     const auto movelist = m_position->get_movelist();
@@ -67,7 +69,7 @@ std::string Engine::gather_movelist() const {
     return rep.str();
 }
 
-std::string Engine::fen2board(std::string fen) {
+Engine::Response Engine::fen2board(std::string fen) {
 
     auto rep = std::ostringstream{};
     auto success = m_position->fen2board(fen);

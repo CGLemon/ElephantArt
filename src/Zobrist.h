@@ -23,21 +23,24 @@
 #include <random>
 #include <vector>
 
-#include "Board.h"
+#include "BitBoard.h"
 
 class Zobrist {
 private:
-    static constexpr int ZOBRIST_SIZE = Board::NUM_VERTICES;
+    using KEY = std::uint64_t;
 
-    static constexpr std::uint64_t zobrist_seed = 0xabcdabcd12345678;
+    static constexpr auto ZOBRIST_SIZE = BITBOARD_NUM_VERTICES;
+
+    static constexpr KEY zobrist_seed = 0xabcdabcd12345678;
 
 public:
-    static constexpr std::uint64_t zobrist_empty = 0x1234567887654321;
+    static constexpr KEY zobrist_empty = 0x1234567887654321;
 
-    static constexpr std::uint64_t zobrist_redtomove = 0xabcdabcdabcdabcd;
+    static constexpr KEY zobrist_redtomove = 0xabcdabcdabcdabcd;
 
-    // Including all type of red, black pieces and empty, invalid. 
-    static std::array<std::array<std::uint64_t, ZOBRIST_SIZE>, 18> zobrist;
+    static std::array<std::array<KEY, ZOBRIST_SIZE>, 18> zobrist;
+
+    static std::array<KEY, 5> zobrist_repeat;
 
     static void init_zobrist();
 };
