@@ -23,7 +23,6 @@ void Position::init_game() {
     m_history.clear();
 }
 
-
 void Position::display() const {
 
     board.dump_board();
@@ -44,4 +43,8 @@ std::vector<Move> Position::get_movelist() const {
 
 bool Position::fen2board(std::string &fen) {
     return fen2board(fen);
+}
+
+bool Position::is_legal(Move move) const {
+    return board.is_legal(move);
 }

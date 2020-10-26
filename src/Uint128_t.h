@@ -126,8 +126,8 @@ Uint128_t &operator BITWISE##=(const Uint128_t & rhs);
     Uint128_t operator-(const int i) const;
     Uint128_t &operator-=(const Uint128_t &rhs);
     
-    Uint128_t operator*(const Uint128_t &rhs) const;
-    Uint128_t &operator*=(const Uint128_t & rhs);
+    // Uint128_t operator*(const Uint128_t &rhs) const;
+    // Uint128_t &operator*=(const Uint128_t & rhs);
 };
 
 static constexpr Uint128_t tie(std::uint64_t upper, std::uint64_t lower) {
@@ -340,7 +340,7 @@ inline Uint128_t &Uint128_t::operator-=(const Uint128_t &rhs) {
     LOWER -= new_lower;
     return *this;
 }
-
+/*
 inline Uint128_t Uint128_t::operator*(const Uint128_t & rhs) const{
     // split values into 4 32-bit parts
     std::uint64_t top[4] = {UPPER >> 32, UPPER & 0xffffffff, LOWER >> 32, LOWER & 0xffffffff};
@@ -391,5 +391,5 @@ inline Uint128_t &Uint128_t::operator*=(const Uint128_t & rhs) {
     *this = *this * rhs;
     return *this;
 }
-
+ */
 #endif

@@ -38,6 +38,8 @@ public:
     Types::Color get_to_move() const;
 
     bool fen2board(std::string &fen);
+    
+    bool is_legal(Move move) const;
 
 private:
     std::vector<std::shared_ptr<const Board>> m_history;

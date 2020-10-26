@@ -27,7 +27,7 @@
 class Engine {
 public:
     using Response = std::string;
-
+    
     void initialize();
 
     void reset_game();

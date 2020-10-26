@@ -82,10 +82,13 @@ public:
 
     static void pre_initialize();
 
+    static Move text2move(std::string text);
+    
     void set_to_move(Types::Color color);
     void swap_to_move();
 
     void do_move(Move move);
+    bool is_legal(Move move) const;
 
 private:
     #define P_  Types::R_PAWN

@@ -58,8 +58,16 @@ void Board::reset_board() {
 
 bool Board::fen2board(std::string &fen) {
 
+    auto fen_format = std::stringstream{fen};
+    auto fen_stream = std::string{};
+
+    fen_format >> fen_stream;
+    if (fen_format.fail()) {
+        return false;
+    }
+
     auto king_vertex_black = Types::NO_VERTEX;
-    auto king_vertex_red = Types::NO_VERTEX;     
+    auto king_vertex_red = Types::NO_VERTEX;
 
     auto bb_black = BitBoard(0ULL);
     auto bb_red = BitBoard(0ULL);
@@ -70,13 +78,6 @@ bool Board::fen2board(std::string &fen) {
     auto bb_elephant = BitBoard(0ULL);
     auto bb_advisor = BitBoard(0ULL);
     auto bb_cannon = BitBoard(0ULL);
-
-
-    auto fen_format = std::stringstream{fen};
-    auto fen_stream = std::string{};
-
-    fen_format >> fen_stream;
-
     auto success = bool{true};
 
     auto vtx = Types::VTX_A9;
@@ -145,6 +146,9 @@ bool Board::fen2board(std::string &fen) {
             }
             vtx -= (2 * SHIFT - 1);
             skip = true;
+        } else {
+            success = false;
+            break;
         }
 
         if (vtx == Types::VTX_J0) {
@@ -154,8 +158,12 @@ bool Board::fen2board(std::string &fen) {
             ++vtx;
         }
     }
-
+    
     fen_format >> fen_stream;
+    if (fen_format.fail() || !success) {
+        return false;
+    }
+    
     if (fen_stream == "w" || fen_stream == "r") {
         m_tomove = Types::RED;
     } else if (fen_stream == "b") {
@@ -821,7 +829,7 @@ const auto lambda_separate_bitboarad = [](Types::Vertices vtx,
 
         const auto from = vtx;
         const auto to = res;
-        MoveList.emplace_back(std::move(Move(from, to)));
+        MoveList.emplace_back(Move(from, to));
     }
     return cnt;
 };
@@ -1003,3 +1011,55 @@ void Board::do_move(Move move) {
     swap_to_move();
 }
 
+
+bool Board::is_legal(Move move) const {
+    
+    auto movelist = std::vector<Move>{};
+    generate_movelist(get_to_move(), movelist);
+    auto success = bool{false};
+    
+    for (const auto &m : movelist) {
+        if (move.get_data() == m.get_data()) {
+            success = true;
+            break;
+        }
+    }
+ 
+    return success;
+}
+
+Move Board::text2move(std::string text) {
+    
+    if (text.size() != 4) {
+        return Move{};
+    }
+    
+    const auto str2vertex = [&](const char *s) -> Types::Vertices {
+        char x_char = s[0];
+        char y_char = s[1];
+        int x = -1;
+        int y = -1;
+        
+        if (x_char >= 'a' && x_char <= 'j') {
+            x = static_cast<int>(x_char - 'a');
+        }
+        if (y_char >= '0' && y_char <= '9') {
+            y = static_cast<int>(y_char - '0');
+        }
+        
+        if (x == -1 || y == -1) {
+            return Types::NO_VERTEX;
+        }
+        
+        return  static_cast<Types::Vertices>(get_vertex(x, y));
+    };
+    
+    Types::Vertices from = str2vertex(text.data());
+    Types::Vertices to = str2vertex(text.data() + 2);
+    
+    if (from == Types::NO_VERTEX || to == Types::NO_VERTEX) {
+        return Move{};
+    }
+
+    return Move(from, to);
+}

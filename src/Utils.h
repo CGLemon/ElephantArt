@@ -97,15 +97,6 @@ public:
     std::shared_ptr<Reuslt> find(const std::vector<std::string> inputs, int id = -1) const;
     std::shared_ptr<Reuslt> find_next(const std::string input) const;
     std::shared_ptr<Reuslt> find_next(const std::vector<std::string> inputs) const;
-/*
-    std::optional<Reuslt> get_command(size_t id) const;
-    std::optional<Reuslt> get_commands(size_t begin = 0) const;
-    std::optional<Reuslt> get_slice(size_t begin, size_t end) const;
-    std::optional<Reuslt> find(const std::string input, int id = -1) const;
-    std::optional<Reuslt> find(const std::vector<std::string> inputs, int id = -1) const;
-    std::optional<Reuslt> find_next(const std::string input) const;
-    std::optional<Reuslt> find_next(const std::vector<std::string> inputs) const;
- */
 
 private:
     std::vector<std::shared_ptr<const std::string>> m_commands;
