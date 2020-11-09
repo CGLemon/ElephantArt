@@ -1,6 +1,6 @@
 /*
     This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe, Lin
+    Copyright (C) 2020 Hung-Zhe Lin
 
     Saya is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,6 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with Saya.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include "Random.h"
 #include <chrono>
 

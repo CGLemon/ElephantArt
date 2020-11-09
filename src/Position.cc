@@ -1,6 +1,6 @@
 /*
     This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe, Lin
+    Copyright (C) 2020 Hung-Zhe Lin
 
     Saya is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ std::vector<Move> Position::get_movelist() const {
 }
 
 bool Position::fen2board(std::string &fen) {
-    return fen2board(fen);
+    return board.fen2board(fen);
 }
 
 bool Position::is_legal(Move move) const {

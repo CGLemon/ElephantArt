@@ -1,6 +1,6 @@
 /*
     This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe, Lin
+    Copyright (C) 2020 Hung-Zhe Lin
 
     Saya is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -99,6 +99,14 @@ inline static BitBoard shift(Types::Direction d, BitBoard bitboard) {
         return (bitboard << d) & onBoard;
     }
     return (bitboard >> (-d)) & onBoard;
+}
+
+inline static BitBoard file2bitboard(const Types::File f) {
+    return FileABB << f; 
+}
+
+inline static BitBoard rank2bitboard(const Types::Rank r) {
+    return Rank0BB << (BITBOARD_SHIFT * r);
 }
 
 inline static BitBoard vertex2bitboard(const Types::Vertices v) {
@@ -209,7 +217,7 @@ inline static Types::Vertices extract(BitBoard &b) {
     return vtx;
 }
 /*
- * Displays the bitboard (include invalid edge and extra bit).
+ * Display the bitboard (include invalid edge and extra bit).
  */
 void dump_bitboard(const BitBoard &bitboard, std::ostream &out);
 

@@ -1,6 +1,6 @@
 /*
     This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe, Lin
+    Copyright (C) 2020 Hung-Zhe Lin
 
     Saya is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -170,6 +170,20 @@ bool Board::fen2board(std::string &fen) {
         m_tomove = Types::BLACK;
     }
 
+    for (int k = 0; k < 3; ++k) {
+        fen_format >> fen_stream;
+        if (fen_format.fail()) {
+            success = false;
+            break;
+        }
+    }
+
+    int movenum;
+    fen_format >> movenum;
+    if (fen_format.fail()) {
+        success = false;
+    }
+
     if (success) {
         m_king_vertex[Types::RED] = king_vertex_red;
         m_king_vertex[Types::BLACK] = king_vertex_black;    
@@ -183,6 +197,7 @@ bool Board::fen2board(std::string &fen) {
         m_bb_elephant = bb_elephant;
         m_bb_advisor = bb_advisor;
         m_bb_cannon = bb_cannon;
+        m_movenum = movenum-1;
     }
 
     return success;
@@ -704,7 +719,7 @@ std::uint64_t Board::calc_hash(const int symmetry) const {
     return res;
 }
 
-bool Board::is_on_board(const int vtx) const {
+bool Board::is_on_board(const int vtx) {
     return START_VERTICES[vtx] != Types::INVAL_PIECE;
 }
 
@@ -727,7 +742,6 @@ Types::Piece Board::get_piece(const int x, const int y) const {
 Types::Piece Board::get_piece(const int vtx) const {
 
     auto color = Types::INVALID_COLOR;
-    auto p = Types::INVAL_PIECE;
 
     if (Utils::on_area(vtx, m_bb_color[Types::RED])) {
         color = Types::RED;
@@ -743,25 +757,7 @@ Types::Piece Board::get_piece(const int vtx) const {
         }
     }
 
-/*
-    if (Utils::on_area(vtx, m_bb_pawn)) {
-        p = Types::R_PAWN;
-    } else if (Utils::on_area(vtx, m_bb_horse)) {
-        p = Types::R_HORSE;
-    } else if (Utils::on_area(vtx, m_bb_cannon)) {
-        p = Types::R_CANNON;
-    } else if (Utils::on_area(vtx, m_bb_rook)) {
-        p = Types::R_ROOK;
-    } else if (Utils::on_area(vtx, m_bb_elephant)) {
-        p = Types::R_ELEPHANT;
-    } else if (Utils::on_area(vtx, m_bb_advisor)) {
-        p = Types::R_ADVISOR;
-    } else {
-        assert(vtx == m_king_vertex[color]);
-        p = Types::R_KING;
-    }
- */
-    p = static_cast<Types::Piece>(get_piece_type(vtx));
+    auto p = static_cast<Types::Piece>(get_piece_type(vtx));
 
     if (color == Types::BLACK) {
         p += 7;
@@ -1009,6 +1005,25 @@ void Board::do_move(Move move) {
 
     // Swap color
     swap_to_move();
+
+    // Add move number
+    m_movenum++;
+}
+
+bool Board::is_king_face_king() const {
+
+    const auto rk = Utils::vertex2bitboard(m_king_vertex[Types::RED]);
+    const auto bk = Utils::vertex2bitboard(m_king_vertex[Types::BLACK]);
+    const auto ak = rk | bk;
+
+    for (auto f = Types::FILE_D; f <= Types::FILE_F; ++f) {
+        const auto b = Utils::file2bitboard(f);
+        if (Utils::count_few(ak | b) == 2) {
+             ;
+        }
+    }
+
+    return false;
 }
 
 
@@ -1024,7 +1039,7 @@ bool Board::is_legal(Move move) const {
             break;
         }
     }
- 
+
     return success;
 }
 

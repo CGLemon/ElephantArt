@@ -1,6 +1,6 @@
 /*
     This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe, Lin
+    Copyright (C) 2020 Hung-Zhe Lin
 
     Saya is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -68,7 +68,7 @@ public:
     Types::Color get_to_move() const;
     int generate_movelist(Types::Color color, std::vector<Move> &MoveList) const;
 
-    bool is_on_board(const int vtx) const;
+    static bool is_on_board(const int vtx);
 
     void fen_stream(std::ostream &out) const;
 
@@ -81,7 +81,6 @@ public:
          Types::NORTH_EAST, Types::SOUTH_EAST, Types::SOUTH_WEST, Types::NORTH_WEST};
 
     static void pre_initialize();
-
     static Move text2move(std::string text);
     
     void set_to_move(Types::Color color);
@@ -185,6 +184,8 @@ private:
     static void init_magics();
     static void init_symmetry();
     static void dump_memory();
+
+    bool is_king_face_king() const;
 
     Types::Piece_t get_piece_type(const int vtx) const;
     BitBoard &get_piece_bitboard(Types::Piece_t pt);

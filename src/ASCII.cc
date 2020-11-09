@@ -1,6 +1,6 @@
 /*
     This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe, Lin
+    Copyright (C) 2020 Hung-Zhe Lin
 
     Saya is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -84,10 +84,9 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
     } else if (const auto res = parser.find("position", 0)) {
         lambda_syntax_not_understood(parser, 7);
         const auto cnt = parser.get_count();
-        const auto limit = size_t{6};
-        const auto max = std::max(cnt, limit);
-        auto fen = parser.get_slice(1, max)->str;
-
+        const auto limit = size_t{7};
+        const auto max = std::min(cnt, limit);
+        const auto fen = parser.get_slice(1, max)->str;
         const auto ascii_out = m_ascii_engine->fen2board(fen);
         out << ascii_out << std::endl;
         

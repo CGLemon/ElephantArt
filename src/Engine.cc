@@ -1,6 +1,6 @@
 /*
     This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe, Lin
+    Copyright (C) 2020 Hung-Zhe Lin
 
     Saya is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -76,7 +76,7 @@ Engine::Response Engine::fen2board(std::string fen) {
     if (success) {
         rep << "";
     } else {
-        rep << "Illegal fen";
+        rep << "Illegal FEN format";
     }
 
     return rep.str();
