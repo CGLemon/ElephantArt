@@ -28,20 +28,7 @@
 
 namespace Utils {
 
-/*
-z_lookup 由下代碼產生，需要 boost 庫
-
-static constexpr float ci_alpha = 1e-5f;
-void create_z_table() {
-    for (auto i = 1; i < z_entries + 1; i++) {
-        boost::math::students_t dist(i);
-        auto z = boost::math::quantile(boost::math::complement(dist, ci_alpha));
-        z_lookup[i - 1] = z;
-    }
-}
-*/
-
-static constexpr int z_entries = 1000;
+static constexpr auto z_entries = 1000;
 static constexpr float z_lookup[z_entries] = {
 31830.9902343750f, 223.6034393311f, 47.9277305603f, 23.3321819305f, 15.5468549728f, 12.0316534042f, 10.1026840210f, 8.9070272446f, 8.1020574570f, 7.5269541740f,
 7.0973553658f, 6.7651691437f, 6.5011448860f, 6.2865495682f, 6.1088681221f, 5.9594416618f, 5.8320994377f, 5.7223310471f, 5.6267662048f, 5.5428385735f,

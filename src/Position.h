@@ -23,27 +23,32 @@
 
 #include <vector>
 #include <memory>
-
+#include <string>
 
 class Position {
 public:
     void init_game();
 
-    Board board;
-
     void display() const;
 
-    std::vector<Move> get_movelist() const;
-
-    Types::Color get_to_move() const;
-
+    void push_board();
     bool fen2board(std::string &fen);
-    
     bool is_legal(Move move) const;
+    bool do_move(Move move);
+    void do_move_assume_legal(Move move);
+    bool do_textmove(std::string move);
+
+
+    std::vector<Move> get_movelist() const;
+    Types::Color get_to_move() const;
+    int get_movenum() const;
+    std::uint64_t get_hash() const;
+    Move get_last_move() const;
+
+    Board board;
 
 private:
     std::vector<std::shared_ptr<const Board>> m_history;
-
 
 };
 

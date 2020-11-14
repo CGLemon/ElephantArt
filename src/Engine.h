@@ -26,26 +26,29 @@
 
 class Engine {
 public:
+    static constexpr int DEFUALT_POSITION = 0;
+
     using Response = std::string;
     
     void initialize();
 
-    void reset_game();
+    void reset_game(const int g = DEFUALT_POSITION);
 
-    void display() const;
+    void display(const int g = DEFUALT_POSITION) const;
     
-    std::vector<Move> get_movelist() const;
+    std::vector<Move> get_movelist(const int g = DEFUALT_POSITION) const;
 
-    Response gather_movelist() const;
+    Response gather_movelist(const int g = DEFUALT_POSITION) const;
+    Response fen2board(std::string fen, const int g = DEFUALT_POSITION);
+    Response do_textmove(std::string move, const int g = DEFUALT_POSITION);
 
-    Response fen2board(std::string fen);
 
 private:
+    int adj_position_ref(const int g) const;
+
+    std::shared_ptr<Position> get_position(const int g) const;
+
     std::vector<std::shared_ptr<Position>> m_positions;
-
-    std::shared_ptr<Position> m_position{nullptr};
-
-    size_t m_default{0};
 
 };
 

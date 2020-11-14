@@ -47,13 +47,13 @@ std::array<Board::Magic, Board::NUM_VERTICES> Board::m_cannonfile_magics;
 void Board::reset_board() {
 
     m_tomove = Types::RED;
-    m_movenum = 0;
+    m_movenum = 1;
 
     auto start_position = get_start_position();
     fen2board(start_position);
 
     m_hash = calc_hash();
-    m_lastmove = Move();
+    m_lastmove = Move{};
 }
 
 bool Board::fen2board(std::string &fen) {
@@ -66,19 +66,18 @@ bool Board::fen2board(std::string &fen) {
         return false;
     }
 
-    auto king_vertex_black = Types::NO_VERTEX;
-    auto king_vertex_red = Types::NO_VERTEX;
-
+    auto success = bool{true};
     auto bb_black = BitBoard(0ULL);
     auto bb_red = BitBoard(0ULL);
 
+    auto king_vertex_black = Types::NO_VERTEX;
+    auto king_vertex_red = Types::NO_VERTEX;
     auto bb_pawn = BitBoard(0ULL);
     auto bb_horse = BitBoard(0ULL);
     auto bb_rook = BitBoard(0ULL);
     auto bb_elephant = BitBoard(0ULL);
     auto bb_advisor = BitBoard(0ULL);
     auto bb_cannon = BitBoard(0ULL);
-    auto success = bool{true};
 
     auto vtx = Types::VTX_A9;
     for (const auto &c : fen_stream) {
@@ -197,7 +196,7 @@ bool Board::fen2board(std::string &fen) {
         m_bb_elephant = bb_elephant;
         m_bb_advisor = bb_advisor;
         m_bb_cannon = bb_cannon;
-        m_movenum = movenum-1;
+        m_movenum = movenum;
     }
 
     return success;
@@ -628,11 +627,11 @@ void Board::info_stream(std::ostream &out) const {
     }
 
     out << ", Last move : ";
-    out << m_lastmove.to_string(); 
+    out << get_last_move().to_string(); 
 
     out << ", Hash : ";
     out << std::hex;
-    out << m_hash;
+    out << get_hash();
     out << std::dec;
 
     out << ",\n Fen : ";
@@ -671,7 +670,7 @@ void Board::fen_stream(std::ostream &out) const {
     out << " ";
     m_tomove == Types::RED ? out << "w" : out << "b";
 
-    out << " - - 0 " << m_movenum+1;
+    out << " - - 0 " << m_movenum;
 }
 
 void Board::board_stream(std::ostream &out) const {
@@ -791,7 +790,7 @@ Types::Piece_t Board::get_piece_type(const int vtx) const {
     return pt;
 }
 
-BitBoard &Board::get_piece_bitboard(Types::Piece_t pt) {
+BitBoard &Board::get_piece_bitboard_ref(Types::Piece_t pt) {
 
     assert(pt != Types::KING);
     if (pt == Types::HORSE) {
@@ -808,10 +807,6 @@ BitBoard &Board::get_piece_bitboard(Types::Piece_t pt) {
 
     assert(pt == Types::PAWN);
     return m_bb_pawn;
-}
-
-Types::Color Board::get_to_move() const {
-    return m_tomove;
 }
 
 const auto lambda_separate_bitboarad = [](Types::Vertices vtx,
@@ -993,12 +988,18 @@ void Board::do_move(Move move) {
         assert(m_king_vertex[color] == from);
         m_king_vertex[color] = to;
     } else {
-        auto ref_bb = get_piece_bitboard(pt);
+        BitBoard &ref_bb = get_piece_bitboard_ref(pt);
         ref_bb ^= form_bitboard;
         ref_bb ^= to_bitboard;
     }
 
+    m_bb_color[color] ^= form_bitboard;
+    m_bb_color[color] ^= to_bitboard;
+
     auto p = static_cast<Types::Piece>(pt) + (color == Types::BLACK ? 7 : 0);
+
+    // Update last move
+    m_lastmove = move;
 
     // Update zobrist
     update_zobrist(p , from, to);
@@ -1012,20 +1013,25 @@ void Board::do_move(Move move) {
 
 bool Board::is_king_face_king() const {
 
+    auto success = bool{false};
     const auto rk = Utils::vertex2bitboard(m_king_vertex[Types::RED]);
     const auto bk = Utils::vertex2bitboard(m_king_vertex[Types::BLACK]);
     const auto ak = rk | bk;
 
     for (auto f = Types::FILE_D; f <= Types::FILE_F; ++f) {
-        const auto b = Utils::file2bitboard(f);
-        if (Utils::count_few(ak | b) == 2) {
-             ;
+        const auto fb = Utils::file2bitboard(f);
+        if (Utils::count_few(ak & fb) == 2) {
+             const auto r_cnt = Utils::count_few(m_bb_color[Types::RED] & fb);
+             const auto b_cnt = Utils::count_few(m_bb_color[Types::BLACK] & fb);
+             if (r_cnt + b_cnt > 2) {
+                 success = true;    
+             }
+             break;
         }
     }
 
-    return false;
+    return success;
 }
-
 
 bool Board::is_legal(Move move) const {
     
@@ -1077,4 +1083,20 @@ Move Board::text2move(std::string text) {
     }
 
     return Move(from, to);
+}
+
+Types::Color Board::get_to_move() const {
+    return m_tomove;
+}
+
+int Board::get_movenum() const {
+    return m_movenum;
+}
+
+std::uint64_t Board::get_hash() const {
+    return m_hash;
+}
+
+Move Board::get_last_move() const {
+    return m_lastmove;
 }

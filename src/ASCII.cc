@@ -81,13 +81,19 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         const auto ascii_out = m_ascii_engine->gather_movelist();
         out << ascii_out << std::endl;
 
-    } else if (const auto res = parser.find("position", 0)) {
+    } else if (const auto res = parser.find("fen", 0)) {
         lambda_syntax_not_understood(parser, 7);
         const auto cnt = parser.get_count();
         const auto limit = size_t{7};
         const auto max = std::min(cnt, limit);
         const auto fen = parser.get_slice(1, max)->str;
         const auto ascii_out = m_ascii_engine->fen2board(fen);
+        out << ascii_out << std::endl;
+        
+    } else if (const auto res = parser.find("move", 0)) {
+        lambda_syntax_not_understood(parser, 2);
+        const auto move = parser.get_command(1)->str;
+        const auto ascii_out = m_ascii_engine->do_textmove(move);
         out << ascii_out << std::endl;
         
     } else {

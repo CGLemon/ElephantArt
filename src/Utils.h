@@ -66,13 +66,12 @@ void atomic_add(std::atomic<T> &f, T d) {
  */
 class CommandParser {
 public:
-    
 
     struct Reuslt {
         Reuslt(const std::string &s, const int i) : str(s), idx(i) {};
 
-        Reuslt(const std::string &&s, const int i)
-            : str(std::forward<decltype(s)>(s)), idx(i) {};
+        Reuslt(const std::string &&s, const int i) :
+            str(std::forward<decltype(s)>(s)), idx(i) {};
 
         std::string str;
         int idx;

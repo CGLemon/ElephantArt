@@ -36,31 +36,38 @@ void Engine::initialize() {
     for (auto &p : m_positions) {
         p->init_game();
     }
-
-    m_position = m_positions[m_default];
 }
 
-void Engine::reset_game() {
-    if (m_position == nullptr) {
-        return;
+int Engine::adj_position_ref(const int g) const {
+    if (g < 0 || g > option<int>("num_games")) {
+        return DEFUALT_POSITION;
     }
+    return g;
+}
 
-    m_position->init_game();
+std::shared_ptr<Position> Engine::get_position(const int g) const {
+    const auto adj_g = adj_position_ref(g);
+    return m_positions[adj_g];
 }
 
 
-void Engine::display() const {
-    m_position->display();
+void Engine::reset_game(const int g) {
+    get_position(g)->init_game();
 }
 
-std::vector<Move> Engine::get_movelist() const {
-    return m_position->get_movelist();
+
+void Engine::display(const int g) const {
+     get_position(g)->display();
 }
 
-Engine::Response Engine::gather_movelist() const {
+std::vector<Move> Engine::get_movelist(const int g) const {
+    return get_position(g)->get_movelist();
+}
+
+Engine::Response Engine::gather_movelist(const int g) const {
 
     auto rep = std::ostringstream{};
-    const auto movelist = m_position->get_movelist();
+    const auto movelist = get_movelist(g);
 
     for (const auto &m: movelist) {
         rep << m.to_string() << " ";
@@ -69,15 +76,27 @@ Engine::Response Engine::gather_movelist() const {
     return rep.str();
 }
 
-Engine::Response Engine::fen2board(std::string fen) {
+Engine::Response Engine::fen2board(std::string fen, const int g) {
 
     auto rep = std::ostringstream{};
-    auto success = m_position->fen2board(fen);
+    auto success = get_position(g)->fen2board(fen);
     if (success) {
         rep << "";
     } else {
         rep << "Illegal FEN format";
     }
 
+    return rep.str();
+}
+
+Engine::Response Engine::do_textmove(std::string move, const int g) {
+
+    auto rep = std::ostringstream{};
+    auto success = get_position(g)->do_textmove(move);
+    if (success) {
+        rep << "";
+    } else {
+        rep << "Illegal move";
+    }
     return rep.str();
 }

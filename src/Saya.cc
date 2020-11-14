@@ -30,7 +30,7 @@ const static std::string get_License() {
 
     
     out << "    ";
-    out << PROGRAM << " " << VERSION << " Copyright (C) 2020  Hung-Zhe, Lin"   << std::endl;
+    out << PROGRAM << " " << VERSION << " Copyright (C) 2020  Hung-Zhe Lin"    << std::endl;
 
     out << "    This program comes with ABSOLUTELY NO WARRANTY."               << std::endl;
     out << "    This is free software, and you are welcome to redistribute it" << std::endl;

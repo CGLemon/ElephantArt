@@ -59,9 +59,19 @@ public:
 
     template<int Range>
     std::uint32_t randfix() {
-          static_assert(0 < Range && Range < std::numeric_limits<std::uint32_t>::max(),
-                            "randfix out of range?\n");
-          return static_cast<std::uint32_t>(randuint64()) % Range;
+        static_assert(0 < Range && Range < std::numeric_limits<std::uint32_t>::max(),
+                          "randfix out of range?\n");
+        return static_cast<std::uint32_t>(randuint64()) % Range;
+    }
+
+    template<int precision>
+    bool roulette(float threshold) {
+        const int res = randfix<precision>();
+        const int thres = (float)precision * threshold;
+        if (thres < res) {
+            return true;
+        }
+        return false;
     }
 
     // The interface for STL.

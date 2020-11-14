@@ -52,7 +52,7 @@ static inline std::uint64_t get_seed(std::uint64_t seed) {
 } // namespace random_utils
 
 
-#define __RANDOM_INIT(TYPE__, CNT__)                 \
+#define RANDOM_INIT__(TYPE__, CNT__)                 \
 template<>                                           \
 void Random<TYPE__>::seed_init(std::uint64_t seed) { \
     seed = random_utils::get_seed(seed);             \
@@ -69,9 +69,9 @@ template<random_t T>
 thread_local std::uint64_t 
     Random<T>::m_seeds[Random<T>::SEED_SZIE];
 
-__RANDOM_INIT(random_t::SplitMix_64, 1);
+RANDOM_INIT__(random_t::SplitMix_64, 1);
 
-__RANDOM_INIT(random_t::XoroShiro128Plus, 2);
+RANDOM_INIT__(random_t::XoroShiro128Plus, 2);
 
 template<>
 std::uint64_t Random<random_t::SplitMix_64>::randuint64() {

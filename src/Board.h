@@ -65,7 +65,12 @@ public:
     static std::string get_start_position();
     Types::Piece get_piece(const int x, const int y) const;
     Types::Piece get_piece(const int vtx) const;
+
     Types::Color get_to_move() const;
+    int get_movenum() const;
+    std::uint64_t get_hash() const;
+    Move get_last_move() const;
+
     int generate_movelist(Types::Color color, std::vector<Move> &MoveList) const;
 
     static bool is_on_board(const int vtx);
@@ -142,7 +147,6 @@ private:
     #undef ET
     #undef invalid_
 
-
     struct Magic {
         BitBoard  mask;
         std::uint64_t  upper_magic;
@@ -188,7 +192,7 @@ private:
     bool is_king_face_king() const;
 
     Types::Piece_t get_piece_type(const int vtx) const;
-    BitBoard &get_piece_bitboard(Types::Piece_t pt);
+    BitBoard &get_piece_bitboard_ref(Types::Piece_t pt);
 
     std::array<BitBoard, 2> m_bb_color;
 
