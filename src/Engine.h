@@ -41,7 +41,10 @@ public:
     Response gather_movelist(const int g = DEFUALT_POSITION) const;
     Response fen2board(std::string fen, const int g = DEFUALT_POSITION);
     Response do_textmove(std::string move, const int g = DEFUALT_POSITION);
-
+    Response undo_move(const int g = DEFUALT_POSITION);
+    Response position(std::string fen,
+                      std::string moves,
+                      const int g = DEFUALT_POSITION);
 
 private:
     int adj_position_ref(const int g) const;

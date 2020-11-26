@@ -75,7 +75,7 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         out << ": syntax not understood" << std::endl;
     };
 
-    if (const auto res = parser.find("dump-legal-move", 0)) {
+    if (const auto res = parser.find("dump-legal-moves", 0)) {
 
         lambda_syntax_not_understood(parser, 1);
         const auto ascii_out = m_ascii_engine->gather_movelist();
@@ -96,6 +96,12 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         const auto ascii_out = m_ascii_engine->do_textmove(move);
         out << ascii_out << std::endl;
         
+    } else if (const auto res = parser.find("undo", 0)) {
+        lambda_syntax_not_understood(parser, 1);
+        const auto ascii_out = m_ascii_engine-> undo_move();
+        out << ascii_out << std::endl;
+    } else if (const auto res = parser.find("position", 0)) {
+
     } else {
         out << "unknown command" << std::endl;
     }

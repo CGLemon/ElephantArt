@@ -79,7 +79,6 @@ void init_basic_parameters() {
 
 ArgsParser::ArgsParser(int argc, char** argv) {
 
-
     auto parser = Utils::CommandParser(argc, argv);
     const auto is_parameter = [](const std::string &para) -> bool {
         if (para.empty()) {
@@ -88,14 +87,11 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         return para[0] != '-';
     };
 
-    using List = std::vector<std::string>;
-
-    const auto help = parser.find(List{"--help", "-h"});
-    if (help) {
+    if (const auto res = parser.find({"--help", "-h"})) {
         set_option("help", true);
     }
 
-    if (const auto res = parser.find_next(List{"--mode", "-m"})) {
+    if (const auto res = parser.find_next({"--mode", "-m"})) {
         if (is_parameter(res->str)) {
             if (res->str == "ascii" || res->str == "ucci") {
                 set_option("mode", res->str);

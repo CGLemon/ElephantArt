@@ -18,6 +18,10 @@
 
 #include "Position.h"
 
+#include <iterator>
+#include <sstream>
+
+
 void Position::init_game() {
     m_history.clear();
     board.reset_board();
@@ -71,6 +75,84 @@ std::vector<Move> Position::get_movelist() const {
     board.generate_movelist(color, movelist);
 
     return movelist;
+}
+
+bool Position::undo() {
+
+    const auto movenum = get_movenum();
+    if (movenum == 1) {
+        return false;
+    }
+
+    m_history.resize(movenum - 1);
+    board = *m_history[movenum - 2];
+
+    assert(get_movenum() == movenum - 1);
+    assert(get_movenum() == (int)m_history.size());
+
+    return true;
+}
+
+bool Position::position(std::string &fen, std::string& moves) {
+
+
+    // first : Set the position.
+    auto fork_board = std::make_shared<Board>(board);
+    auto success = fork_board->fen2board(fen);
+
+    if (!success) {
+        return false;
+    }
+
+    // second : Check out the position is exist.
+    auto current_movenum = fork_board->get_movenum();
+    assert(current_movenum >= 1);
+    if (!(fork_board->get_hash() == m_history[current_movenum-1]->get_hash())) {
+        return false;
+    } 
+
+    if (moves.empty()) {
+        m_history.resize(current_movenum);
+        board = *m_history[current_movenum-1];
+        return true;
+    }
+
+
+    // third : Do moves.
+    auto chain_board = std::vector<std::shared_ptr<Board>>{};
+    bool moves_success = true;
+    auto move_cnt = size_t{0};
+
+    auto moves_stream = std::stringstream{moves};
+    auto move_str = std::string{};
+
+    while (moves_stream >> move_str) {
+        const auto move = fork_board->text2move(move_str);
+        ++move_cnt;
+        if (move.valid()) {
+            if (fork_board->is_legal(move)) {
+                fork_board->do_move(move);
+                chain_board.emplace_back(std::make_shared<Board>(*fork_board));
+            }
+        }
+
+        if (move_cnt != chain_board.size()) {
+            moves_success = false;
+        }
+    }
+
+    if (moves_success) {
+        m_history.resize(current_movenum);
+        for (auto b : chain_board) {
+            m_history.emplace_back(b);
+        }
+        current_movenum += move_cnt;
+        board = *m_history[current_movenum-1];
+        assert(get_movenum() == current_movenum - 1);
+        assert(get_movenum() == (int)m_history.size());
+    }
+
+    return moves_success;
 }
 
 Types::Color Position::get_to_move() const {

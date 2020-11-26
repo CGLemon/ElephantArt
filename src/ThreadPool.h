@@ -93,6 +93,7 @@ inline void ThreadPool::initialize(size_t threads) {
     for (size_t i = 0; i < threads; i++) {
         add_thread([](){} /* null function */);
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
 }
 
 inline void ThreadPool::wake_up() {
@@ -153,7 +154,7 @@ ThreadPool::add_task(F&& f, Args&&... args) {
             out << "Do not allow to add a task : ";
 
             if (this->m_quit.load()) {
-                out << "Thread pool has stopped";
+                out << "Thread pool had stopped";
             }
             else if (this->m_fork_threads.load() <= 0) {
                 out << "No threads";

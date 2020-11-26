@@ -38,6 +38,9 @@ public:
     void do_move_assume_legal(Move move);
     bool do_textmove(std::string move);
 
+    bool undo();
+
+    bool position(std::string &fen, std::string &moves);
 
     std::vector<Move> get_movelist() const;
     Types::Color get_to_move() const;

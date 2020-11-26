@@ -100,3 +100,28 @@ Engine::Response Engine::do_textmove(std::string move, const int g) {
     }
     return rep.str();
 }
+
+Engine::Response Engine::undo_move(const int g) {
+    auto rep = std::ostringstream{};
+    auto success = get_position(g)->undo();
+    if (success) {
+        rep << "";
+    } else {
+        rep << "Fail to undo move";
+    }
+    return rep.str();
+}
+
+Engine::Response Engine::position(std::string fen,
+                                  std::string moves, const int g) {
+
+    auto rep = std::ostringstream{};
+    auto success = get_position(g)->position(fen, moves);
+    if (success) {
+        rep << "";
+    } else {
+        rep << "Illegal position";
+    }
+    return rep.str();
+}
+

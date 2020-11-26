@@ -264,7 +264,7 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::find(const std::string inp
     return nullptr;
 }
 
-std::shared_ptr<CommandParser::Reuslt> CommandParser::find(const std::vector<std::string> inputs, int id) const {
+std::shared_ptr<CommandParser::Reuslt> CommandParser::find(const std::initializer_list<std::string> inputs, int id) const {
 
     for (const auto &in : inputs) {
         if (const auto res = find(in, id)) {
@@ -284,7 +284,7 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::find_next(const std::strin
     return get_command(res->idx+1);
 }
 
-std::shared_ptr<CommandParser::Reuslt> CommandParser::find_next(const std::vector<std::string> inputs) const {
+std::shared_ptr<CommandParser::Reuslt> CommandParser::find_next(const std::initializer_list<std::string> inputs) const {
 
     for (const auto &in : inputs) {
         if (const auto res = find_next(in)) {

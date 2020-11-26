@@ -20,9 +20,10 @@
 #include "Utils.h"
 #include "Random.h"
 
-#include <algorithm>
-#include <sstream>
 #include <functional>
+#include <algorithm>
+#include <iterator>
+#include <sstream>
 
 constexpr std::array<Types::Piece, Board::NUM_VERTICES> Board::START_VERTICES;
 
@@ -58,13 +59,37 @@ void Board::reset_board() {
 
 bool Board::fen2board(std::string &fen) {
 
-    auto fen_format = std::stringstream{fen};
-    auto fen_stream = std::string{};
+    // FEN example:
+    // rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1
+    //
+    // part 1 : position
+    // rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR
+    //
+    // part 2 : to move
+    // w
+    //
+    // part 3 : invalid
+    // -
+    //
+    // part 4 : invalid
+    // -
+    //
+    // part 5 : invalid
+    // 0
+    //
+    // part 6 : move number
+    // 1
 
-    fen_format >> fen_stream;
-    if (fen_format.fail()) {
+    auto cnt_stream = std::stringstream{fen};
+    const auto cnt = std::distance(std::istream_iterator<std::string>(cnt_stream),
+                                   std::istream_iterator<std::string>());
+
+    if (cnt != 6) {
         return false;
     }
+
+    auto fen_format = std::stringstream{fen};
+    auto fen_stream = std::string{};
 
     auto success = bool{true};
     auto bb_black = BitBoard(0ULL);
@@ -78,6 +103,9 @@ bool Board::fen2board(std::string &fen) {
     auto bb_elephant = BitBoard(0ULL);
     auto bb_advisor = BitBoard(0ULL);
     auto bb_cannon = BitBoard(0ULL);
+
+    // part 1 : position
+    fen_format >> fen_stream;
 
     auto vtx = Types::VTX_A9;
     for (const auto &c : fen_stream) {
@@ -157,29 +185,27 @@ bool Board::fen2board(std::string &fen) {
             ++vtx;
         }
     }
-    
+
+    // part 2 : to move
     fen_format >> fen_stream;
-    if (fen_format.fail() || !success) {
-        return false;
-    }
-    
+    auto tomove = Types::INVALID_COLOR;
     if (fen_stream == "w" || fen_stream == "r") {
-        m_tomove = Types::RED;
+        tomove = Types::RED;
     } else if (fen_stream == "b") {
-        m_tomove = Types::BLACK;
+        tomove = Types::BLACK;
+    } else {
+        success = false;
     }
 
+    // part 3-5 : invalid
     for (int k = 0; k < 3; ++k) {
         fen_format >> fen_stream;
-        if (fen_format.fail()) {
-            success = false;
-            break;
-        }
     }
 
+    // part 6 : move number
     int movenum;
     fen_format >> movenum;
-    if (fen_format.fail()) {
+    if (movenum <= 0) {
         success = false;
     }
 
@@ -197,6 +223,10 @@ bool Board::fen2board(std::string &fen) {
         m_bb_advisor = bb_advisor;
         m_bb_cannon = bb_cannon;
         m_movenum = movenum;
+        m_tomove = tomove;
+
+        // Calculate the new hash value. 
+        m_hash = calc_hash();
     }
 
     return success;
@@ -352,14 +382,14 @@ void Board::init_move_pattens() {
         const auto x = get_x(v);
         const auto y = get_y(v);
         const auto rankmask = (Rank0BB << (BITBOARD_SHIFT * y)) & onBoard;
-        auto filekmask = (FileABB << x) & onBoard;
+        auto filemask = (FileABB << x) & onBoard;
 
         m_rookrank_magics[v].mask = rankmask;
-        m_rookfile_magics[v].mask = filekmask;
+        m_rookfile_magics[v].mask = filemask;
         m_cannonrank_magics[v].mask = rankmask;
-        m_cannonfile_magics[v].mask = filekmask;
+        m_cannonfile_magics[v].mask = filemask;
 
-        const auto test = rankmask & filekmask;
+        const auto test = rankmask & filemask;
         if (test) {
             assert(test == Utils::vertex2bitboard(v));
         }
@@ -381,9 +411,9 @@ void Board::init_magics() {
     };
 
     // Generate the magic numbers.
-    const auto generate_magic = [&](int addition, Types::Vertices v,
-                                    std::array<Magic, NUM_VERTICES> &magics,
-                                    std::function<BitBoard(BitBoard &, BitBoard &)> generate_reference) -> void {
+    const auto generate_magics = [&](const int addition, Types::Vertices v,
+                                     std::array<Magic, NUM_VERTICES> &magics,
+                                     std::function<BitBoard(BitBoard &, BitBoard &)> generate_reference) -> void {
         if (!magics[v].valid) {
             return;
         }
@@ -561,32 +591,39 @@ void Board::init_magics() {
     set_valid(m_cannonfile_magics);
 
     for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
-        generate_magic(0, v, m_elephant_magics, elephant_reference);
-        generate_magic(0, v, m_horse_magics, horse_reference);
-        generate_magic(2, v, m_rookrank_magics, rookrank_reference);
-        generate_magic(4, v, m_rookfile_magics, rookfile_reference);
-        generate_magic(2, v, m_cannonrank_magics, cannonrank_reference);
-        generate_magic(4, v, m_cannonfile_magics, cannonfile_reference);
+        generate_magics(0, v, m_elephant_magics, elephant_reference);
+        generate_magics(0, v, m_horse_magics, horse_reference);
+        generate_magics(2, v, m_rookrank_magics, rookrank_reference);
+        generate_magics(4, v, m_rookfile_magics, rookfile_reference);
+        generate_magics(2, v, m_cannonrank_magics, cannonrank_reference);
+        generate_magics(4, v, m_cannonfile_magics, cannonfile_reference);
     }
+
     auto t = timer.get_duration();
-    Utils::auto_printf("Generate Magic numbers to spent %.4f second(s)\n", t);
+    Utils::auto_printf("Generating Magic numbers to spent %.4f second(s)\n", t);
 }
 
 void Board::dump_memory() {
 
     auto res = size_t{0};
-    res += sizeof(BitBoard) * m_pawn_attacks[0].size();
-    res += sizeof(BitBoard) * m_pawn_attacks[1].size();
-    res += sizeof(BitBoard) * m_advisor_attacks.size();
-    res += sizeof(BitBoard) * m_king_attacks.size();
+    res += sizeof(m_pawn_attacks);
+    res += sizeof(m_advisor_attacks);
+    res += sizeof(m_king_attacks);
+
+    res += sizeof(m_horse_magics);
+    res += sizeof(m_elephant_magics);
+    res += sizeof(m_rookrank_magics);
+    res += sizeof(m_rookfile_magics);
+    res += sizeof(m_cannonrank_magics);
+    res += sizeof(m_cannonfile_magics);
 
     for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
-        res += sizeof(BitBoard) * m_horse_magics[v].attacks.size();
-        res += sizeof(BitBoard) * m_elephant_magics[v].attacks.size();
-        res += sizeof(BitBoard) * m_rookrank_magics[v].attacks.size();
-        res += sizeof(BitBoard) * m_rookfile_magics[v].attacks.size();
-        res += sizeof(BitBoard) * m_cannonrank_magics[v].attacks.size();
-        res += sizeof(BitBoard) * m_cannonfile_magics[v].attacks.size();
+        res += sizeof(BitBoard) * m_horse_magics[v].attacks.capacity();
+        res += sizeof(BitBoard) * m_elephant_magics[v].attacks.capacity();
+        res += sizeof(BitBoard) * m_rookrank_magics[v].attacks.capacity();
+        res += sizeof(BitBoard) * m_rookfile_magics[v].attacks.capacity();
+        res += sizeof(BitBoard) * m_cannonrank_magics[v].attacks.capacity();
+        res += sizeof(BitBoard) * m_cannonfile_magics[v].attacks.capacity();
     }
     Utils::auto_printf("Attacks Table Memory : %.4f (Mib)\n", (double)res / (1024.f * 1024.f));
 }
@@ -824,7 +861,6 @@ const auto lambda_separate_bitboarad = [](Types::Vertices vtx,
     }
     return cnt;
 };
-
 
 template<>
 int Board::generate_move<Types::KING>(Types::Color color, std::vector<Move> &MoveList) const {
