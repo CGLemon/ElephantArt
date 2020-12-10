@@ -23,6 +23,7 @@
 
 
 void Position::init_game() {
+    m_startboard = 0;
     m_history.clear();
     board.reset_board();
     push_board();
@@ -95,7 +96,6 @@ bool Position::undo() {
 
 bool Position::position(std::string &fen, std::string& moves) {
 
-
     // first : Set the position.
     auto fork_board = std::make_shared<Board>(board);
     auto success = fork_board->fen2board(fen);
@@ -112,6 +112,7 @@ bool Position::position(std::string &fen, std::string& moves) {
     } 
 
     if (moves.empty()) {
+        m_startboard = current_movenum-1;
         m_history.resize(current_movenum);
         board = *m_history[current_movenum-1];
         return true;
@@ -147,6 +148,7 @@ bool Position::position(std::string &fen, std::string& moves) {
             m_history.emplace_back(b);
         }
         current_movenum += move_cnt;
+        m_startboard = current_movenum-1;
         board = *m_history[current_movenum-1];
         assert(get_movenum() == current_movenum - 1);
         assert(get_movenum() == (int)m_history.size());
@@ -169,4 +171,10 @@ std::uint64_t Position::get_hash() const {
 
 Move Position::get_last_move() const {
     return board.get_last_move();
+}
+
+const std::shared_ptr<const Board> Position::get_past_board(const int p) const {
+    const auto movenum = get_movenum();
+    assert(0 <= p && p < movenum);
+    return m_history[movenum - p - 1];
 }

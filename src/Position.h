@@ -49,8 +49,12 @@ public:
     Move get_last_move() const;
 
     Board board;
+    
+    
+    const std::shared_ptr<const Board> get_past_board(const int p) const;
 
 private:
+    int m_startboard;
     std::vector<std::shared_ptr<const Board>> m_history;
 
 };
