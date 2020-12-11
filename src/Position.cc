@@ -17,13 +17,15 @@
 */
 
 #include "Position.h"
+#include "Zobrist.h"
 
 #include <iterator>
 #include <sstream>
 
 
-void Position::init_game() {
+void Position::init_game(int tag) {
     m_startboard = 0;
+    position_hash = Zobrist::zobrist_positions[tag];
     m_history.clear();
     board.reset_board();
     push_board();
@@ -166,7 +168,11 @@ int Position::get_movenum() const {
 }
 
 std::uint64_t Position::get_hash() const {
-    return board.get_hash();
+    return board.get_hash() ^ position_hash;
+}
+
+std::uint64_t Position::calc_hash(const int symmetry) const {
+    return board.calc_hash(symmetry) ^ position_hash;
 }
 
 Move Position::get_last_move() const {

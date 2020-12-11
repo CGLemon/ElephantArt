@@ -20,6 +20,7 @@
 #define ENGINE_H_INCLUDE
 
 #include "Position.h"
+#include "Network.h"
 
 #include <memory>
 #include <string>
@@ -51,6 +52,7 @@ private:
 
     std::shared_ptr<Position> get_position(const int g) const;
 
+    std::shared_ptr<Network> m_network{nullptr};
     std::vector<std::shared_ptr<Position>> m_positions;
 
 };

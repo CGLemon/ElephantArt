@@ -33,8 +33,15 @@ void Engine::initialize() {
         m_positions.pop_back();
     }
 
+    int tag = 0;
     for (auto &p : m_positions) {
-        p->init_game();
+        p->init_game(tag);
+        tag++;
+    }
+
+    if (m_network == nullptr) {
+        m_network = std::make_shared<Network>();
+        m_network->initialize(option<int>("playouts"), option<std::string>("weights_file"));
     }
 }
 
@@ -52,7 +59,8 @@ std::shared_ptr<Position> Engine::get_position(const int g) const {
 
 
 void Engine::reset_game(const int g) {
-    get_position(g)->init_game();
+    assert(g >= 0 || g < option<int>("num_games"));
+    get_position(g)->init_game(g);
 }
 
 

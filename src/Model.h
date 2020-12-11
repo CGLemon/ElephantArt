@@ -30,8 +30,19 @@
 static constexpr auto INPUT_STATUS = 4;
 static constexpr auto INPUT_MOVES = 1;
 static constexpr auto INPUT_CHANNELS = INPUT_MOVES * 14 + INPUT_STATUS;
-static constexpr auto VALUELAYER = 256;
+
 static constexpr auto POLICYMAP = 46;
+static constexpr auto VALUELAYER = 256;
+static constexpr auto WINRATELAYER = 3;
+
+struct NNResult {
+    std::array<float, POLICYMAP * Board::INTERSECTIONS> policy;
+    std::array<float, WINRATELAYER> winrate;
+    NNResult () {
+        policy.fill(0.0f);
+        winrate.fill(0.0f);
+    }
+};
 
 struct Desc {
     struct ConvLayer {
@@ -148,34 +159,11 @@ struct Model {
                                        const int in_channels,
                                        const int out_channels,
                                        const int kernel_size);
-};
 
-
-/*
-
-struct Model {
-
-    static std::vector<float> gather_features(const GameState *const state);
-
-    static void features_stream(std::ostream &out,
-                                const GameState *const state,
-                                const int symmetry);
-
-    static std::string features_to_string(GameState &state, const int symmetry);
-
-    static NNResult get_result(const GameState *const state,
-                               std::vector<float> &policy,
-                               std::vector<float> &score_belief,
-                               std::vector<float> &ownership,
-                               std::vector<float> &final_score,
-                               std::vector<float> &values,
-                               const float softmax_temp,
+    static NNResult get_result(std::vector<float> &policy,
+                               std::vector<float> &value,
+                               const float p_softmax_temp,
+                               const float v_softmax_temp,
                                const int symmetry);
-
-    static float get_winrate(GameState &state, const NNResult &result);
-    static float get_winrate(GameState &state, const NNResult &result, float current_komi);
 };
-
-*/
-
 #endif

@@ -27,20 +27,16 @@
 #include <atomic>
 #include <cassert>
 
-#include "SharedMutex.h"
 #include "Utils.h"
+#include "SharedMutex.h"
 
-
-template <typename EvalResult>
+template <typename EntryType>
 class Cache {
 public:
-    Cache(size_t size = MAX_CACHE_COUNT)
-        : m_hits(0), m_lookups(0), m_inserts(0) {
-        resize(size);
-    }
+    Cache() : m_hits(0), m_lookups(0), m_inserts(0) {}
 
-    bool lookup(std::uint64_t hash, EvalResult &result);
-    void insert(std::uint64_t hash, const EvalResult &result);
+    bool lookup(std::uint64_t hash, EntryType &result);
+    void insert(std::uint64_t hash, const EntryType &result);
     void resize(size_t size);
 
     void dump_stats();
@@ -54,9 +50,9 @@ private:
 
     static constexpr size_t MIN_CACHE_COUNT = 6000;
 
-    static constexpr size_t ENTRY_SIZE = sizeof(EvalResult) +
+    static constexpr size_t ENTRY_SIZE = sizeof(EntryType) +
                                          sizeof(std::uint64_t) +
-                                         sizeof(std::unique_ptr<EvalResult>);
+                                         sizeof(std::unique_ptr<EntryType>);
 
     SharedMutex m_sm;
     size_t m_size;
@@ -66,17 +62,18 @@ private:
     int m_inserts;
 
     struct Entry {
-        Entry(const EvalResult &r) : result(r) {}
-        EvalResult result;
+        Entry(const EntryType &r) : result(r) {}
+        EntryType result;
     };
 
     std::unordered_map<std::uint64_t, std::unique_ptr<const Entry>> m_cache;
     std::deque<std::uint64_t> m_order;
 };
 
-template <typename EvalResult>
-bool Cache<EvalResult>::lookup(std::uint64_t hash,
-                                    EvalResult &result) {
+template <typename EntryType>
+bool Cache<EntryType>::lookup(std::uint64_t hash,
+                                    EntryType &result) {
+
     // std::lock_guard<std::mutex> lock(m_mutex);
     LockGuard<lock_t::S_LOCK> lock(m_sm);
     
@@ -94,9 +91,9 @@ bool Cache<EvalResult>::lookup(std::uint64_t hash,
     return success;
 }
 
-template <typename EvalResult>
-void Cache<EvalResult>::insert(std::uint64_t hash,
-                                    const EvalResult &result) {
+template <typename EntryType>
+void Cache<EntryType>::insert(std::uint64_t hash,
+                                    const EntryType &result) {
 
     // std::lock_guard<std::mutex> lock(m_mutex);
     LockGuard<lock_t::X_LOCK> lock(m_sm);
@@ -113,14 +110,14 @@ void Cache<EvalResult>::insert(std::uint64_t hash,
     }
 }
 
-template <typename EvalResult>
-void Cache<EvalResult>::resize(size_t size) {
+template <typename EntryType>
+void Cache<EntryType>::resize(size_t size) {
 
     m_size = (size > Cache::MAX_CACHE_COUNT ? Cache::MAX_CACHE_COUNT : 
               size < Cache::MIN_CACHE_COUNT ? Cache::MIN_CACHE_COUNT : size);
 
     // std::lock_guard<std::mutex> lock(m_mutex);
-    LockGuard<lock_t::S_LOCK> lock(m_sm);
+    LockGuard<lock_t::X_LOCK> lock(m_sm);
     
     while (m_order.size() > m_size) {
         m_cache.erase(m_order.front());
@@ -128,11 +125,11 @@ void Cache<EvalResult>::resize(size_t size) {
     }
 }
 
-template <typename EvalResult> 
-void Cache<EvalResult>::clear() {
+template <typename EntryType> 
+void Cache<EntryType>::clear() {
 
     // std::lock_guard<std::mutex> lock(m_mutex);
-    LockGuard<lock_t::S_LOCK> lock(m_sm);
+    LockGuard<lock_t::X_LOCK> lock(m_sm);
     
     if (!m_order.empty()) {
         m_cache.clear();
@@ -140,13 +137,13 @@ void Cache<EvalResult>::clear() {
     }
 }
 
-template <typename EvalResult>
-size_t Cache<EvalResult>::get_estimated_size() {
+template <typename EntryType>
+size_t Cache<EntryType>::get_estimated_size() {
     return m_order.size() * Cache::ENTRY_SIZE;
 }
 
-template <typename EvalResult> 
-void Cache<EvalResult>::dump_stats() {
+template <typename EntryType> 
+void Cache<EntryType>::dump_stats() {
     Utils::auto_printf("NNCache: %d/%d hits/lookups = %.1f%% hitrate, %d inserts, %lu size\n",
                        m_hits, m_lookups, 100. * m_hits / (m_lookups + 1), m_inserts,
                        m_cache.size());

@@ -69,6 +69,11 @@ void init_options_map() {
     options_map["quiet"] << Utils::Option::setoption(false);
     options_map["num_games"] << Utils::Option::setoption(1, 32, 1);
     options_map["reserve_movelist"] << Utils::Option::setoption(60);
+
+    options_map["softmax_temp"] << Utils::Option::setoption(1.0f);
+    options_map["cache_moves"] << Utils::Option::setoption(20);
+    options_map["playouts"] << Utils::Option::setoption(1600);
+    options_map["weights_file"] << Utils::Option::setoption(std::string{"NO_WEIGHT_FILE"});
 }
 
 void init_basic_parameters() {
@@ -94,8 +99,20 @@ ArgsParser::ArgsParser(int argc, char** argv) {
     if (const auto res = parser.find_next({"--mode", "-m"})) {
         if (is_parameter(res->str)) {
             if (res->str == "ascii" || res->str == "ucci") {
-                set_option("mode", res->str);
+                set_option("mode", res->get<std::string>());
             }
+        }
+    }
+
+    if (const auto res = parser.find_next({"--playouts", "-p"})) {
+        if (is_parameter(res->str)) {
+            set_option("playouts", res->get<int>());
+        }
+    }
+
+    if (const auto res = parser.find_next({"--weight", "-w"})) {
+        if (is_parameter(res->str)) {
+            set_option("weights_file", res->get<std::string>());
         }
     }
 }

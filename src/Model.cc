@@ -19,6 +19,7 @@
 #include <cassert>
 #include <unordered_map>
 
+#include "Blas.h"
 #include "Model.h"
 #include "Utils.h"
 
@@ -487,6 +488,28 @@ void Model::fill_weights(std::istream &weights_file,
     }
 }
 
+NNResult Model::get_result(std::vector<float> &policy,
+                           std::vector<float> &value,
+                           const float p_softmax_temp,
+                           const float v_softmax_temp,
+                           const int symmetry) {
+    NNResult result;
+    // Probabilities
+    const auto probabilities = Activation::Softmax(policy, p_softmax_temp);
+    for (auto idx = size_t{0}; idx < Board::INTERSECTIONS; ++idx) {
+        const auto sym_idx = Board::symmetry_nn_idx_table[symmetry][idx];
+        result.policy[sym_idx] = probabilities[idx];
+    }
+
+    // Winrate
+    const auto winrate = Activation::Softmax(value, v_softmax_temp);
+    for (auto idx = size_t{0}; idx < 3; ++idx) {
+        result.winrate[idx] = winrate[idx];
+    }
+
+    return result;
+}
+
 void Model::process_weights(std::shared_ptr<NNweights> &nn_weight) {
     // input layer
     for (auto idx = size_t{0}; idx < nn_weight->input_conv.biases.size(); ++idx) {
@@ -497,7 +520,7 @@ void Model::process_weights(std::shared_ptr<NNweights> &nn_weight) {
     for (auto &residual :  nn_weight->residual_tower) {
         for (auto idx = size_t{0}; idx < residual.conv_1.biases.size(); ++idx) {
             residual.bn_1.means[idx] -= residual.conv_1.biases[idx] *
-                                            residual.bn_2.stddevs[idx];
+                                            residual.bn_1.stddevs[idx];
         }
         for (auto idx = size_t{0}; idx < residual.conv_2.biases.size(); ++idx) {
             residual.bn_2.means[idx] -= residual.conv_2.biases[idx] *

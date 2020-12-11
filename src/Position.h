@@ -27,7 +27,7 @@
 
 class Position {
 public:
-    void init_game();
+    void init_game(int tag);
 
     void display() const;
 
@@ -45,15 +45,17 @@ public:
     std::vector<Move> get_movelist() const;
     Types::Color get_to_move() const;
     int get_movenum() const;
-    std::uint64_t get_hash() const;
     Move get_last_move() const;
 
     Board board;
     
-    
+    std::uint64_t get_hash() const;
+    std::uint64_t calc_hash(const int symmetry = Board::IDENTITY_SYMMETRY) const;
+
     const std::shared_ptr<const Board> get_past_board(const int p) const;
 
 private:
+    std::uint64_t position_hash;
     int m_startboard;
     std::vector<std::shared_ptr<const Board>> m_history;
 

@@ -16,35 +16,24 @@
     along with Saya.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ZOBRIST_H_INCLUDE
-#define ZOBRIST_H_INCLUDE
+#include "SharedMutex.h"
 
-#include <array>
-#include <random>
-#include <vector>
+template<> 
+LockGuard<lock_t::X_LOCK>::LockGuard(SharedMutex &sm) : m_sm(sm) {
+    m_sm.lock();
+}
 
-#include "BitBoard.h"
+template<> 
+LockGuard<lock_t::X_LOCK>::~LockGuard() {
+    m_sm.unlock();
+}
 
-class Zobrist {
-private:
-    using KEY = std::uint64_t;
+template<> 
+LockGuard<lock_t::S_LOCK>::LockGuard(SharedMutex &sm) : m_sm(sm) {
+    m_sm.lock_shared();
+}
 
-    static constexpr auto ZOBRIST_SIZE = BITBOARD_NUM_VERTICES;
-
-    static constexpr KEY zobrist_seed = 0xabcdabcd12345678;
-
-public:
-    static constexpr KEY zobrist_empty = 0x1234567887654321;
-
-    static constexpr KEY zobrist_redtomove = 0xabcdabcdabcdabcd;
-
-    static std::array<std::array<KEY, ZOBRIST_SIZE>, 18> zobrist;
-
-    static std::array<KEY, 5> zobrist_repeat;
-
-    static std::array<KEY, 200> zobrist_positions;
-
-    static void init_zobrist();
-};
-
-#endif
+template<> 
+LockGuard<lock_t::S_LOCK>::~LockGuard() {
+    m_sm.unlock_shared();
+}

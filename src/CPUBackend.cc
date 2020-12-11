@@ -19,6 +19,7 @@
 
 #include "Board.h"
 #include "Utils.h"
+#include "Model.h"
 
 void CPUbackend::initialize(std::shared_ptr<Model::NNweights> weights) {
     reload(weights);
@@ -36,12 +37,9 @@ void CPUbackend::forward(const std::vector<float> &planes,
                          std::vector<float> &output_val) {
 
     using Convolve3 = Convolve<3>;
-    
-    
-    const auto input_channels = m_weights->input_channels;
+
     const auto output_channels = m_weights->residual_channels;
-    
-    auto max_channels = std::max({input_channels,
+    auto max_channels = std::max({INPUT_CHANNELS,
                                   output_channels,
                                   m_weights->policy_extract_channels,
                                   m_weights->policy_map});
@@ -54,7 +52,7 @@ void CPUbackend::forward(const std::vector<float> &planes,
     auto res = std::vector<float>(output_channels * Board::INTERSECTIONS);
     
     // input
-    Convolve3::Forward(input_channels, output_channels,
+    Convolve3::Forward(INPUT_CHANNELS, output_channels,
                        planes,
                        m_weights->input_conv.weights,
                        workspace, conv_out);
@@ -112,9 +110,7 @@ void CPUbackend::forward(const std::vector<float> &planes,
     
     // policy head
     const auto policy_extract_channels = m_weights->policy_extract_channels;
-    const auto policy_map_channels = m_weights->policy_map;
-    const auto policy_channels = std::max(policy_map_channels, policy_extract_channels);
-    auto policy_conv = std::vector<float>(policy_channels * Board::INTERSECTIONS);
+    auto policy_conv = std::vector<float>(policy_extract_channels * Board::INTERSECTIONS);
 
     Convolve3::Forward(output_channels, policy_extract_channels,
                        conv_out,
@@ -125,17 +121,17 @@ void CPUbackend::forward(const std::vector<float> &planes,
                        m_weights->p_ex_bn.means,
                        m_weights->p_ex_bn.stddevs);
     
-    Convolve3::Forward(policy_extract_channels, policy_map_channels,
+    Convolve3::Forward(policy_extract_channels, POLICYMAP,
                        policy_conv,
                        m_weights->p_map.weights,
                        workspace, output_pol);
     
-    AddSpatialBias::Forward(policy_map_channels, output_pol, m_weights->p_map.biases);
+    AddSpatialBias::Forward(POLICYMAP, output_pol, m_weights->p_map.biases);
     
     // value head
     const auto value_extract_channels = m_weights->value_extract_channels;
-    auto value_conv = std::vector<float>(policy_channels * Board::INTERSECTIONS);
-    auto value_fc = std::vector<float>(256);
+    auto value_conv = std::vector<float>(value_extract_channels * Board::INTERSECTIONS);
+    auto value_fc = std::vector<float>(VALUELAYER);
     
     Convolve1::Forward(output_channels, value_extract_channels,
                        conv_out,
@@ -146,13 +142,13 @@ void CPUbackend::forward(const std::vector<float> &planes,
                        m_weights->v_ex_bn.means,
                        m_weights->v_ex_bn.stddevs);
     
-    FullyConnect::Forward(value_extract_channels * Board::INTERSECTIONS, 256,
+    FullyConnect::Forward(value_extract_channels * Board::INTERSECTIONS, VALUELAYER,
                           value_conv,
                           m_weights->v_fc1.weights,
                           m_weights->v_fc1.biases,
                           value_fc, true);
     
-    FullyConnect::Forward(256, 3,
+    FullyConnect::Forward(VALUELAYER, WINRATELAYER,
                           value_fc,
                           m_weights->v_fc2.weights,
                           m_weights->v_fc2.biases,
@@ -161,7 +157,7 @@ void CPUbackend::forward(const std::vector<float> &planes,
 }
 
 void CPUbackend::destroy() {
-    
+    // Do nothing
 }
 
 void CPUbackend::release() {
