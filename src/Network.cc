@@ -86,18 +86,22 @@ void Network::initialize(const int playouts, const std::string &weightsfile) {
     using backend = CPUbackend;
 #endif
 
-    m_weights = std::make_shared<Model::NNweights>();
-    Model::load_weights(weightsfile, m_weights);
-
     m_forward = std::make_unique<backend>();
-    m_forward->initialize(m_weights);
 
-    if (m_weights->loaded) {
-        auto_printf("Weights are pushed down\n");
+    if (weightsfile != "NO_WEIGHT_FILE") {
+
+        m_weights = std::make_shared<Model::NNweights>();
+        Model::load_weights(weightsfile, m_weights);
+
+        m_forward->initialize(m_weights);
+
+        if (m_weights->loaded) {
+            auto_printf("Weights are pushed down\n");
+        }
+
+        m_weights.reset();
+        m_weights = nullptr;
     }
-
-    m_weights.reset();
-    m_weights = nullptr;
 }
 
 void Network::reload_weights(const std::string &weightsfile) {
@@ -142,14 +146,19 @@ void dummy_forward(std::vector<float> &policy,
     for (auto &p : policy) {
         p = dis(rng);
     }
-    const auto acc = std::accumulate(std::begin(policy),
-                                     std::end(policy), 0.0f);
+    const auto p_acc = std::accumulate(std::begin(policy),
+                                       std::end(policy), 0.0f);
     for (auto &p : policy) {
-        p /= acc;
+        p /= p_acc;
     }
 
     for (auto &v : value) {
-        v = (1.0f/3.0f);
+        v = dis(rng);
+    }
+    const auto v_acc = std::accumulate(std::begin(value),
+                                       std::end(value), 0.0f);
+    for (auto &v : value) {
+        v /= v_acc;
     }
 }
 
@@ -165,6 +174,7 @@ Network::Netresult Network::get_output_internal(const Position *const position,
     if (m_forward->valid()) {
         m_forward->forward(input_planes, policy_out, winrate_out);
     } else {
+        // If we don't load the network yet, output the random result.
         dummy_forward(policy_out, winrate_out);
     }
 

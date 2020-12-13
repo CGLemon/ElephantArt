@@ -27,8 +27,6 @@
 const static std::string get_License() {
 
     auto out = std::ostringstream{};
-
-    
     out << "    ";
     out << PROGRAM << " " << VERSION << " Copyright (C) 2020  Hung-Zhe Lin"    << std::endl;
 
@@ -42,7 +40,6 @@ const static std::string get_License() {
 static void ascii_loop() {
     auto ascii = std::make_shared<ASCII>();
 }
-
 
 int main(int argc, char** argv) {
 

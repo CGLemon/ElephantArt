@@ -62,11 +62,10 @@ void atomic_add(std::atomic<T> &f, T d) {
 }
 
 /**
- * Transform the string to words, and store one by one.
+ * Transform the string to words.
  */
 class CommandParser {
 public:
-
     struct Reuslt {
         Reuslt(const std::string &s, const int i) : str(s), idx(i) {};
 
@@ -80,13 +79,10 @@ public:
     };
 
     CommandParser() = delete;
-
     CommandParser(std::string input);
-
     CommandParser(int argc, char** argv);
 
     bool valid() const;
-
     size_t get_count() const;
 
     std::shared_ptr<Reuslt> get_command(size_t id) const;
@@ -96,10 +92,11 @@ public:
     std::shared_ptr<Reuslt> find(const std::initializer_list<std::string> inputs, int id = -1) const;
     std::shared_ptr<Reuslt> find_next(const std::string input) const;
     std::shared_ptr<Reuslt> find_next(const std::initializer_list<std::string> inputs) const;
+    void remove_command(size_t id);
+    void remove_slice(size_t begin, size_t end);
 
 private:
     std::vector<std::shared_ptr<const std::string>> m_commands;
-
     size_t m_count;
 
     void parser(std::string &&input);
@@ -150,11 +147,10 @@ private:
         return m_value;
     }
 
-    bool boundary_valid() const;
-
     template<typename T>
     void adjust();
 
+    bool boundary_valid() const;
     void option_handle() const;
 
 public:
@@ -213,9 +209,7 @@ public:
 
 private:
     std::chrono::steady_clock::time_point m_clock_time;
-
     std::vector<float> m_record;
-
     size_t record_count;
 };
 

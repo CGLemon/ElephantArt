@@ -294,6 +294,27 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::find_next(const std::initi
     return nullptr;
 }
 
+void CommandParser::remove_command(size_t id) {
+    if (id > get_count()) {
+        return;
+    }
+    m_commands.erase(std::begin(m_commands)+id);
+    m_count--;
+}
+
+void CommandParser::remove_slice(size_t b, size_t e) {
+    if (b > get_count() || e > get_count() || b > e) {
+        return;
+    }
+    if (b == e) {
+        remove_command(e);
+    } else {
+        m_commands.erase(std::begin(m_commands)+b, std::begin(m_commands)+e);
+        m_count -= (e-b);
+    }
+}
+
+
 template<>
 std::string CommandParser::Reuslt::get<std::string>() const {
     return str;
@@ -322,6 +343,11 @@ bool Option::boundary_valid() const {
 template<>
 Option Option::setoption<std::string>(std::string val, int /*max*/, int /*min*/) {
     return Option{type::String, val, 0, 0};
+}
+
+template<>
+Option Option::setoption<const char *>(const char *val, int /*max*/, int /*min*/) {
+    return Option{type::String, std::string{val}, 0, 0};
 }
 
 template<>

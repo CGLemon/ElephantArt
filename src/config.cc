@@ -22,16 +22,14 @@
 #include "Utils.h"
 
 #include <string>
-#include <mutex>
 
 std::unordered_map<std::string, Utils::Option> options_map;
-// std::mutex map_mutex;
 
 #define OPTIONS_EXPASSION(T)                        \
 template<>                                          \
 T option<T>(std::string name) {                     \
     return options_map.find(name)->second.get<T>(); \
-}
+}                                                   \
 
 OPTIONS_EXPASSION(std::string)
 OPTIONS_EXPASSION(bool)
@@ -63,7 +61,7 @@ void init_options_map() {
     options_map["name"] << Utils::Option::setoption(PROGRAM);
     options_map["version"] << Utils::Option::setoption(VERSION);
 
-    options_map["mode"] << Utils::Option::setoption(std::string{"ascii"});
+    options_map["mode"] << Utils::Option::setoption("ascii");
     options_map["help"] << Utils::Option::setoption(false);
 
     options_map["quiet"] << Utils::Option::setoption(false);
@@ -73,7 +71,7 @@ void init_options_map() {
     options_map["softmax_temp"] << Utils::Option::setoption(1.0f);
     options_map["cache_moves"] << Utils::Option::setoption(20);
     options_map["playouts"] << Utils::Option::setoption(1600);
-    options_map["weights_file"] << Utils::Option::setoption(std::string{"NO_WEIGHT_FILE"});
+    options_map["weights_file"] << Utils::Option::setoption("NO_WEIGHT_FILE");
 }
 
 void init_basic_parameters() {
@@ -91,6 +89,8 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         }
         return para[0] != '-';
     };
+
+    parser.remove_command(0);
 
     if (const auto res = parser.find({"--help", "-h"})) {
         set_option("help", true);

@@ -352,7 +352,7 @@ void Model::fill_weights(std::istream &weights_file,
             
             const auto res_next_shape = netmodel[off_set+5];
             
-            if (res_next_shape.size() == 2) {
+            if (res_next_shape.size() == 2 /* fullyconnect layer */) {
                 tower_ptr->apply_se = true;
                 se_cnt++;
                 const auto se_extend_shape = netmodel[off_set+5];

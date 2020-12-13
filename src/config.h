@@ -43,7 +43,6 @@ void init_basic_parameters();
 class ArgsParser {
 public:
     ArgsParser() = delete;
-
     ArgsParser(int argc, char** argv);
 
     void dump() const;
