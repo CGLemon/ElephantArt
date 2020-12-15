@@ -33,7 +33,7 @@ public:
     enum Ensemble { NONE, DIRECT, RANDOM_SYMMETRY /* , AVERAGE */ };
 
     using Netresult = NNResult;
-    using PolicyVertexPair = std::pair<float, int>;
+    using PolicyMapsPair = std::pair<float, int>;
 
     void initialize(const int playouts, const std::string &weightsfile);
 

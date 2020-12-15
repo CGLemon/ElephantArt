@@ -31,7 +31,7 @@ static constexpr auto INPUT_STATUS = 4;
 static constexpr auto INPUT_MOVES = 1;
 static constexpr auto INPUT_CHANNELS = INPUT_MOVES * 14 + INPUT_STATUS;
 
-static constexpr auto POLICYMAP = 46;
+static constexpr auto POLICYMAP = 50;
 static constexpr auto VALUELAYER = 256;
 static constexpr auto WINRATELAYER = 3;
 

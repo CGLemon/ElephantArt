@@ -82,10 +82,10 @@ void Desc::LinearLayer::load_size(int is, int os, bool check) {
     in_size = is;
     out_size = os;
     if (check && in_size * out_size != (int)weights.size()) {
-        throw "The one of Convolutional Layers weights size is not acceptable";
+        throw "The one of FullyConnect Layers weights size is not acceptable";
     }
     if (check && out_size != (int)biases.size()) {
-        throw "The one of Convolutional Layers baies size is not acceptable";
+        throw "The one of FullyConnect Layers baies size is not acceptable";
     }
 }
 
@@ -118,20 +118,20 @@ std::vector<float> Model::gather_planes(const Position *const position,
     static_assert(INPUT_CHANNELS == MOVES_PLANES + STATUS_PLANES, "");
     static_assert(INPUT_CHANNELS == 18, "");
 
-    // plane |  1 -  7 | current player picee position.
-    // plane |  8      | current player is red or not.
-    // plane |  9 - 15 | next player picee position.
-    // plane | 16      | next player is red or not.
-    // plane | 17 - 18 | repeat conut
+    // planes |  1 -  7 | current player picee position.
+    // planes |  8      | current player is red or not.
+    // planes |  9 - 15 | next player picee position.
+    // planes | 16      | next player is red or not.
+    // planes | 17 - 18 | repeat conut
 
     auto input_data = std::vector<float>(INPUT_CHANNELS * Board::INTERSECTIONS, 0.0f);
     auto color = position->get_to_move();
     auto blk_iterator = std::begin(input_data);
     auto red_iterator = std::begin(input_data);
-    if (color == Types::RED) {
-        std::advance(red_iterator, (INPUT_MOVES+1) * 7 * Board::INTERSECTIONS);
+    if (color == Types::BLACK) {
+        std::advance(red_iterator, (1 + INPUT_MOVES * 7) * Board::INTERSECTIONS);
     } else {
-        std::advance(blk_iterator, (INPUT_MOVES+1) * 7 * Board::INTERSECTIONS);
+        std::advance(blk_iterator, (1 + INPUT_MOVES * 7) * Board::INTERSECTIONS);
     }
 
     const auto movenum = position->get_movenum();
@@ -305,12 +305,12 @@ void Model::fill_weights(std::istream &weights_file,
 
         if (nn_weight->residual_channels != input_conv_shape[1] &&
             nn_weight->residual_channels != input_bn_shape[0]) {
-            throw "The nnumber of input layer channels is wrong";
+            throw "The number of input layer channels is wrong";
         }
         
         // residual tower
         for (int b = 0; b < residuals; ++b) {
-            
+
             const auto off_set = b * 4 + 2 + 2 * se_cnt;
             const auto res_conv1_shape = netmodel[off_set];
             const auto res_bn1_shape = netmodel[off_set+1];
@@ -350,38 +350,36 @@ void Model::fill_weights(std::istream &weights_file,
                 throw "The nnumber of Residual Block channels is wrong";
             }
             
-            const auto res_next_shape = netmodel[off_set+5];
+            const auto res_next_shape = netmodel[off_set+4];
             
             if (res_next_shape.size() == 2 /* fullyconnect layer */) {
+
                 tower_ptr->apply_se = true;
                 se_cnt++;
-                const auto se_extend_shape = netmodel[off_set+5];
+                const auto se_extend_shape = netmodel[off_set+4];
+                const auto se_squeeze_shape = netmodel[off_set+5];
                 fill_fullyconnect_layer(tower_ptr->extend,
                                         weights_file,
                                         se_extend_shape[0],
                                         se_extend_shape[1]);
-                
-                const auto se_squeeze_shape = netmodel[off_set+6];
                 fill_fullyconnect_layer(tower_ptr->squeeze,
                                         weights_file,
-                                        se_extend_shape[0],
-                                        se_extend_shape[1]);
-                
-                if (se_extend_shape[1] != se_extend_shape[0]) {
+                                        se_squeeze_shape[0],
+                                        se_squeeze_shape[1]);
+
+                if (se_extend_shape[1] != se_squeeze_shape[0]) {
                     throw "The SE Unit size is wrong.";
                 }
-                if (se_extend_shape[0] != 2 * se_extend_shape[1] &&
+                if (2 * se_extend_shape[0] != se_squeeze_shape[1] &&
                     se_extend_shape[0] != nn_weight->residual_channels) {
                     throw "The SE Unit size is wrong.";
                 }
                 
-                tower_ptr->se_size = se_extend_shape[0];
-                
+                tower_ptr->se_size = se_extend_shape[1];
             } else {
                 tower_ptr->apply_se = false;
             }
         }
-        
         const auto off_set = residuals * 4 + 2 + 2 * se_cnt;
         
         // policy head
@@ -496,9 +494,12 @@ NNResult Model::get_result(std::vector<float> &policy,
     NNResult result;
     // Probabilities
     const auto probabilities = Activation::Softmax(policy, p_softmax_temp);
-    for (auto idx = size_t{0}; idx < Board::INTERSECTIONS; ++idx) {
-        const auto sym_idx = Board::symmetry_nn_idx_table[symmetry][idx];
-        result.policy[sym_idx] = probabilities[idx];
+    for (auto p = size_t{0}; p < POLICYMAP; ++p) {
+        for (auto idx = size_t{0}; idx < Board::INTERSECTIONS; ++idx) {
+            const auto sym_idx = Board::symmetry_nn_idx_table[symmetry][idx];
+            result.policy[sym_idx + p * Board::INTERSECTIONS] =
+                probabilities[idx + p * Board::INTERSECTIONS];
+        }
     }
 
     // Winrate

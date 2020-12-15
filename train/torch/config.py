@@ -1,5 +1,21 @@
 import json
 
+# Config.json example
+# {
+#     "NeuralNetwork" : {
+#         "NNType" : "Residual",
+#         "InputChannels" : 18,
+#         "ResidualChannels" : 64,
+#         "PolicyExtract" : 256,
+#         "ValueExtract" : 8,
+#         "Stack" : [
+#             "ResidualBlock",
+#             "ResidualBlock",
+#             "ResidualBlock-SE"
+#         ]
+#     }
+# }
+
 CONFIG_KEYWOED = [
     "NeuralNetwork",
     "NNType",
@@ -9,7 +25,7 @@ CONFIG_KEYWOED = [
     "Stack",
     "ResidualChannels",
     "ResidualBlock",
-    "ResidualBlock-withSE",
+    "ResidualBlock-SE",
 ]
 
 class NetworkConfig:
@@ -22,7 +38,7 @@ class NetworkConfig:
         self.value_extract = None
         self.xsize = 10
         self.ysize = 9
-        self.policy_map = 2 * (9 + 8) + 8 + 4
+        self.policy_map = 2 * (9 + 8) + 8 + 4 + 4 # 50
 
 def json_loader(filename):
     with open(filename, 'r') as f:
@@ -48,3 +64,7 @@ def gather_networkconfig(filename):
     d = json_loader(filename)
     n = NN_parser(d)
     return n
+
+
+
+    

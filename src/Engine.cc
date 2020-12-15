@@ -18,6 +18,7 @@
 
 #include "Engine.h"
 #include "config.h"
+#include "Model.h"
 
 #include <sstream>
 
@@ -32,16 +33,17 @@ void Engine::initialize() {
     while (m_positions.size() > games) {
         m_positions.pop_back();
     }
-
+    
     int tag = 0;
     for (auto &p : m_positions) {
         p->init_game(tag);
         tag++;
     }
-
+    
     if (m_network == nullptr) {
         m_network = std::make_shared<Network>();
-        m_network->initialize(option<int>("playouts"), option<std::string>("weights_file"));
+        m_network->initialize(option<int>("playouts"),
+                            option<std::string>("weights_file"));
     }
 }
 
@@ -133,3 +135,58 @@ Engine::Response Engine::position(std::string fen,
     return rep.str();
 }
 
+Engine::Response Engine::raw_nn(const int symmetry, const int g) {
+    auto rep = std::ostringstream{};
+    auto pres = option<int>("float_precision");
+    if (symmetry < 0 || symmetry >= 4) {
+        rep << "Illegal symmetry";
+        return rep.str();
+    }
+    
+    auto &p = *get_position(g);
+    auto nnout = m_network->get_output(&p, Network::DIRECT, symmetry);
+    for (int p = 0; p < POLICYMAP; ++p) {
+        rep << "map : " << p+1 << std::endl;
+        for (int y = 0; y < Board::HEIGHT; ++y) {
+            for (int x = 0; x < Board::WIDTH; ++x) {
+                const auto idx = Board::get_index(x, y);
+                rep << std::fixed
+                    << std::setprecision(pres)
+                    << nnout.policy[idx + p * Board::INTERSECTIONS]
+                    << " ";
+            }
+            rep << std::endl;
+        }
+        rep << std::endl;
+    }
+    for (int v = 0; v < 3; ++v) {
+        rep << nnout.winrate[v] << " ";
+    }
+    rep << std::endl;
+    
+    return rep.str();
+}
+
+Engine::Response Engine::input_planes(const int symmetry, const int g) {
+    auto rep = std::ostringstream{};
+    if (symmetry < 0 || symmetry >= 4) {
+        rep << "Illegal symmetry";
+        return rep.str();
+    }
+    const auto &p = *get_position(g);
+    const auto input_planes = Model::gather_planes(&p, symmetry);
+    for (int p = 0; p < INPUT_CHANNELS; ++p) {
+        rep << "planes : " << p+1 << std::endl;
+        for (int y = 0; y < Board::HEIGHT; ++y) {
+            for (int x = 0; x < Board::WIDTH; ++x) {
+                const auto idx = Board::get_index(x, y);
+                rep << std::setw(5)
+                    << input_planes[idx + p * Board::INTERSECTIONS]
+                    << " ";
+            }
+            rep << std::endl;
+        }
+        rep << std::endl;
+    }
+    return rep.str();
+}

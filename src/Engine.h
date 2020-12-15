@@ -46,6 +46,8 @@ public:
     Response position(std::string fen,
                       std::string moves,
                       const int g = DEFUALT_POSITION);
+    Response raw_nn(const int symmetry, const int g = DEFUALT_POSITION);
+    Response input_planes(const int symmetry, const int g = DEFUALT_POSITION);
 
 private:
     int adj_position_ref(const int g) const;

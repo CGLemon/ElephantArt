@@ -19,6 +19,7 @@
 #include "config.h"
 #include "Zobrist.h"
 #include "Board.h"
+#include "Decoder.h"
 #include "Utils.h"
 
 #include <string>
@@ -70,13 +71,26 @@ void init_options_map() {
 
     options_map["softmax_temp"] << Utils::Option::setoption(1.0f);
     options_map["cache_moves"] << Utils::Option::setoption(20);
-    options_map["playouts"] << Utils::Option::setoption(1600);
     options_map["weights_file"] << Utils::Option::setoption("NO_WEIGHT_FILE");
+    options_map["float_precision"] << Utils::Option::setoption(5);
+    
+    options_map["playouts"] << Utils::Option::setoption(1600);
+    options_map["fpu_root_reduction"] << Utils::Option::setoption(0.25f);
+    options_map["fpu_reduction"] << Utils::Option::setoption(0.25f);
+    options_map["logconst"] << Utils::Option::setoption(0.015f);
+    options_map["logpuct"] << Utils::Option::setoption(1.7f);
+    options_map["cpuct"] << Utils::Option::setoption(0.5f);
+    options_map["random_min_visits"] << Utils::Option::setoption(1);
+    
+    options_map["dirichlet_noise"] << Utils::Option::setoption(false);
+    options_map["ponder"]          << Utils::Option::setoption(false);
+    options_map["collect"]         << Utils::Option::setoption(false);
 }
 
 void init_basic_parameters() {
     init_options_map();
     Zobrist::init_zobrist();
+    Decoder::initialize();
     Board::pre_initialize();
 }
 

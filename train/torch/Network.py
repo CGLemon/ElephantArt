@@ -94,8 +94,10 @@ class ConvBlock(nn.Module):
         return F.relu(x, inplace=True) if self.relu else x
 
 class ResBlock(nn.Module):
-    def __init__(self, channels, collector=None):
+    def __init__(self, channels, se_size=None, collector=None):
         super().__init__()
+        self.with_se=False
+        self.channels=channels
 
         self.conv1 = ConvBlock(
             in_channels=channels,
@@ -111,13 +113,45 @@ class ResBlock(nn.Module):
             collector=collector
         )
 
+        if se_size != None:
+            self.with_se = True
+            self.avg_pool = nn.AdaptiveAvgPool2d(1)
+            self.extend = FullyConnect(
+                in_size=channels,
+                out_size=se_size,
+                relu=True,
+                collector=collector
+            )
+            self.squeeze = FullyConnect(
+                in_size=se_size,
+                out_size=2 * channels,
+                relu=False,
+                collector=collector
+            )
+
     def forward(self, x):
         identity = x
 
         out = self.conv1(x)
         out = self.conv2(out)
+        
+        if self.with_se:
+            b, c, _, _ = out.size()
+            seprocess = self.avg_pool(out)
+            seprocess = torch.flatten(seprocess, start_dim=1, end_dim=3);
+            seprocess = self.extend(seprocess)
+            seprocess = self.squeeze(seprocess)
 
+            gammas, betas = torch.split(seprocess, self.channels, dim=1)
+            gammas = torch.reshape(gammas, (b, c, 1, 1));
+            betas = torch.reshape(betas, (b, c, 1, 1));
+
+            print(out.size())
+            print(seprocess.size())
+            out = torch.sigmoid(gammas) * out + betas
+            
         out += identity
+
         return F.relu(out, inplace=True)
 
 
@@ -147,8 +181,14 @@ class Network(nn.Module):
         # residual tower
         nn_stack = []
         for s in self.stack:
-            if (s == "ResidualBlock"):
-                nn_stack.append(ResBlock(self.residual_channels, self.tensor_collector))
+            if s == "ResidualBlock":
+                nn_stack.append(ResBlock(self.residual_channels,
+                                         None,
+                                         self.tensor_collector))
+            elif s == "ResidualBlock-SE":
+                nn_stack.append(ResBlock(self.residual_channels,
+                                         self.residual_channels * 4,
+                                         self.tensor_collector))
         self.residual_tower = nn.Sequential(*nn_stack)
 
         # policy head
@@ -242,12 +282,15 @@ class Network(nn.Module):
             f.write(Network.conv2text(self.input_channels, self.residual_channels, 3))
             f.write(Network.bn2text(self.residual_channels))
             for s in self.stack:
-                if s == "ResidualBlock":
+                if s == "ResidualBlock" or s == "ResidualBlock-SE":
                     f.write(Network.conv2text(self.residual_channels, self.residual_channels, 3))
                     f.write(Network.bn2text(self.residual_channels))
                     f.write(Network.conv2text(self.residual_channels, self.residual_channels, 3))
                     f.write(Network.bn2text(self.residual_channels))
-                    
+                    if s == "ResidualBlock-SE":
+                        f.write(Network.fullyconnect2text(self.residual_channels * 1, self.residual_channels * 4))
+                        f.write(Network.fullyconnect2text(self.residual_channels * 4, self.residual_channels * 2))
+
             f.write(Network.conv2text(self.residual_channels, self.policy_extract, 3))
             f.write(Network.bn2text(self.policy_extract))
             f.write(Network.conv2text(self.policy_extract, self.policy_map, 3))

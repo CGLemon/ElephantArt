@@ -88,20 +88,17 @@ void Network::initialize(const int playouts, const std::string &weightsfile) {
 
     m_forward = std::make_unique<backend>();
 
-    if (weightsfile != "NO_WEIGHT_FILE") {
+    m_weights = std::make_shared<Model::NNweights>();
+    Model::load_weights(weightsfile, m_weights);
 
-        m_weights = std::make_shared<Model::NNweights>();
-        Model::load_weights(weightsfile, m_weights);
+    m_forward->initialize(m_weights);
 
-        m_forward->initialize(m_weights);
-
-        if (m_weights->loaded) {
-            auto_printf("Weights are pushed down\n");
-        }
-
-        m_weights.reset();
-        m_weights = nullptr;
+    if (m_weights->loaded) {
+        auto_printf("Weights are pushed down\n");
     }
+
+    m_weights.reset();
+    m_weights = nullptr;
 }
 
 void Network::reload_weights(const std::string &weightsfile) {

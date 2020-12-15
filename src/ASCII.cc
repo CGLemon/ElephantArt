@@ -100,6 +100,24 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         lambda_syntax_not_understood(parser, 1);
         const auto ascii_out = m_ascii_engine-> undo_move();
         out << ascii_out << std::endl;
+    } else if (const auto res = parser.find("raw-nn", 0)) {
+        lambda_syntax_not_understood(parser, 2);
+        const auto cnt = parser.get_count();
+        if (cnt == 1) {
+            out << m_ascii_engine-> raw_nn(0);
+        } else {
+            const auto symmetry = parser.get_command(1)->get<int>();
+            out << m_ascii_engine-> raw_nn(symmetry);
+        }
+    } else if (const auto res = parser.find("input-planes", 0)) {
+        lambda_syntax_not_understood(parser, 2);
+        const auto cnt = parser.get_count();
+        if (cnt == 1) {
+            out << m_ascii_engine-> input_planes(0);
+        } else {
+            const auto symmetry = parser.get_command(1)->get<int>();
+            out << m_ascii_engine-> input_planes(symmetry);
+        }
     } else if (const auto res = parser.find("position", 0)) {
 
     } else {
