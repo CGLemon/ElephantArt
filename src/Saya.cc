@@ -29,7 +29,6 @@ const static std::string get_License() {
     auto out = std::ostringstream{};
     out << "    ";
     out << PROGRAM << " " << VERSION << " Copyright (C) 2020  Hung-Zhe Lin"    << std::endl;
-
     out << "    This program comes with ABSOLUTELY NO WARRANTY."               << std::endl;
     out << "    This is free software, and you are welcome to redistribute it" << std::endl;
     out << "    under certain conditions; see the COPYING file for details."   << std::endl;
@@ -44,10 +43,11 @@ static void ascii_loop() {
 int main(int argc, char** argv) {
 
     std::cout << get_License();
-    init_basic_parameters();
 
     auto args = ArgsParser(argc, argv);
     args.dump();
+
+    init_basic_parameters();
 
     if (option<std::string>("mode") == "ascii") {
         ascii_loop();

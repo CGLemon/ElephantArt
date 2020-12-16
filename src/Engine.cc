@@ -20,6 +20,7 @@
 #include "config.h"
 #include "Model.h"
 
+#include <iomanip>
 #include <sstream>
 
 void Engine::initialize() {
@@ -43,7 +44,7 @@ void Engine::initialize() {
     if (m_network == nullptr) {
         m_network = std::make_shared<Network>();
         m_network->initialize(option<int>("playouts"),
-                            option<std::string>("weights_file"));
+                              option<std::string>("weights_file"));
     }
 }
 
@@ -86,10 +87,10 @@ Engine::Response Engine::gather_movelist(const int g) const {
     return rep.str();
 }
 
-Engine::Response Engine::fen2board(std::string fen, const int g) {
+Engine::Response Engine::fen(std::string fen, const int g) {
 
     auto rep = std::ostringstream{};
-    auto success = get_position(g)->fen2board(fen);
+    auto success = get_position(g)->fen(fen);
     if (success) {
         rep << "";
     } else {
@@ -188,5 +189,13 @@ Engine::Response Engine::input_planes(const int symmetry, const int g) {
         }
         rep << std::endl;
     }
+    return rep.str();
+}
+
+
+Engine::Response Engine::history_board(const int g) {
+    auto rep = std::ostringstream{};
+    const auto p = get_position(g);
+    rep << p->history_board();
     return rep.str();
 }

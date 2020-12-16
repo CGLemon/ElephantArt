@@ -37,11 +37,37 @@ void Position::display() const {
 
 void Position::push_board() {
     m_history.emplace_back(std::make_shared<const Board>(board));
-    assert(get_movenum() == (int)m_history.size());
+    assert(get_movenum() == (int)m_history.size() - 1);
 }
 
-bool Position::fen2board(std::string &fen) {
-    return board.fen2board(fen);
+bool Position::fen(std::string &fen) {
+
+    auto fork_board = std::make_shared<Board>(board);
+    auto success = fork_board->fen2board(fen);
+    auto current_movenum = fork_board->get_movenum();
+ 
+    if (!success) {
+        return false;
+    } 
+
+    if (current_movenum > get_movenum()) {
+        auto fill_board = std::make_shared<Board>(board);
+        while ((int)m_history.size() <= current_movenum) {
+            fill_board->increment_movenum();
+            fill_board->swap_to_move();
+            m_history.emplace_back(std::make_shared<const Board>(*fill_board));
+            assert(fill_board->get_movenum() == (int)m_history.size() - 1);
+        }
+    } else {
+        m_history.resize(current_movenum-1);
+    }
+
+    m_history[current_movenum] = fork_board;
+    m_startboard = current_movenum;
+    if (board.get_hash() != m_history[current_movenum]->get_hash()) {
+        board = *m_history[current_movenum];
+    }
+    return true;
 }
 
 bool Position::is_legal(Move move) const {
@@ -83,77 +109,68 @@ std::vector<Move> Position::get_movelist() const {
 bool Position::undo() {
 
     const auto movenum = get_movenum();
-    if (movenum == 1) {
+    if (movenum == 0) {
         return false;
     }
 
-    m_history.resize(movenum - 1);
-    board = *m_history[movenum - 2];
+    m_history.resize(movenum);
+    board = *m_history[movenum - 1];
 
-    assert(get_movenum() == movenum - 1);
-    assert(get_movenum() == (int)m_history.size());
+    assert(get_movenum() == movenum);
+    assert(get_movenum() == (int)m_history.size()-1);
 
     return true;
 }
 
 bool Position::position(std::string &fen, std::string& moves) {
 
-    // first : Set the position.
+    // first : Set the fen.
     auto fork_board = std::make_shared<Board>(board);
     auto success = fork_board->fen2board(fen);
+    auto current_movenum = fork_board->get_movenum();
 
     if (!success) {
         return false;
     }
 
-    // second : Check out the position is exist.
-    auto current_movenum = fork_board->get_movenum();
-    assert(current_movenum >= 1);
-    if (!(fork_board->get_hash() == m_history[current_movenum-1]->get_hash())) {
-        return false;
-    } 
-
-    if (moves.empty()) {
-        m_startboard = current_movenum-1;
-        m_history.resize(current_movenum);
-        board = *m_history[current_movenum-1];
-        return true;
-    }
-
-
-    // third : Do moves.
-    auto chain_board = std::vector<std::shared_ptr<Board>>{};
+    // second : Do moves.
+    auto chain_board = std::vector<std::shared_ptr<const Board>>{};
     bool moves_success = true;
     auto move_cnt = size_t{0};
 
-    auto moves_stream = std::stringstream{moves};
-    auto move_str = std::string{};
+    if (!moves.empty()) {
+        auto moves_stream = std::stringstream{moves};
+        auto move_str = std::string{};
 
-    while (moves_stream >> move_str) {
-        const auto move = fork_board->text2move(move_str);
-        ++move_cnt;
-        if (move.valid()) {
-            if (fork_board->is_legal(move)) {
-                fork_board->do_move(move);
-                chain_board.emplace_back(std::make_shared<Board>(*fork_board));
+        while (moves_stream >> move_str) {
+            const auto move = Board::text2move(move_str);
+            ++move_cnt;
+            if (move.valid()) {
+                if (fork_board->is_legal(move)) {
+                    fork_board->do_move(move);
+                    chain_board.emplace_back(std::make_shared<Board>(*fork_board));
+                }
             }
-        }
 
-        if (move_cnt != chain_board.size()) {
-            moves_success = false;
+            if (move_cnt != chain_board.size()) {
+                moves_success = false;
+                break;
+            }
         }
     }
 
     if (moves_success) {
-        m_history.resize(current_movenum);
-        for (auto b : chain_board) {
-            m_history.emplace_back(b);
+        fen(fen);
+        for (auto i = size_t{0}; i < move_cnt; ++i) {
+            m_history.emplace_back(chain_board[i]);
+            assert(chain_board[i]->get_movenum() == (int)m_history.size()-1);
         }
+
         current_movenum += move_cnt;
-        m_startboard = current_movenum-1;
-        board = *m_history[current_movenum-1];
-        assert(get_movenum() == current_movenum - 1);
-        assert(get_movenum() == (int)m_history.size());
+        m_startboard = current_movenum;
+        board = *m_history[current_movenum];
+        assert(get_movenum() == current_movenum);
+        assert(get_movenum() == (int)m_history.size()-1);
     }
 
     return moves_success;
@@ -165,6 +182,10 @@ Types::Color Position::get_to_move() const {
 
 int Position::get_movenum() const {
     return board.get_movenum();
+}
+
+int Position::get_gameply() const {
+    return board.get_gameply();
 }
 
 std::uint64_t Position::get_hash() const {
@@ -181,6 +202,14 @@ Move Position::get_last_move() const {
 
 const std::shared_ptr<const Board> Position::get_past_board(const int p) const {
     const auto movenum = get_movenum();
-    assert(0 <= p && p < movenum);
-    return m_history[movenum - p - 1];
+    assert(0 <= p && p <= movenum);
+    return m_history[movenum - p];
+}
+
+std::string Position::history_board() const {
+    auto out = std::ostringstream{};
+    for (const auto &board : m_history) {
+        board->board_stream(out);
+    }
+    return out.str();
 }

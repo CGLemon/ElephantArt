@@ -88,7 +88,6 @@ void init_options_map() {
 }
 
 void init_basic_parameters() {
-    init_options_map();
     Zobrist::init_zobrist();
     Decoder::initialize();
     Board::pre_initialize();
@@ -104,7 +103,8 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         return para[0] != '-';
     };
 
-    parser.remove_command(0);
+    init_options_map();
+    const auto name = parser.remove_command(0);
 
     if (const auto res = parser.find({"--help", "-h"})) {
         set_option("help", true);
@@ -129,6 +129,12 @@ ArgsParser::ArgsParser(int argc, char** argv) {
             set_option("weights_file", res->get<std::string>());
         }
     }
+
+    if (const auto res = parser.find_next("--floatprecision")) {
+        if (is_parameter(res->str)) {
+            set_option("float_precision", res->get<int>());
+        }
+    }
 }
 
 void ArgsParser::help() const {
@@ -140,6 +146,6 @@ void ArgsParser::help() const {
 void ArgsParser::dump() const {
     if (option<bool>("help")) {
         help();
+        exit(-1);
     }
 }
-

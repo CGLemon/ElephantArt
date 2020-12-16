@@ -40,7 +40,7 @@ public:
     std::vector<Move> get_movelist(const int g = DEFUALT_POSITION) const;
 
     Response gather_movelist(const int g = DEFUALT_POSITION) const;
-    Response fen2board(std::string fen, const int g = DEFUALT_POSITION);
+    Response fen(std::string fen, const int g = DEFUALT_POSITION);
     Response do_textmove(std::string move, const int g = DEFUALT_POSITION);
     Response undo_move(const int g = DEFUALT_POSITION);
     Response position(std::string fen,
@@ -48,7 +48,7 @@ public:
                       const int g = DEFUALT_POSITION);
     Response raw_nn(const int symmetry, const int g = DEFUALT_POSITION);
     Response input_planes(const int symmetry, const int g = DEFUALT_POSITION);
-
+    Response history_board(const int g = DEFUALT_POSITION);
 private:
     int adj_position_ref(const int g) const;
 

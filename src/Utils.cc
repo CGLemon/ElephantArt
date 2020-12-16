@@ -294,26 +294,30 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::find_next(const std::initi
     return nullptr;
 }
 
-void CommandParser::remove_command(size_t id) {
+std::shared_ptr<CommandParser::Reuslt> CommandParser::remove_command(size_t id) {
     if (id > get_count()) {
-        return;
+        return nullptr;
     }
+
+    const auto str = *m_commands[id];
     m_commands.erase(std::begin(m_commands)+id);
     m_count--;
+
+    return std::make_shared<Reuslt>(Reuslt(str, -1));
 }
 
-void CommandParser::remove_slice(size_t b, size_t e) {
+std::shared_ptr<CommandParser::Reuslt> CommandParser::remove_slice(size_t b, size_t e) {
     if (b > get_count() || e > get_count() || b > e) {
-        return;
+        return nullptr;
     }
     if (b == e) {
-        remove_command(e);
-    } else {
-        m_commands.erase(std::begin(m_commands)+b, std::begin(m_commands)+e);
-        m_count -= (e-b);
+        return remove_command(e);
     }
+    auto out = get_slice(b, e);
+    m_commands.erase(std::begin(m_commands)+b, std::begin(m_commands)+e);
+    m_count -= (e-b);
+    return out;
 }
-
 
 template<>
 std::string CommandParser::Reuslt::get<std::string>() const {

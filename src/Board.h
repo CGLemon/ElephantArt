@@ -68,6 +68,7 @@ public:
 
     Types::Color get_to_move() const;
     int get_movenum() const;
+    int get_gameply() const;
     std::uint64_t get_hash() const;
     Move get_last_move() const;
 
@@ -76,6 +77,7 @@ public:
     static bool is_on_board(const int vtx);
 
     void fen_stream(std::ostream &out) const;
+    void board_stream(std::ostream &out) const;
 
     bool fen2board(std::string &fen);
 
@@ -90,9 +92,12 @@ public:
     
     void set_to_move(Types::Color color);
     void swap_to_move();
+    void increment_movenum();
+    void decrement_movenum();
 
     void do_move(Move move);
     bool is_legal(Move move) const;
+    bool is_king_face_king() const;
 
 private:
     #define P_  Types::R_PAWN
@@ -189,8 +194,6 @@ private:
     static void init_symmetry();
     static void dump_memory();
 
-    bool is_king_face_king() const;
-
     Types::Piece_t get_piece_type(const int vtx) const;
     BitBoard &get_piece_bitboard_ref(Types::Piece_t pt);
 
@@ -208,6 +211,7 @@ private:
     Types::Color m_tomove;
 
     int m_movenum;
+    int m_gameply;
 
     Move m_lastmove;
 
@@ -219,7 +223,6 @@ private:
     void piece_stream(std::ostream &out, Types::Piece p) const;
     void piece_stream(std::ostream &out, const int x, const int y) const;
     void info_stream(std::ostream &out) const;
-    void board_stream(std::ostream &out) const;
 
     void update_zobrist(Types::Piece p, Types::Vertices form, Types::Vertices to);
     void update_zobrist_tomove(Types::Color old_color, Types::Color new_color);

@@ -31,7 +31,7 @@
 #include "config.h"
 
 #ifdef USE_CUDA
-#include "CUDABackend.h"
+// #include "CUDABackend.h"
 #endif
 
 #ifdef USE_EIGEN
@@ -81,7 +81,8 @@ void Network::initialize(const int playouts, const std::string &weightsfile) {
     set_playouts(playouts);
 
 #ifdef USE_CUDA
-    using backend = CUDAbackend;
+    // using backend = CUDAbackend;
+    using backend = CPUbackend;
 #else
     using backend = CPUbackend;
 #endif

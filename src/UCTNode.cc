@@ -45,11 +45,12 @@ bool UCTNode::expend_children(Network &network,
     
     auto nodelist = std::vector<Network::PolicyMapsPair>{};
     float legal_accumulate = 0.0f;
-    
-    (void) is_root;
-    
+
     auto movelist = position.get_movelist();
     for (const auto &move : movelist) {
+        if (is_root) {
+        }
+
         const auto maps = Decoder::move2maps(move);
         const auto policy = raw_netlist.policy[maps];
         nodelist.emplace_back(policy, maps);

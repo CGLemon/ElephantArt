@@ -135,7 +135,7 @@ std::vector<float> Model::gather_planes(const Position *const position,
     }
 
     const auto movenum = position->get_movenum();
-    const auto past_moves = std::min(INPUT_MOVES, movenum);
+    const auto past_moves = std::min(INPUT_MOVES-1, movenum);
     
     // plane 1-7 and 9-15
     for (auto p = 0; p < INPUT_MOVES; ++p) {

@@ -32,7 +32,7 @@ public:
     void display() const;
 
     void push_board();
-    bool fen2board(std::string &fen);
+    bool fen(std::string &fen);
     bool is_legal(Move move) const;
     bool do_move(Move move);
     void do_move_assume_legal(Move move);
@@ -45,6 +45,7 @@ public:
     std::vector<Move> get_movelist() const;
     Types::Color get_to_move() const;
     int get_movenum() const;
+    int get_gameply() const;
     Move get_last_move() const;
 
     Board board;
@@ -53,7 +54,7 @@ public:
     std::uint64_t calc_hash(const int symmetry = Board::IDENTITY_SYMMETRY) const;
 
     const std::shared_ptr<const Board> get_past_board(const int p) const;
-
+    std::string history_board() const;
 private:
     std::uint64_t position_hash;
     int m_startboard;

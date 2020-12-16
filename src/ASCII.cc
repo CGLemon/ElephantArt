@@ -75,7 +75,7 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         out << ": syntax not understood" << std::endl;
     };
 
-    if (const auto res = parser.find("dump-legal-moves", 0)) {
+    if (const auto res = parser.find("legal-moves", 0)) {
 
         lambda_syntax_not_understood(parser, 1);
         const auto ascii_out = m_ascii_engine->gather_movelist();
@@ -87,7 +87,7 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         const auto limit = size_t{7};
         const auto max = std::min(cnt, limit);
         const auto fen = parser.get_slice(1, max)->str;
-        const auto ascii_out = m_ascii_engine->fen2board(fen);
+        const auto ascii_out = m_ascii_engine->fen(fen);
         out << ascii_out << std::endl;
         
     } else if (const auto res = parser.find("move", 0)) {
@@ -118,6 +118,9 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
             const auto symmetry = parser.get_command(1)->get<int>();
             out << m_ascii_engine-> input_planes(symmetry);
         }
+    } else if (const auto res = parser.find("history-board", 0)) {
+        lambda_syntax_not_understood(parser, 1);
+        out << m_ascii_engine-> history_board();
     } else if (const auto res = parser.find("position", 0)) {
 
     } else {

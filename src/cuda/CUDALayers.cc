@@ -25,17 +25,16 @@
 
 namespace CUDA_Backend {
 
-Convolve::Convolve(const size_t conv_size, const size_t max_batch,
-                   const size_t filter_size, const size_t input_channels, const size_t output_channels) {
+Convolve::Convolve(const size_t max_batch,
+                   const size_t filter_size, 
+                   const size_t input_channels,
+                   const size_t output_channels) {
 
     m_in_channels = input_channels;
     m_out_channels = output_channels;
     m_filter = filter_size;
     m_filter_dim = m_filter * m_filter * m_in_channels;
     m_maxbatch = max_batch;
-    width = conv_size;
-    height = conv_size;
-    spatial_size = width * height;
 
 #ifdef USE_CUDNN
     cudnn_applied = false;
@@ -63,12 +62,6 @@ Convolve::~Convolve() {
     if (cuda_biases) {
         ReportCUDAErrors(cudaFree(cuda_weights));
     }
-}
-
-void Convolve::set_convsize(const size_t conv_size) {
-    width = conv_size;
-    height = conv_size;
-    spatial_size = width * height;
 }
 
 void Convolve::Forward(const int batch, float *input, float *output,
@@ -242,11 +235,6 @@ FullyConnect::FullyConnect(const size_t max_batch, const size_t inputs,
     m_ReLU = ReLU;
 }
 
-void FullyConnect::set_size(const size_t in_size, const size_t out_size) {
-    m_inputs = in_size;
-    m_outputs = out_size;
-}
-
 FullyConnect::~FullyConnect() {
     if (is_loaded) {
         ReportCUDAErrors(cudaFree(cuda_weights));
@@ -300,33 +288,18 @@ void FullyConnect::Forward(const int batch, float *input, float *output, CudaHan
                 m_outputs * batch, m_outputs, m_outputs * batch, m_ReLU);
 }
 
-GlobalAvgPool::GlobalAvgPool(const size_t conv_size,
-                             const size_t max_batch,
+GlobalAvgPool::GlobalAvgPool(const size_t max_batch,
                              const size_t channels) {
-    width = conv_size;
-    height = conv_size;
-    spatial_size = width * height;
     m_maxbatch = max_batch;
     m_channels = channels;
 }
 
 void GlobalAvgPool::Forward(const int batch, float *input, float *output) {
     global_avg_pool(input, output, batch,
-                         m_channels, spatial_size);
+                    m_channels, spatial_size);
 }
 
-void GlobalAvgPool::set_convsize(const size_t conv_size) {
-    width = conv_size;
-    height = conv_size;
-    spatial_size = width * height;
-}
-
-
-SEUnit::SEUnit(const size_t conv_size, const size_t max_batch,
-               const size_t channels, const size_t se_size) {
-    width = conv_size;
-    height = conv_size;
-    spatial_size = width * height;
+SEUnit::SEUnit(const size_t max_batch, const size_t channels, const size_t se_size) {
 
     m_se_size = se_size;
     m_maxbatch = max_batch;
@@ -439,91 +412,85 @@ SEUnit::~SEUnit() {
     }
 }
 
-void SEUnit::set_convsize(size_t conv_size) {
-    width = conv_size;
-    height = conv_size;
-    spatial_size = width * height;
-}
-
-InputPool::InputPool(const size_t conv_size, const size_t max_batch,
-                     const size_t input_size, const size_t channels) {
-    width = conv_size;
-    height = conv_size;
-    spatial_size = width * height;
-
-    m_input_size = input_size;
-    m_maxbatch = max_batch;
-    m_channels = channels;
-    is_loaded = false;
-}
-
-void InputPool::LoadingWeight(const std::vector<float> &weights_w,
-                              const std::vector<float> &weights_b) {
-
-    if (is_loaded) { 
-        return;
-    }
-    const size_t type_size = sizeof(float);
-    const size_t weights_w_size = type_size * weights_w.size();
-    const size_t weights_b_size = type_size * weights_b.size();
-    assert((int)weights_w.size() == m_input_size * m_channels);
-    assert((int)weights_b.size() == m_channels);
-
-    ReportCUDAErrors(cudaMalloc(&cuda_weights_w, weights_w_size));
-    ReportCUDAErrors(cudaMalloc(&cuda_weights_b, weights_b_size));
-
-    const size_t fc_scratch_size = type_size * m_maxbatch * m_channels;
-
-    ReportCUDAErrors(cudaMalloc(&cuda_op, fc_scratch_size));
-
-    is_loaded = true;
-
-    ReportCUDAErrors(cudaMemcpy(
-        cuda_weights_w, weights_w.data(), weights_w_size, cudaMemcpyHostToDevice));
-    ReportCUDAErrors(cudaMemcpy(
-        cuda_weights_b, weights_b.data(), weights_b_size, cudaMemcpyHostToDevice));
-}
-
-void InputPool::Forward(const int batch, float *input, float *output, CudaHandel *handel) {
-
-    const size_t fc_input_size = m_input_size;
-    const size_t fc_output_size = m_channels;
-    const bool fc_relu = false;
-    gemm(false, true,
-         batch,
-         fc_output_size,
-         fc_input_size, 
-         1.0f,
-         input,
-         fc_input_size, 
-         cuda_weights_w,
-         fc_input_size,
-         0.0f,
-         cuda_op,
-         fc_output_size,
-         &handel->cublas_handel);
-
-    add_vectors(cuda_op, cuda_weights_b, cuda_op,
-                fc_output_size * batch, fc_output_size, fc_output_size * batch, fc_relu);
-
-
-    input_pool(cuda_op, output,
-               batch, m_channels, spatial_size);
-}
-
-void InputPool::set_convsize(const size_t conv_size) {
-    width = conv_size;
-    height = conv_size;
-    spatial_size = width * height;
-}
-
-InputPool::~InputPool() {
-    if (is_loaded) {
-        ReportCUDAErrors(cudaFree(cuda_weights_w));
-        ReportCUDAErrors(cudaFree(cuda_weights_b));
-        ReportCUDAErrors(cudaFree(cuda_op));
-    }
-}
+// InputPool::InputPool(const size_t conv_size, const size_t max_batch,
+//                      const size_t input_size, const size_t channels) {
+//     width = conv_size;
+//     height = conv_size;
+//     spatial_size = width * height;
+// 
+//     m_input_size = input_size;
+//     m_maxbatch = max_batch;
+//     m_channels = channels;
+//     is_loaded = false;
+// }
+//
+// void InputPool::LoadingWeight(const std::vector<float> &weights_w,
+//                               const std::vector<float> &weights_b) {
+// 
+//     if (is_loaded) { 
+//         return;
+//     }
+//     const size_t type_size = sizeof(float);
+//     const size_t weights_w_size = type_size * weights_w.size();
+//     const size_t weights_b_size = type_size * weights_b.size();
+//     assert((int)weights_w.size() == m_input_size * m_channels);
+//     assert((int)weights_b.size() == m_channels);
+// 
+//     ReportCUDAErrors(cudaMalloc(&cuda_weights_w, weights_w_size));
+//     ReportCUDAErrors(cudaMalloc(&cuda_weights_b, weights_b_size));
+// 
+//     const size_t fc_scratch_size = type_size * m_maxbatch * m_channels;
+// 
+//     ReportCUDAErrors(cudaMalloc(&cuda_op, fc_scratch_size));
+// 
+//     is_loaded = true;
+// 
+//     ReportCUDAErrors(cudaMemcpy(
+//         cuda_weights_w, weights_w.data(), weights_w_size, cudaMemcpyHostToDevice));
+//     ReportCUDAErrors(cudaMemcpy(
+//         cuda_weights_b, weights_b.data(), weights_b_size, cudaMemcpyHostToDevice));
+// }
+//
+// void InputPool::Forward(const int batch, float *input, float *output, CudaHandel *handel) {
+// 
+//     const size_t fc_input_size = m_input_size;
+//     const size_t fc_output_size = m_channels;
+//     const bool fc_relu = false;
+//     gemm(false, true,
+//          batch,
+//          fc_output_size,
+//          fc_input_size, 
+//          1.0f,
+//          input,
+//          fc_input_size, 
+//          cuda_weights_w,
+//          fc_input_size,
+//          0.0f,
+//          cuda_op,
+//          fc_output_size,
+//          &handel->cublas_handel);
+// 
+//     add_vectors(cuda_op, cuda_weights_b, cuda_op,
+//                 fc_output_size * batch, fc_output_size, fc_output_size * batch, fc_relu);
+// 
+// 
+//     input_pool(cuda_op, output,
+//                batch, m_channels, spatial_size);
+// }
+//
+// void InputPool::set_convsize(const size_t conv_size) {
+//     width = conv_size;
+//     height = conv_size;
+//     spatial_size = width * height;
+// }
+//
+// InputPool::~InputPool() {
+//     if (is_loaded) {
+//         ReportCUDAErrors(cudaFree(cuda_weights_w));
+//         ReportCUDAErrors(cudaFree(cuda_weights_b));
+//         ReportCUDAErrors(cudaFree(cuda_op));
+//     }
+// }
 } // namespace CUDA_Backend
 
 #endif

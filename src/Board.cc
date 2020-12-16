@@ -48,7 +48,8 @@ std::array<Board::Magic, Board::NUM_VERTICES> Board::m_cannonfile_magics;
 void Board::reset_board() {
 
     m_tomove = Types::RED;
-    m_movenum = 1;
+    m_gameply = 1;
+    m_movenum = 0;
 
     auto start_position = get_start_position();
     fen2board(start_position);
@@ -202,10 +203,10 @@ bool Board::fen2board(std::string &fen) {
         fen_format >> fen_stream;
     }
 
-    // part 6 : move number
-    int movenum;
-    fen_format >> movenum;
-    if (movenum <= 0) {
+    // part 6 : turn number
+    int ply;
+    fen_format >> ply;
+    if (ply <= 0) {
         success = false;
     }
 
@@ -222,7 +223,8 @@ bool Board::fen2board(std::string &fen) {
         m_bb_elephant = bb_elephant;
         m_bb_advisor = bb_advisor;
         m_bb_cannon = bb_cannon;
-        m_movenum = movenum;
+        m_gameply = ply;
+        m_movenum = (ply-1) * 2 + static_cast<int>(tomove);
         m_tomove = tomove;
 
         // Calculate the new hash value. 
@@ -243,15 +245,15 @@ std::pair<int, int> Board::get_symmetry(const int x,
     int idx_x = x;
     int idx_y = y;
 
-    static constexpr auto REMAIN_WIDTH = WIDTH - 1;
-    static constexpr auto REMAIN_HEIGHT = HEIGHT - 1;
+    static constexpr auto MIRROR_WIDTH = WIDTH - 1;
+    static constexpr auto MIRROR_HEIGHT = HEIGHT - 1;
 
     if ((symmetry & 2) != 0) {
-        idx_x = REMAIN_WIDTH - idx_x;
+        idx_x = MIRROR_WIDTH - idx_x;
     }
 
     if ((symmetry & 1) != 0) {
-        idx_y = REMAIN_HEIGHT - idx_y;
+        idx_y = MIRROR_HEIGHT - idx_y;
     }
 
     assert(idx_x >= 0 && idx_x < WIDTH);
@@ -666,6 +668,9 @@ void Board::info_stream(std::ostream &out) const {
     out << ", Last move : ";
     out << get_last_move().to_string(); 
 
+    out << ", Move number : ";
+    out << get_movenum(); 
+
     out << ", Hash : ";
     out << std::hex;
     out << get_hash();
@@ -707,7 +712,7 @@ void Board::fen_stream(std::ostream &out) const {
     out << " ";
     m_tomove == Types::RED ? out << "w" : out << "b";
 
-    out << " - - 0 " << m_movenum;
+    out << " - - 0 " << m_gameply;
 }
 
 void Board::board_stream(std::ostream &out) const {
@@ -1024,7 +1029,7 @@ void Board::do_move(Move move) {
         assert(m_king_vertex[color] == from);
         m_king_vertex[color] = to;
     } else {
-        BitBoard &ref_bb = get_piece_bitboard_ref(pt);
+        auto &ref_bb = get_piece_bitboard_ref(pt);
         ref_bb ^= form_bitboard;
         ref_bb ^= to_bitboard;
     }
@@ -1043,8 +1048,8 @@ void Board::do_move(Move move) {
     // Swap color
     swap_to_move();
 
-    // Add move number
-    m_movenum++;
+    // Increment move number
+    increment_movenum();
 }
 
 bool Board::is_king_face_king() const {
@@ -1121,12 +1126,26 @@ Move Board::text2move(std::string text) {
     return Move(from, to);
 }
 
+void Board::increment_movenum() {
+    m_movenum++;
+    m_gameply = (m_movenum / 2) + 1;
+}
+
+void Board::decrement_movenum() {
+    m_movenum--;
+    m_gameply = (m_movenum / 2) + 1;
+}
+
 Types::Color Board::get_to_move() const {
     return m_tomove;
 }
 
 int Board::get_movenum() const {
     return m_movenum;
+}
+
+int Board::get_gameply() const {
+    return m_gameply;
 }
 
 std::uint64_t Board::get_hash() const {
