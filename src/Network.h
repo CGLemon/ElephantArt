@@ -68,8 +68,8 @@ private:
 
     Cache<Netresult> m_cache;
 
-    std::unique_ptr<Model::NNpipe> m_forward;
-    std::shared_ptr<Model::NNweights> m_weights;
+    std::unique_ptr<Model::NNPipe> m_forward;
+    std::shared_ptr<Model::NNWeights> m_weights;
 
 };
 #endif

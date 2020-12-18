@@ -19,6 +19,7 @@
 #include "Engine.h"
 #include "config.h"
 #include "Model.h"
+#include "Decoder.h"
 
 #include <iomanip>
 #include <sstream>
@@ -192,10 +193,13 @@ Engine::Response Engine::input_planes(const int symmetry, const int g) {
     return rep.str();
 }
 
-
 Engine::Response Engine::history_board(const int g) {
     auto rep = std::ostringstream{};
     const auto p = get_position(g);
     rep << p->history_board();
     return rep.str();
+}
+
+Engine::Response Engine::get_maps() {
+    return Decoder::get_mapstring();
 }

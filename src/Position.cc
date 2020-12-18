@@ -160,7 +160,7 @@ bool Position::position(std::string &fen, std::string& moves) {
     }
 
     if (moves_success) {
-        fen(fen);
+        Position::fen(fen);
         for (auto i = size_t{0}; i < move_cnt; ++i) {
             m_history.emplace_back(chain_board[i]);
             assert(chain_board[i]->get_movenum() == (int)m_history.size()-1);

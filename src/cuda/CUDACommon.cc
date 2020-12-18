@@ -26,7 +26,7 @@
 #include <stdexcept>
 #include <sstream>
 
-namespace CUDA_Backend {
+namespace CUDA {
 
 const char* cublasGetErrorString(cublasStatus_t status) {
     switch(status) {
@@ -154,6 +154,6 @@ void gpu_info() {
     Utils::auto_printf("\n");
     // cudaSetDevice(0);
 }
-} // namespace CUDA_Backend 
+} // namespace CUDA
 
 #endif

@@ -20,6 +20,7 @@
 #define DECODER_H_INCLUDE
 
 #include <array>
+#include <string>
 #include <unordered_map>
 
 #include "Model.h"
@@ -32,7 +33,9 @@ public:
     static void initialize();
     static Move maps2move(const int idx);
     static int move2maps(const Move &move);
-    
+
+    static std::string get_mapstring();
+
 private:
     static std::unordered_map<std::uint16_t, int> moves_map;
     static std::array<Move, POLICYMAP * Board::INTERSECTIONS> policymaps_moves;

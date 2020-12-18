@@ -22,7 +22,6 @@ struct UCTNodeData {
     std::shared_ptr<SearchParameters> parameters{nullptr};
 };
 
-
 class UCTNode {
 public:
     using UCTNodePointer = NodePointer<UCTNode, UCTNodeData>;
@@ -44,7 +43,6 @@ public:
     UCTNode *get();
     
 private:
-    // data
     float m_raw_red_stmeval{0.f};
     float m_raw_red_eval{0.f};
     float m_raw_black_eval{0.f};
@@ -69,8 +67,7 @@ private:
     std::shared_ptr<SearchParameters> parameters() const;
 
     enum Status : std::uint8_t {
-        INVALID,
-        // INVALID means that the node is illegal.
+        INVALID,  // INVALID means that the node is illegal.
         PRUNED,
         ACTIVE
     };
@@ -80,8 +77,7 @@ private:
     enum class ExpandState : std::uint8_t {
         INITIAL = 0,
         EXPANDING,
-        EXPANDED,
-        UPDATE
+        EXPANDED
     };
     std::atomic<ExpandState> m_expand_state{ExpandState::INITIAL};
 

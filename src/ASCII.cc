@@ -121,6 +121,9 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
     } else if (const auto res = parser.find("history-board", 0)) {
         lambda_syntax_not_understood(parser, 1);
         out << m_ascii_engine-> history_board();
+    } else if (const auto res = parser.find("dump-maps", 0)) {
+        lambda_syntax_not_understood(parser, 1);
+        out << m_ascii_engine-> get_maps();
     } else if (const auto res = parser.find("position", 0)) {
 
     } else {

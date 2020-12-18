@@ -22,7 +22,7 @@
 #include <cassert>
 
 #include "cuda/CUDACommon.h"
-namespace CUDA_Backend {
+namespace CUDA {
 
 template <typename T>
 void add_vectors(T *c, T *a, T *b, int size, int asize, int bsize, bool relu);
@@ -58,13 +58,13 @@ void gemm(bool TA, bool TB, int M, int N, int K, float ALPHA,
           const float *A_gpu, int lda, const float *B_gpu, int ldb,
           float BETA, float *C_gpu, int ldc, cublasHandle_t * handle);
 
-// template<typename T>
-// void swap(T *a, T *b, int size);
+template<typename T>
+void swap(T *a, T *b, int size);
 
 // template<typename T>
 // void copy(T *a, T *b, int size);
 
-} // namespace CUDA_Backend
+} // namespace CUDA
 
 #endif
 #endif

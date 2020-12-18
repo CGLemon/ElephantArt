@@ -20,7 +20,7 @@
 
 #ifdef USE_CUDA
 
-namespace CUDA_Backend {
+namespace CUDA {
 
 template <typename T>
 __global__ void add_vectors_kernel(T *a, T *b, T *c,
@@ -311,24 +311,23 @@ void gemm(bool TA, bool TB, int M, int N, int K, float ALPHA,
                                    &ALPHA, B_gpu, ldb, A_gpu, lda, &BETA, C_gpu, ldc));
 }
 
-// template <typename T>
-// __global__ void swap_kernel(T *a, T *b, int size) {
-//     int index = threadIdx.x + blockDim.x * blockIdx.x;
-//     if (index < size) {
-//         T temp_a = a[index];
-//         T temp_b = b[index];
-//         a[index] = temp_b;
-//         b[index] = temp_a;
-//     }
-// } 
+template <typename T>
+__global__ void swap_kernel(T *a, T *b, int size) {
+    int index = threadIdx.x + blockDim.x * blockIdx.x;
+    if (index < size) {
+        T temp_a = a[index];
+        T temp_b = b[index];
+        a[index] = temp_b;
+        b[index] = temp_a;
+    }
+} 
 
-// template <typename T>
-// void swap(T *a, T *b, int size) {
-//     const int kBlockSize = KBLOCKSIZE;
-//     const int blocks = DivUp(size, kBlockSize);
-//     swap_kernel<<<blocks, kBlockSize>>>(a, b, size);
-// }
-
+template <typename T>
+void swap(T *a, T *b, int size) {
+    const int kBlockSize = KBLOCKSIZE;
+    const int blocks = DivUp(size, kBlockSize);
+    swap_kernel<<<blocks, kBlockSize>>>(a, b, size);
+}
 
 // template <typename T>
 // __global__ void copy_kernel(T *a, T *b, int size) {
@@ -346,7 +345,6 @@ void gemm(bool TA, bool TB, int M, int N, int K, float ALPHA,
 //     const int blocks = DivUp(size, kBlockSize);
 //     copy_kernel<<<blocks, kBlockSize>>>(a, b, size);
 // }
-
 
 template void batchnorm<float>(float *data, const float *means,
                                const float *stddevs, int N, int channels,
@@ -371,9 +369,9 @@ template void input_pool<float>(const float *bias, float *data,
                                 int batch, int channels, int spatial_size);
 
 
-// template void swap<float>(float *a, float *b, int size);
+template void swap<float>(float *a, float *b, int size);
 
 // template void copy<float>(float *a, float *b, int size);
 
-} // namespace CUDA_Backend
+} // namespace CUDA
 #endif

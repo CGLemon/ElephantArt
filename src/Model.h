@@ -80,7 +80,7 @@ struct Desc {
 };
 
 struct Model {
-    struct NNweights {
+    struct NNWeights {
         struct ResidualBlock{
             Desc::ConvLayer conv_1;
             Desc::BatchNormLayer bn_1;
@@ -120,14 +120,14 @@ struct Model {
         Desc::LinearLayer v_fc2;
     };
 
-    class NNpipe {
+    class NNPipe {
     public:
-        virtual void initialize(std::shared_ptr<NNweights> weights) = 0;
+        virtual void initialize(std::shared_ptr<NNWeights> weights) = 0;
         virtual void forward(const std::vector<float> &planes,
                              std::vector<float> &output_pol,
                              std::vector<float> &output_val) = 0;
 
-        virtual void reload(std::shared_ptr<Model::NNweights> weights) = 0;
+        virtual void reload(std::shared_ptr<Model::NNWeights> weights) = 0;
         virtual void release() = 0;
         
         virtual void destroy() = 0;
@@ -138,12 +138,12 @@ struct Model {
                                             const int symmetry);
     
     static void load_weights(const std::string &filename,
-                             std::shared_ptr<NNweights> &nn_weight);
+                             std::shared_ptr<NNWeights> &nn_weight);
     
-    static void process_weights(std::shared_ptr<NNweights> &nn_weight);
+    static void process_weights(std::shared_ptr<NNWeights> &nn_weight);
     
     static void fill_weights(std::istream &weights_file,
-                             std::shared_ptr<NNweights> &nn_weight);
+                             std::shared_ptr<NNWeights> &nn_weight);
     
     static void fill_fullyconnect_layer(Desc::LinearLayer &layer,
                                         std::istream &weights_file,

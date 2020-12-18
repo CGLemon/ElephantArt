@@ -65,6 +65,9 @@ void init_options_map() {
     options_map["mode"] << Utils::Option::setoption("ascii");
     options_map["help"] << Utils::Option::setoption(false);
 
+    options_map["gpu"] << Utils::Option::setoption(0);
+    options_map["batchsize"] << Utils::Option::setoption(1, 256, 1);
+
     options_map["quiet"] << Utils::Option::setoption(false);
     options_map["num_games"] << Utils::Option::setoption(1, 32, 1);
     options_map["reserve_movelist"] << Utils::Option::setoption(60);
@@ -133,6 +136,18 @@ ArgsParser::ArgsParser(int argc, char** argv) {
     if (const auto res = parser.find_next("--floatprecision")) {
         if (is_parameter(res->str)) {
             set_option("float_precision", res->get<int>());
+        }
+    }
+
+    if (const auto res = parser.find_next({"--batchsize" , "-b"})) {
+        if (is_parameter(res->str)) {
+            set_option("batchsize", res->get<int>());
+        }
+    }
+
+    if (const auto res = parser.find_next("--gpu")) {
+        if (is_parameter(res->str)) {
+            set_option("gpu", res->get<int>());
         }
     }
 }

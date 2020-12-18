@@ -49,6 +49,8 @@ public:
     Response raw_nn(const int symmetry, const int g = DEFUALT_POSITION);
     Response input_planes(const int symmetry, const int g = DEFUALT_POSITION);
     Response history_board(const int g = DEFUALT_POSITION);
+    Response get_maps();
+
 private:
     int adj_position_ref(const int g) const;
 

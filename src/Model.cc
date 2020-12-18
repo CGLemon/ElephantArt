@@ -155,12 +155,13 @@ std::vector<float> Model::gather_planes(const Position *const position,
 
     // plane 17 - 18
     // Not complete yet
-    
+    std::fill(std::begin(input_data), std::end(input_data), static_cast<float>(true));
+
     return input_data;
 }
 
 void Model::load_weights(const std::string &filename,
-                         std::shared_ptr<NNweights> &nn_weight) {
+                         std::shared_ptr<NNWeights> &nn_weight) {
     auto file = std::ifstream{};
     auto buffer = std::stringstream{};
     auto line = std::string{};
@@ -193,7 +194,7 @@ void Model::load_weights(const std::string &filename,
 
 
 void Model::fill_weights(std::istream &weights_file,
-                         std::shared_ptr<NNweights> &nn_weight) {
+                         std::shared_ptr<NNWeights> &nn_weight) {
 
 
     auto counter = size_t{0};
@@ -270,7 +271,7 @@ void Model::fill_weights(std::istream &weights_file,
     const auto fill_layer_weights = [&](NetInfo &netinfo,
                                         NetModel &netmodel,
                                         std::istream &weights_file,
-                                        std::shared_ptr<NNweights> &nn_weight) -> void {
+                                        std::shared_ptr<NNWeights> &nn_weight) -> void {
         
         nn_weight->residual_blocks = std::stoi(netinfo["ResidualBlocks"]);
         nn_weight->residual_channels = std::stoi(netinfo["ResidualChannels"]);
@@ -303,7 +304,7 @@ void Model::fill_weights(std::istream &weights_file,
         
         const auto residuals = nn_weight->residual_blocks;
 
-        if (nn_weight->residual_channels != input_conv_shape[1] &&
+        if (nn_weight->residual_channels != input_conv_shape[1] ||
             nn_weight->residual_channels != input_bn_shape[0]) {
             throw "The number of input layer channels is wrong";
         }
@@ -317,7 +318,7 @@ void Model::fill_weights(std::istream &weights_file,
             const auto res_conv2_shape = netmodel[off_set+2];
             const auto res_bn2_shape = netmodel[off_set+3];
             
-            nn_weight->residual_tower.emplace_back(NNweights::ResidualBlock{});
+            nn_weight->residual_tower.emplace_back(NNWeights::ResidualBlock{});
             auto tower_ptr = nn_weight->residual_tower.data() + b;
         
             fill_convolution_layer(tower_ptr->conv_1,
@@ -329,10 +330,11 @@ void Model::fill_weights(std::istream &weights_file,
             fill_batchnorm_layer(tower_ptr->bn_1,
                                  weights_file,
                                  res_bn1_shape[0]);
-            if (nn_weight->residual_channels != res_conv1_shape[0] &&
-                nn_weight->residual_channels != res_conv1_shape[1] &&
-                nn_weight->residual_channels != res_bn1_shape[0]) {
-                throw "The nnumber of Residual Block channels is wrong";
+            if (nn_weight->residual_channels != res_conv1_shape[0] ||
+                nn_weight->residual_channels != res_conv1_shape[1] ||
+                nn_weight->residual_channels != res_bn1_shape[0] || 
+                3 != res_conv1_shape[2]) {
+                throw "The Residual Block (1) is wrong";
             }
 
             fill_convolution_layer(tower_ptr->conv_2,
@@ -344,10 +346,11 @@ void Model::fill_weights(std::istream &weights_file,
             fill_batchnorm_layer(tower_ptr->bn_2,
                                  weights_file,
                                  res_bn2_shape[0]);
-            if (nn_weight->residual_channels != res_conv2_shape[0] &&
-                nn_weight->residual_channels != res_conv2_shape[1] &&
-                nn_weight->residual_channels != res_bn2_shape[0]) {
-                throw "The nnumber of Residual Block channels is wrong";
+            if (nn_weight->residual_channels != res_conv2_shape[0] ||
+                nn_weight->residual_channels != res_conv2_shape[1] ||
+                nn_weight->residual_channels != res_bn2_shape[0] ||
+                3 != res_conv2_shape[2]) {
+                throw "The Residual Block (2) is wrong";
             }
             
             const auto res_next_shape = netmodel[off_set+4];
@@ -370,7 +373,7 @@ void Model::fill_weights(std::istream &weights_file,
                 if (se_extend_shape[1] != se_squeeze_shape[0]) {
                     throw "The SE Unit size is wrong.";
                 }
-                if (2 * se_extend_shape[0] != se_squeeze_shape[1] &&
+                if (2 * se_extend_shape[0] != se_squeeze_shape[1] ||
                     se_extend_shape[0] != nn_weight->residual_channels) {
                     throw "The SE Unit size is wrong.";
                 }
@@ -401,7 +404,13 @@ void Model::fill_weights(std::istream &weights_file,
                                p_map_shape[0],
                                p_map_shape[1],
                                p_map_shape[2]);
-        
+        if (p_ex_conv_shape[2] != 3 || p_map_shape[2] != 3) {
+            throw "The policy map kernel size is wrong";
+        }
+        if (p_map_shape[1] != POLICYMAP) {
+            throw "The number of policy map channels size is wrong";
+        }
+         
         // value head
         const auto v_ex_conv_shape = netmodel[off_set+3];
         fill_convolution_layer(nn_weight->v_ex_conv,
@@ -426,8 +435,10 @@ void Model::fill_weights(std::istream &weights_file,
                                 weights_file,
                                 v_fc2_shape[0],
                                 v_fc2_shape[1]);
-         
-        if (v_fc2_shape[0] != v_fc1_shape[1] && v_fc1_shape[1] != VALUELAYER) {
+        if (v_ex_conv_shape[2] != 1) {
+            throw "The value layer kernel size is wrong";
+        }
+        if (v_fc2_shape[0] != v_fc1_shape[1] || v_fc1_shape[1] != VALUELAYER) {
             throw "The value layer size is wrong";
         }
 
@@ -511,32 +522,37 @@ NNResult Model::get_result(std::vector<float> &policy,
     return result;
 }
 
-void Model::process_weights(std::shared_ptr<NNweights> &nn_weight) {
+void Model::process_weights(std::shared_ptr<NNWeights> &nn_weight) {
     // input layer
     for (auto idx = size_t{0}; idx < nn_weight->input_conv.biases.size(); ++idx) {
         nn_weight->input_bn.means[idx] -= nn_weight->input_conv.biases[idx] *
                                               nn_weight->input_bn.stddevs[idx];
+        nn_weight->input_conv.biases[idx] = 0.0f;
     }
     // residual tower
     for (auto &residual :  nn_weight->residual_tower) {
         for (auto idx = size_t{0}; idx < residual.conv_1.biases.size(); ++idx) {
             residual.bn_1.means[idx] -= residual.conv_1.biases[idx] *
                                             residual.bn_1.stddevs[idx];
+            residual.conv_1.biases[idx] = 0.0f;
         }
         for (auto idx = size_t{0}; idx < residual.conv_2.biases.size(); ++idx) {
             residual.bn_2.means[idx] -= residual.conv_2.biases[idx] *
                                             residual.bn_2.stddevs[idx];
+            residual.conv_2.biases[idx] = 0.0f;
         }
     }
     // policy head
     for (auto idx = size_t{0}; idx < nn_weight->p_ex_conv.biases.size(); ++idx) {
         nn_weight->p_ex_bn.means[idx] -= nn_weight->p_ex_conv.biases[idx] *
                                              nn_weight->p_ex_bn.stddevs[idx];
+        nn_weight->p_ex_conv.biases[idx] = 0.0f;
     }
     // value head
     for (auto idx = size_t{0}; idx < nn_weight->v_ex_conv.biases.size(); ++idx) {
         nn_weight->v_ex_bn.means[idx] -= nn_weight->v_ex_conv.biases[idx] *
                                              nn_weight->v_ex_bn.stddevs[idx];
+        nn_weight->v_ex_conv.biases[idx] = 0.0f;
     }
 }
 
@@ -547,7 +563,7 @@ std::vector<float> get_weights_from_file(std::istream &weights_file) {
 
     if (std::getline(weights_file, line)) {
         // On MacOS, if the number is too small, stringstream
-        // can not parser the number to float.
+        // can not parser the number to float but double is ok.
         double weight;
         std::stringstream line_buffer(line);
         while(line_buffer >> weight) {

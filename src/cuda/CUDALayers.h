@@ -25,15 +25,40 @@
 #include <vector>
 #include <array>
 
-namespace CUDA_Backend {
+namespace CUDA {
 
 static constexpr auto CONV_WIDTH = Board::WIDTH;
 static constexpr auto CONV_HEIGHT = Board::HEIGHT;
 
+class Batchnorm {
+public:
+    Batchnorm() = default;
+    Batchnorm(const int batch, const size_t channels, bool ReLU = true);
+    ~Batchnorm();
+
+    void Forward(const int batch, float *data,
+                 const float *const eltwise = nullptr);
+
+    void LoadingWeight(const std::vector<float> &means,
+                       const std::vector<float> &stddevs);
+private:
+    static constexpr auto width = CONV_WIDTH;
+    static constexpr auto height = CONV_HEIGHT;
+    static constexpr auto spatial_size = width * height;
+
+    int m_channels;
+    int m_maxbatch;
+
+    bool m_ReLU;
+    bool is_loaded{false};
+    float *cuda_means;
+    float *cuda_stddevs;
+};
+
 class Convolve {
 public:
     Convolve() = default;
-    Convolve(const size_t batch, const size_t filter,
+    Convolve(const int batch, const size_t filter,
              const size_t in_channels, const size_t out_channels);
     ~Convolve();
 
@@ -79,15 +104,14 @@ private:
 class FullyConnect {
 public:
     FullyConnect() = default;
-    FullyConnect(const size_t batch, const size_t inputs, 
-                     const size_t outputs, bool ReLU);
+    FullyConnect(const int batch, const size_t inputs, 
+                 const size_t outputs, bool ReLU);
     ~FullyConnect();
 
     void Forward(const int batch,
                  float *input,
                  float *output,
                  CudaHandel *handel);
-
 
     void LoadingWeight(const std::vector<float> &weights,
                        const std::vector<float> &biases);
@@ -105,7 +129,7 @@ private:
 class GlobalAvgPool {
 public:
     GlobalAvgPool() = default; 
-    GlobalAvgPool(const size_t batch,
+    GlobalAvgPool(const int batch,
                   const size_t channels);
 
     void Forward(const int batch, float *input, float *output);
@@ -122,7 +146,7 @@ private:
 class SEUnit {
 public:
     SEUnit() = default;
-    SEUnit(const size_t batch, const size_t channels, const size_t se_size);
+    SEUnit(const int batch, const size_t channels, const size_t se_size);
     ~SEUnit();
 
     void LoadingWeight(const std::vector<float> &weights_w1,
@@ -180,7 +204,7 @@ private:
 //     float *cuda_weights_b;
 //
 // };
-} // namespace CUDA_Backend
+} // namespace CUDA
 
 #endif
 #endif

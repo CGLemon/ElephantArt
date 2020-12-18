@@ -20,6 +20,7 @@
 #include "Model.h"
 
 #include <cassert>
+#include <sstream>
 
 std::array<Move, POLICYMAP * Board::INTERSECTIONS> Decoder::policymaps_moves;
 std::array<bool, POLICYMAP * Board::INTERSECTIONS> Decoder::policymaps_valid;
@@ -183,3 +184,20 @@ int Decoder::move2maps(const Move &move) {
     assert(iter != std::end(moves_map));
     return idx;
 }
+
+std::string Decoder::get_mapstring() {
+    auto out = std::ostringstream{}; 
+    for (int p = 0; p < POLICYMAP; ++p) {
+        out << "maps : " << p+1 << std::endl;
+        for (int y = 0; y < Board::HEIGHT; ++y) {
+            for (int x = 0; x < Board::WIDTH; ++x) {
+                const auto idx = Board::get_index(x, y);
+                out << policymaps_moves[p * Board::INTERSECTIONS + idx].to_string() << " ";
+            }
+            out << std::endl;
+        }
+        out << std::endl;
+    }
+    return out.str();
+}
+

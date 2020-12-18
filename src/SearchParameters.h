@@ -6,6 +6,9 @@
 class SearchParameters {
 public:
     SearchParameters();
+
+    void reset();
+
     int playouts;
     int random_min_visits;
 

@@ -82,14 +82,14 @@ void Network::initialize(const int playouts, const std::string &weightsfile) {
 
 #ifdef USE_CUDA
     // using backend = CUDAbackend;
-    using backend = CPUbackend;
+    using backend = CPUBackend;
 #else
-    using backend = CPUbackend;
+    using backend = CPUBackend;
 #endif
 
     m_forward = std::make_unique<backend>();
 
-    m_weights = std::make_shared<Model::NNweights>();
+    m_weights = std::make_shared<Model::NNWeights>();
     Model::load_weights(weightsfile, m_weights);
 
     m_forward->initialize(m_weights);
@@ -106,7 +106,7 @@ void Network::reload_weights(const std::string &weightsfile) {
     if (m_weights != nullptr) {
         return;
     }
-    m_weights = std::make_shared<Model::NNweights>();
+    m_weights = std::make_shared<Model::NNWeights>();
     Model::load_weights(weightsfile, m_weights);
 
     m_forward->reload(m_weights);

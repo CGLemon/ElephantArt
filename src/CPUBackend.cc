@@ -21,18 +21,18 @@
 #include "Utils.h"
 #include "Model.h"
 
-void CPUbackend::initialize(std::shared_ptr<Model::NNweights> weights) {
+void CPUBackend::initialize(std::shared_ptr<Model::NNWeights> weights) {
     reload(weights);
 }
 
-void CPUbackend::reload(std::shared_ptr<Model::NNweights> weights) {
+void CPUBackend::reload(std::shared_ptr<Model::NNWeights> weights) {
     if (m_weights != nullptr) {
         m_weights.reset();
     }
     m_weights = weights;
 }
 
-void CPUbackend::forward(const std::vector<float> &planes,
+void CPUBackend::forward(const std::vector<float> &planes,
                          std::vector<float> &output_pol,
                          std::vector<float> &output_val) {
 
@@ -156,17 +156,17 @@ void CPUbackend::forward(const std::vector<float> &planes,
 
 }
 
-void CPUbackend::destroy() {
+void CPUBackend::destroy() {
     // Do nothing
 }
 
-void CPUbackend::release() {
+void CPUBackend::release() {
     if (m_weights != nullptr) {
         m_weights.reset();
     }
     m_weights = nullptr;
 }
 
-bool CPUbackend::valid() {
+bool CPUBackend::valid() {
     return m_weights->loaded;
 }

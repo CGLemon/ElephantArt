@@ -1,9 +1,13 @@
 #include "SearchParameters.h"
 
 SearchParameters::SearchParameters() {
-    playouts           = option<int>("playouts");
+    reset();
+}
 
+void SearchParameters::reset() {
+    playouts           = option<int>("playouts");
     random_min_visits  = option<int>("random_min_visits");
+
     dirichlet_noise    = option<bool>("dirichlet_noise");
     ponder             = option<bool>("ponder");
     collect            = option<bool>("collect");

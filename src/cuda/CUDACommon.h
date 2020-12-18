@@ -29,7 +29,7 @@
 #include <cudnn.h>
 #endif
 
-namespace CUDA_Backend {
+namespace CUDA {
 
 #define KBLOCKSIZE 256
 
@@ -65,7 +65,7 @@ struct CudaHandel {
 
 void gpu_info();
 
-} // namespace CUDA_Backend
+} // namespace CUDA
 
 #endif
 #endif

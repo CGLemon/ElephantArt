@@ -23,9 +23,59 @@
 #include <algorithm> 
 #ifdef USE_CUDA
 
-namespace CUDA_Backend {
+namespace CUDA {
 
-Convolve::Convolve(const size_t max_batch,
+Batchnorm::Batchnorm(const int max_batch,
+                     const size_t output_channels,
+                     bool ReLU) {
+
+    m_channels = output_channels;
+    m_maxbatch = max_batch;
+    m_ReLU = ReLU;
+    is_loaded = false;
+}
+
+Batchnorm::~Batchnorm() {
+    if (is_loaded) {
+        ReportCUDAErrors(cudaFree(cuda_means));
+        ReportCUDAErrors(cudaFree(cuda_stddevs));
+    }
+}
+
+void Batchnorm::Forward(const int batch,
+                        float *data,
+                        const float *const eltwise) {
+    if (!is_loaded) {
+        return;
+    }
+
+    assert(batch <= m_maxbatch);
+    batchnorm(data, cuda_means, cuda_stddevs,
+              batch, m_channels, spatial_size, eltwise, m_ReLU);
+}
+
+
+void Batchnorm::LoadingWeight(const std::vector<float> &means,
+                              const std::vector<float> &stddevs) {
+    if (is_loaded) {
+        return;
+    }
+
+    const size_t weights_size = sizeof(float) * m_channels;
+    assert(weights_size == sizeof(float) * means.size() &&
+           weights_size == sizeof(float) * stddevs.size());
+
+    ReportCUDAErrors(cudaMalloc(&cuda_means, weights_size));
+    ReportCUDAErrors(cudaMalloc(&cuda_stddevs, weights_size));
+
+    ReportCUDAErrors(cudaMemcpy(cuda_means, means.data(), weights_size,
+                                cudaMemcpyHostToDevice));
+    ReportCUDAErrors(cudaMemcpy(cuda_stddevs, stddevs.data(), weights_size,
+                                cudaMemcpyHostToDevice));
+    is_loaded = true;
+}
+
+Convolve::Convolve(const int max_batch,
                    const size_t filter_size, 
                    const size_t input_channels,
                    const size_t output_channels) {
@@ -226,7 +276,7 @@ void Convolve::LoadingWeight(const std::vector<float> &weights,
 }
 
 
-FullyConnect::FullyConnect(const size_t max_batch, const size_t inputs, 
+FullyConnect::FullyConnect(const int max_batch, const size_t inputs, 
                            const size_t outputs, bool ReLU) {
     m_maxbatch = max_batch;
     m_inputs = inputs;
@@ -288,7 +338,7 @@ void FullyConnect::Forward(const int batch, float *input, float *output, CudaHan
                 m_outputs * batch, m_outputs, m_outputs * batch, m_ReLU);
 }
 
-GlobalAvgPool::GlobalAvgPool(const size_t max_batch,
+GlobalAvgPool::GlobalAvgPool(const int max_batch,
                              const size_t channels) {
     m_maxbatch = max_batch;
     m_channels = channels;
@@ -299,7 +349,7 @@ void GlobalAvgPool::Forward(const int batch, float *input, float *output) {
                     m_channels, spatial_size);
 }
 
-SEUnit::SEUnit(const size_t max_batch, const size_t channels, const size_t se_size) {
+SEUnit::SEUnit(const int max_batch, const size_t channels, const size_t se_size) {
 
     m_se_size = se_size;
     m_maxbatch = max_batch;
@@ -491,6 +541,6 @@ SEUnit::~SEUnit() {
 //         ReportCUDAErrors(cudaFree(cuda_op));
 //     }
 // }
-} // namespace CUDA_Backend
+} // namespace CUDA
 
 #endif
