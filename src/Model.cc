@@ -170,7 +170,7 @@ void Model::load_weights(const std::string &filename,
 
     if (!file.is_open()) {
         file.close();
-        Utils::auto_printf("Could not opne file : %s\n", filename.c_str());
+        Utils::auto_printf("Could not opne file : %s!\n", filename.c_str());
         return;
     }
 
@@ -183,12 +183,12 @@ void Model::load_weights(const std::string &filename,
     try {
         fill_weights(buffer, nn_weight);
     } catch (const char* err) {
-        Utils::auto_printf("Loadinng network file warning!\n", err);
-        Utils::auto_printf("    Cause : %s\n", err);
+        Utils::auto_printf("Loading network file warning!\n", err);
+        Utils::auto_printf("    Cause : %s.\n", err);
     }
     
     if (nn_weight->loaded) {
-        Utils::auto_printf("Loading is success\n");
+        Utils::auto_printf("Loading is successful!\n");
     }
 }
 
@@ -198,6 +198,7 @@ void Model::fill_weights(std::istream &weights_file,
 
 
     auto counter = size_t{0};
+
     // Part 1.
     auto line = std::string{};
     if (std::getline(weights_file, line)) {
@@ -305,8 +306,9 @@ void Model::fill_weights(std::istream &weights_file,
         const auto residuals = nn_weight->residual_blocks;
 
         if (nn_weight->residual_channels != input_conv_shape[1] ||
-            nn_weight->residual_channels != input_bn_shape[0]) {
-            throw "The number of input layer channels is wrong";
+            nn_weight->residual_channels != input_bn_shape[0] || 
+            input_conv_shape[2] != 3) {
+            throw "The input layer is wrong";
         }
         
         // residual tower
@@ -330,10 +332,11 @@ void Model::fill_weights(std::istream &weights_file,
             fill_batchnorm_layer(tower_ptr->bn_1,
                                  weights_file,
                                  res_bn1_shape[0]);
+
             if (nn_weight->residual_channels != res_conv1_shape[0] ||
                 nn_weight->residual_channels != res_conv1_shape[1] ||
                 nn_weight->residual_channels != res_bn1_shape[0] || 
-                3 != res_conv1_shape[2]) {
+                res_conv1_shape[2] != 3) {
                 throw "The Residual Block (1) is wrong";
             }
 
@@ -346,10 +349,11 @@ void Model::fill_weights(std::istream &weights_file,
             fill_batchnorm_layer(tower_ptr->bn_2,
                                  weights_file,
                                  res_bn2_shape[0]);
+
             if (nn_weight->residual_channels != res_conv2_shape[0] ||
                 nn_weight->residual_channels != res_conv2_shape[1] ||
                 nn_weight->residual_channels != res_bn2_shape[0] ||
-                3 != res_conv2_shape[2]) {
+                res_conv2_shape[2] != 3) {
                 throw "The Residual Block (2) is wrong";
             }
             
@@ -404,6 +408,7 @@ void Model::fill_weights(std::istream &weights_file,
                                p_map_shape[0],
                                p_map_shape[1],
                                p_map_shape[2]);
+
         if (p_ex_conv_shape[2] != 3 || p_map_shape[2] != 3) {
             throw "The policy map kernel size is wrong";
         }
@@ -435,17 +440,24 @@ void Model::fill_weights(std::istream &weights_file,
                                 weights_file,
                                 v_fc2_shape[0],
                                 v_fc2_shape[1]);
+
+        if (v_ex_bn_shape[0] != v_ex_conv_shape[1]) {
+            throw "";
+        }
         if (v_ex_conv_shape[2] != 1) {
             throw "The value layer kernel size is wrong";
         }
-        if (v_fc2_shape[0] != v_fc1_shape[1] || v_fc1_shape[1] != VALUELAYER) {
+        if (v_fc1_shape[0] != v_ex_conv_shape[1] * Board::INTERSECTIONS ||
+            v_fc1_shape[1] != VALUELAYER ||
+            v_fc2_shape[0] != v_fc1_shape[1] ||
+            v_fc2_shape[1] != WINRATELAYER) {
             throw "The value layer size is wrong";
         }
 
         std::getline(weights_file, line);
         const auto p = Utils::CommandParser(line);
         if (p.get_command(0)->str != "end") {
-            throw "";
+            throw "No end? Weights file format is not acceptable";
         }
 
         nn_weight->loaded = true;
@@ -503,6 +515,7 @@ NNResult Model::get_result(std::vector<float> &policy,
                            const float v_softmax_temp,
                            const int symmetry) {
     NNResult result;
+
     // Probabilities
     const auto probabilities = Activation::Softmax(policy, p_softmax_temp);
     for (auto p = size_t{0}; p < POLICYMAP; ++p) {
@@ -514,10 +527,13 @@ NNResult Model::get_result(std::vector<float> &policy,
     }
 
     // Winrate
-    const auto winrate = Activation::Softmax(value, v_softmax_temp);
+    const auto raw_winrate = std::vector<float>{value[0], value[1], value[2]}; 
+    const auto winrate = Activation::Softmax(raw_winrate, v_softmax_temp);
+
     for (auto idx = size_t{0}; idx < 3; ++idx) {
         result.winrate[idx] = winrate[idx];
     }
+    result.winrate[3] = std::tanh(value[3]);
 
     return result;
 }
@@ -562,7 +578,7 @@ std::vector<float> get_weights_from_file(std::istream &weights_file) {
     auto line = std::string{};
 
     if (std::getline(weights_file, line)) {
-        // On MacOS, if the number is too small, stringstream
+        // On MacOS, if the numeric is too small, stringstream
         // can not parser the number to float but double is ok.
         double weight;
         std::stringstream line_buffer(line);

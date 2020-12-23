@@ -217,7 +217,7 @@ inline static Types::Vertices extract(BitBoard &b) {
     return vtx;
 }
 /*
- * Display the bitboard (include invalid edge and extra bit).
+ * Display the bitboard (include invalid edge and extra bits).
  */
 void dump_bitboard(const BitBoard &bitboard, std::ostream &out);
 

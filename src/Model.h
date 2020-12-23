@@ -33,7 +33,7 @@ static constexpr auto INPUT_CHANNELS = INPUT_MOVES * 14 + INPUT_STATUS;
 
 static constexpr auto POLICYMAP = 50;
 static constexpr auto VALUELAYER = 256;
-static constexpr auto WINRATELAYER = 3;
+static constexpr auto WINRATELAYER = 4;
 
 struct NNResult {
     std::array<float, POLICYMAP * Board::INTERSECTIONS> policy;
@@ -48,7 +48,7 @@ struct Desc {
     struct ConvLayer {
         void load_weights(std::vector<float> &loadweights);
         void load_biases(std::vector<float> &loadweights);
-        void load_size(int ic, int oc, int ks, bool check=true);
+        void load_size(int ic, int oc, int ks, bool check = true);
         
         int in_channels;
         int out_channels;
@@ -60,7 +60,7 @@ struct Desc {
     struct BatchNormLayer {
         void load_means(std::vector<float> &loadweights);
         void load_stddevs(std::vector<float> &loadweights);
-        void load_size(int c, bool check=true);
+        void load_size(int c, bool check = true);
         
         int channels;
         std::vector<float> means;
@@ -70,7 +70,7 @@ struct Desc {
     struct LinearLayer {
         void load_weights(std::vector<float> &loadweights);
         void load_biases(std::vector<float> &loadweights);
-        void load_size(int is, int os, bool check=true);
+        void load_size(int is, int os, bool check = true);
         
         int in_size;
         int out_size;

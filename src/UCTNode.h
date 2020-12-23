@@ -14,8 +14,6 @@
 #include <memory>
 #include <vector>
 
-#define VIRTUAL_LOSS_COUNT (2)
-
 struct UCTNodeData {
     float policy{0.0f};
     int maps{-1};

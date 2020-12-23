@@ -161,7 +161,7 @@ Engine::Response Engine::raw_nn(const int symmetry, const int g) {
         }
         rep << std::endl;
     }
-    for (int v = 0; v < 3; ++v) {
+    for (int v = 0; v < 4; ++v) {
         rep << nnout.winrate[v] << " ";
     }
     rep << std::endl;
