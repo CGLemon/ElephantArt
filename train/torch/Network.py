@@ -42,11 +42,11 @@ class Convolve(nn.Module):
             out_channels,
             kernel_size,
             padding=1 if kernel_size == 3 else 0,
-            bias=False,
+            bias=True,
         )
         if collector != None:
             collector.append(self.conv.weight)
-            collector.append(torch.zeros(out_channels))
+            collector.append(self.conv.bias)
 
         nn.init.kaiming_normal_(self.conv.weight,
                                 mode="fan_out",
@@ -81,6 +81,7 @@ class ConvBlock(nn.Module):
 
         if collector != None:
             collector.append(self.conv.weight)
+            # collector.append(self.conv.bias)
             collector.append(torch.zeros(out_channels))
             collector.append(self.bn.running_mean)
             collector.append(self.bn.running_var)
@@ -170,6 +171,9 @@ class Network(nn.Module):
         self.policy_map = config.policy_map
         self.stack = config.stack
 
+        self.winrate_size = config.winrate_size
+        self.valuelayers = config.valuelayers
+
         # build network
         self.input_conv = ConvBlock(
             in_channels=self.input_channels,
@@ -215,12 +219,12 @@ class Network(nn.Module):
         )
         self.value_fc_1 = FullyConnect(
             in_size=self.value_extract * self.plane_size,
-            out_size=256,
+            out_size=self.valuelayers,
             collector=self.tensor_collector
         )
         self.value_fc_2 = FullyConnect(
-            in_size=256,
-            out_size=3,
+            in_size=self.valuelayers,
+            out_size=self.winrate_size,
             relu=False,
             collector=self.tensor_collector
         )
@@ -252,6 +256,12 @@ class Network(nn.Module):
             self.train()
         else:
             self.eval()
+
+    def save_pt(self, filename):
+        torch.save(self.state_dict(), filename)
+
+    def load_pt(self, filename):
+        self.load_state_dict(torch.load(filename))
 
     def dump_info(self):
         print("Plane size [x,y] : [{xsize}, {ysize}] ".format(xsize=self.xsize, ysize=self.ysize))
@@ -298,8 +308,8 @@ class Network(nn.Module):
             f.write(Network.conv2text(self.residual_channels, self.value_extract, 1))
             f.write(Network.bn2text(self.value_extract))
             
-            f.write(Network.fullyconnect2text(self.value_extract * self.plane_size, 256))
-            f.write(Network.fullyconnect2text(256, 3))
+            f.write(Network.fullyconnect2text(self.value_extract * self.plane_size, self.valuelayers))
+            f.write(Network.fullyconnect2text(self.valuelayers, self.winrate_size))
             
             f.write("end model\n")
 

@@ -39,6 +39,8 @@ class NetworkConfig:
         self.xsize = 10
         self.ysize = 9
         self.policy_map = 2 * (9 + 8) + 8 + 4 + 4 # 50
+        self.winrate_size = 4
+        self.valuelayers = 256
 
 def json_loader(filename):
     with open(filename, 'r') as f:
