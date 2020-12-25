@@ -98,9 +98,8 @@ __global__ void batchNorm_eltwise_kernel(T *data, const float *means, const floa
 
         el -= mean;
         el *= scale_stddev;
-        if (eltwise) {
-            el += (float)eltwise[index];
-        }
+        el += (float)eltwise[index];
+
         if (relu && el < 0) {
             el = 0;
         }
@@ -134,8 +133,8 @@ __global__ void batchNorm_kernel(T *data, const float *means, const float *stdde
 
 template <typename T>
 void batchnorm(T *data, const float *means, const float *stddevs,
-                    int batch, int channels, int spatial_size,
-                    const T *eltwise, bool relu) {
+               int batch, int channels, int spatial_size,
+               const T *eltwise, bool relu) {
 
     const int total_elements = batch * channels * spatial_size;
     const int kBlockSize = KBLOCKSIZE;
@@ -255,7 +254,6 @@ __global__ void se_scale_kernel(const T *input, const T *se_bias, T *data,
     }
 }
 
-
 template<typename T>
 void se_scale(const T *input, const T* se_bias, T* data,
                    int batch, int channels, int spatial_size) {
@@ -329,22 +327,21 @@ void swap(T *a, T *b, int size) {
     swap_kernel<<<blocks, kBlockSize>>>(a, b, size);
 }
 
-// template <typename T>
-// __global__ void copy_kernel(T *a, T *b, int size) {
-//     int index = threadIdx.x + blockDim.x * blockIdx.x;
-//     if (index < size) {
-//         T tmep = b[index];
-//         a[index] = tmep;
-//     }
-// } 
+template <typename T>
+__global__ void copy_kernel(T *a, T *b, int size) {
+    int index = threadIdx.x + blockDim.x * blockIdx.x;
+    if (index < size) {
+        T tmep = b[index];
+        a[index] = tmep;
+    }
+} 
 
-
-// template<typename T>
-// void copy(T *a, T *b, int size) {
-//     const int kBlockSize = KBLOCKSIZE;
-//     const int blocks = DivUp(size, kBlockSize);
-//     copy_kernel<<<blocks, kBlockSize>>>(a, b, size);
-// }
+template<typename T>
+void copy(T *a, T *b, int size) {
+    const int kBlockSize = KBLOCKSIZE;
+    const int blocks = DivUp(size, kBlockSize);
+    copy_kernel<<<blocks, kBlockSize>>>(a, b, size);
+}
 
 template void batchnorm<float>(float *data, const float *means,
                                const float *stddevs, int N, int channels,
@@ -371,7 +368,7 @@ template void input_pool<float>(const float *bias, float *data,
 
 template void swap<float>(float *a, float *b, int size);
 
-// template void copy<float>(float *a, float *b, int size);
+template void copy<float>(float *a, float *b, int size);
 
 } // namespace CUDA
 #endif

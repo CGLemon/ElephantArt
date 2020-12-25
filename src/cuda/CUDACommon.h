@@ -31,12 +31,14 @@
 
 namespace CUDA {
 
+static constexpr auto MAX_SUPPORT_GPUS = 16;
+
 #define KBLOCKSIZE 256
 
 #ifdef USE_CUDNN
 void CudnnError(cudnnStatus_t status);
 #define ReportCUDNNErrors(status) CudnnError(status)
-cudnnHandle_t cudnn_handle();
+cudnnHandle_t cudnn_handle(int n);
 #endif
 void CublasError(cublasStatus_t status);
 void CudaError(cudaError_t status);
@@ -45,10 +47,10 @@ void CudaError(cudaError_t status);
 #define ReportCUBLASErrors(status) CublasError(status)
 #define ReportCUDAErrors(status) CudaError(status)
 
-cublasHandle_t blas_handle();
+cublasHandle_t blas_handle(int n);
 
 int get_devicecount();
-int get_device(int n = 0);
+int get_device(int n /* = 0 */);
 
 inline static int DivUp(int a, int b) { return (a + b - 1) / b; }
 bool is_using_cuDNN();
@@ -60,7 +62,7 @@ struct CudaHandel {
 #endif
     cublasHandle_t cublas_handel;
 
-    void apply();
+    void apply(int n);
 };
 
 void gpu_info();

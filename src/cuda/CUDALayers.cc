@@ -110,7 +110,7 @@ Convolve::~Convolve() {
 #endif
 
     if (cuda_biases) {
-        ReportCUDAErrors(cudaFree(cuda_weights));
+        ReportCUDAErrors(cudaFree(cuda_biases));
     }
 }
 
@@ -146,7 +146,6 @@ void Convolve::Forward(const int batch, float *input, float *output,
                                          &alpha, out_tensor_desc, output));
     }
 
-
 #else
     (void) scratch_size;
 
@@ -169,7 +168,7 @@ void Convolve::Forward(const int batch, float *input, float *output,
     }
 
     if (cuda_biases) {
-        const auto  op_size = m_out_channels * spatial_size;
+        const auto op_size = m_out_channels * spatial_size;
         add_spatial(output, cuda_biases, output,
                     op_size * batch, m_out_channels, op_size * batch,
                     spatial_size, false);
@@ -178,7 +177,7 @@ void Convolve::Forward(const int batch, float *input, float *output,
 }
 
 void Convolve::LoadingWeight(const std::vector<float> &weights,
-                             size_t &scratch_size) {
+                             size_t &scratch_size, CudaHandel *handel) {
 
     if (is_loaded) {
         return;
@@ -198,7 +197,7 @@ void Convolve::LoadingWeight(const std::vector<float> &weights,
         return;
     }
 
-    auto cudnn = cudnn_handle();
+    auto cudnn = handel->cudnn_handel;
     cudnnCreateFilterDescriptor(&filter_desc);
     cudnnCreateTensorDescriptor(&in_tensor_desc);
     cudnnCreateTensorDescriptor(&out_tensor_desc);
@@ -253,7 +252,7 @@ void Convolve::LoadingWeight(const std::vector<float> &weights,
 
 void Convolve::LoadingWeight(const std::vector<float> &weights,
                              const std::vector<float> &biases,
-                             size_t &scratch_size) {
+                             size_t &scratch_size, CudaHandel *handel) {
 
     if (is_loaded) {
         return;
@@ -272,7 +271,7 @@ void Convolve::LoadingWeight(const std::vector<float> &weights,
                                                  CUDNN_DATA_FLOAT,
                                                  1, m_out_channels, 1, 1));
 #endif
-    LoadingWeight(weights, scratch_size);
+    LoadingWeight(weights, scratch_size, handel);
 }
 
 

@@ -31,7 +31,7 @@
 #include "config.h"
 
 #ifdef USE_CUDA
-// #include "CUDABackend.h"
+#include "CUDABackend.h"
 #endif
 
 #ifdef USE_EIGEN
@@ -76,13 +76,12 @@ void Network::initialize(const int playouts, const std::string &weightsfile) {
 
 #ifdef USE_EIGEN
     auto_printf("BLAS Core: built-in Eigen %d.%d.%d library.\n",
-                EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION);
+                 EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION);
 #endif
     set_playouts(playouts);
 
 #ifdef USE_CUDA
-    // using backend = CUDAbackend;
-    using backend = CPUBackend;
+    using backend = CUDABackend;
 #else
     using backend = CPUBackend;
 #endif

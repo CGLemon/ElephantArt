@@ -33,10 +33,12 @@ void process_bn_var(container &weights) {
 
 void Desc::ConvLayer::load_weights(std::vector<float> &loadweights) {
     weights = std::move(loadweights);
+    weights.shrink_to_fit();
 }
 
 void Desc::ConvLayer::load_biases(std::vector<float> &loadweights) {
     biases = std::move(loadweights);
+    biases.shrink_to_fit();
 }
 
 void Desc::ConvLayer::load_size(int ic, int oc, int ks, bool check) {
@@ -53,11 +55,13 @@ void Desc::ConvLayer::load_size(int ic, int oc, int ks, bool check) {
 
 void Desc::BatchNormLayer::load_means(std::vector<float> &loadweights) {
     means = std::move(loadweights);
+    means.shrink_to_fit();
 }
 
 void Desc::BatchNormLayer::load_stddevs(std::vector<float> &loadweights) {
     process_bn_var(loadweights);
     stddevs = std::move(loadweights);
+    stddevs.shrink_to_fit();
 }
 
 void Desc::BatchNormLayer::load_size(int c, bool check) {
@@ -72,10 +76,12 @@ void Desc::BatchNormLayer::load_size(int c, bool check) {
 
 void Desc::LinearLayer::load_weights(std::vector<float> &loadweights) {
     weights = std::move(loadweights);
+    weights.shrink_to_fit();
 }
 
 void Desc::LinearLayer::load_biases(std::vector<float> &loadweights) {
     biases = std::move(loadweights);
+    biases.shrink_to_fit();
 }
 
 void Desc::LinearLayer::load_size(int is, int os, bool check) {
@@ -457,7 +463,7 @@ void Model::fill_weights(std::istream &weights_file,
         std::getline(weights_file, line);
         const auto p = Utils::CommandParser(line);
         if (p.get_command(0)->str != "end") {
-            throw "No end? Weights file format is not acceptable";
+            throw "Not end? Weights file format is not acceptable";
         }
 
         nn_weight->loaded = true;
@@ -527,13 +533,13 @@ NNResult Model::get_result(std::vector<float> &policy,
     }
 
     // Winrate
-    const auto raw_winrate = std::vector<float>{value[0], value[1], value[2]}; 
-    const auto winrate = Activation::Softmax(raw_winrate, v_softmax_temp);
+    const auto wdl_raw = std::vector<float>{value[0], value[1], value[2]}; 
+    const auto wdl = Activation::Softmax(wdl_raw, v_softmax_temp);
 
-    for (auto idx = size_t{0}; idx < 3; ++idx) {
-        result.winrate[idx] = winrate[idx];
-    }
-    result.winrate[3] = std::tanh(value[3]);
+    result.winrate[0] = wdl[0];                  // wdl head winrate 
+    result.winrate[1] = wdl[1];                  // wdl head drawrate 
+    result.winrate[2] = wdl[2];                  // wdl head lossrate 
+    result.winrate[3] = std::tanh(value[3]);     // stm head winrate
 
     return result;
 }
@@ -579,7 +585,7 @@ std::vector<float> get_weights_from_file(std::istream &weights_file) {
 
     if (std::getline(weights_file, line)) {
         // On MacOS, if the numeric is too small, stringstream
-        // can not parser the number to float but double is ok.
+        // can not parse the number to float but double is ok.
         double weight;
         std::stringstream line_buffer(line);
         while(line_buffer >> weight) {

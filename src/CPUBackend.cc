@@ -65,6 +65,7 @@ void CPUBackend::forward(const std::vector<float> &planes,
     // residual tower
     const auto residuals =  m_weights->residual_blocks;
     for (int i = 0; i < residuals; ++i) {
+        // if (i == 1) break;
         const auto tower_channels = m_weights->residual_channels;
         const auto tower_ptr = m_weights->residual_tower.data() + i;
 
@@ -101,10 +102,10 @@ void CPUBackend::forward(const std::vector<float> &planes,
                             tower_ptr->squeeze.biases);
         
         } else {
-            Batchnorm::Forward(tower_channels, conv_out,
-                               tower_ptr->bn_2.means,
-                               tower_ptr->bn_2.stddevs,
-                               res.data());
+             Batchnorm::Forward(tower_channels, conv_out,
+                                tower_ptr->bn_2.means,
+                                tower_ptr->bn_2.stddevs,
+                                res.data());
         }
     }
     

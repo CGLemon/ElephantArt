@@ -86,8 +86,10 @@ void init_options_map() {
     options_map["random_min_visits"] << Utils::Option::setoption(1);
     
     options_map["dirichlet_noise"] << Utils::Option::setoption(false);
-    options_map["ponder"]          << Utils::Option::setoption(false);
-    options_map["collect"]         << Utils::Option::setoption(false);
+    options_map["ponder"] << Utils::Option::setoption(false);
+    options_map["collect"] << Utils::Option::setoption(false);
+
+    options_map["waittime"] << Utils::Option::setoption(10);
 }
 
 void init_basic_parameters() {
@@ -99,11 +101,11 @@ void init_basic_parameters() {
 ArgsParser::ArgsParser(int argc, char** argv) {
 
     auto parser = Utils::CommandParser(argc, argv);
-    const auto is_parameter = [](const std::string &para) -> bool {
-        if (para.empty()) {
+    const auto is_parameter = [](const std::string &param) -> bool {
+        if (param.empty()) {
             return false;
         }
-        return para[0] != '-';
+        return param[0] != '-';
     };
 
     init_options_map();

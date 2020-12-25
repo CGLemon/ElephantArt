@@ -35,7 +35,7 @@ void add_spatial(T *a, T *b, T *c,
 template <typename T>
 void batchnorm(T *data, const float *means, const float *stddevs,
                int batch, int channels, int spatial_size,
-                const T *eltwise, bool relu);
+               const T *eltwise, bool relu);
 
 
 template <typename T>
@@ -61,8 +61,8 @@ void gemm(bool TA, bool TB, int M, int N, int K, float ALPHA,
 template<typename T>
 void swap(T *a, T *b, int size);
 
-// template<typename T>
-// void copy(T *a, T *b, int size);
+template<typename T>
+void copy(T *a, T *b, int size);
 
 } // namespace CUDA
 

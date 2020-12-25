@@ -66,11 +66,11 @@ public:
                  void *scratch, size_t scratch_size, CudaHandel *handel);
 
     void LoadingWeight(const std::vector<float> &weights,
-                       size_t &scratch_size);
+                       size_t &scratch_size, CudaHandel *handel);
 
     void LoadingWeight(const std::vector<float> &weights,
                        const std::vector<float> &biases,
-                       size_t &scratch_size);
+                       size_t &scratch_size, CudaHandel *handel);
 
 private:
     static constexpr auto width = CONV_WIDTH;
