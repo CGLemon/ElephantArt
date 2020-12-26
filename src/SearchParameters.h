@@ -16,11 +16,15 @@ public:
     bool ponder;
     bool collect;
 
-    double fpu_root_reduction;
-    double fpu_reduction;
-    double logconst;
-    double logpuct;
-    double cpuct;
+    float fpu_root_reduction;
+    float fpu_reduction;
+
+    float cpuct_init;
+    float cpuct_root_init;
+    float cpuct_base;
+    float cpuct_root_base;
+    float draw_factor;
+    float draw_root_factor;
 };
 
 #endif

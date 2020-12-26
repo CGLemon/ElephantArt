@@ -148,7 +148,7 @@ Engine::Response Engine::raw_nn(const int symmetry, const int g) {
     auto &p = *get_position(g);
     auto nnout = m_network->get_output(&p, Network::DIRECT, symmetry);
     for (int p = 0; p < POLICYMAP; ++p) {
-        rep << "map : " << p+1 << std::endl;
+        rep << "map probabilities : " << p+1 << std::endl;
         for (int y = 0; y < Board::HEIGHT; ++y) {
             for (int x = 0; x < Board::WIDTH; ++x) {
                 const auto idx = Board::get_index(x, y);
@@ -161,11 +161,15 @@ Engine::Response Engine::raw_nn(const int symmetry, const int g) {
         }
         rep << std::endl;
     }
-    for (int v = 0; v < 4; ++v) {
-        rep << nnout.winrate[v] << " ";
+    rep << "wdl probabilities : " << std::endl;
+    for (int v = 0; v < 3; ++v) {
+        rep << nnout.winrate_misc[v] << " ";
     }
+    rep << std::endl << std::endl;
+    rep << "stm winrate: " << std::endl;
+    rep << nnout.winrate_misc[3];
     rep << std::endl;
-    
+
     return rep.str();
 }
 

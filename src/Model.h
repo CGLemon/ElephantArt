@@ -37,10 +37,10 @@ static constexpr auto WINRATELAYER = 4;
 
 struct NNResult {
     std::array<float, POLICYMAP * Board::INTERSECTIONS> policy;
-    std::array<float, WINRATELAYER> winrate;
+    std::array<float, WINRATELAYER> winrate_misc;
     NNResult () {
         policy.fill(0.0f);
-        winrate.fill(0.0f);
+        winrate_misc.fill(0.0f);
     }
 };
 

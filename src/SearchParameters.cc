@@ -14,7 +14,12 @@ void SearchParameters::reset() {
 
     fpu_root_reduction = option<float>("fpu_root_reduction");
     fpu_reduction      = option<float>("fpu_reduction");
-    logconst           = option<float>("logconst");
-    logpuct            = option<float>("logpuct");
-    cpuct              = option<float>("cpuct");
+
+    cpuct_init         = option<float>("cpuct_init");
+    cpuct_root_init    = option<float>("cpuct_root_init");
+    cpuct_base         = option<float>("cpuct_base");
+    cpuct_root_base    = option<float>("cpuct_root_base");
+
+    draw_factor        = option<float>("draw_factor");
+    draw_root_factor   = option<float>("draw_root_factor");
 }

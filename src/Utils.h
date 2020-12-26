@@ -21,6 +21,7 @@
 
 #include "config.h"
 
+#include <thread>
 #include <iostream>
 #include <cassert>
 #include <sstream>
@@ -58,7 +59,9 @@ void adjust_range(T &a, const T max, const T min = (T)0) {
 template <typename T> 
 void atomic_add(std::atomic<T> &f, T d) {
     T old = f.load();
-    while (!f.compare_exchange_weak(old, old + d)) {}
+    while (!f.compare_exchange_weak(old, old + d)) {
+        std::this_thread::yield();
+    }
 }
 
 /**

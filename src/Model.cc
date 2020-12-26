@@ -161,7 +161,6 @@ std::vector<float> Model::gather_planes(const Position *const position,
 
     // plane 17 - 18
     // Not complete yet
-    std::fill(std::begin(input_data), std::end(input_data), static_cast<float>(true));
 
     return input_data;
 }
@@ -536,10 +535,10 @@ NNResult Model::get_result(std::vector<float> &policy,
     const auto wdl_raw = std::vector<float>{value[0], value[1], value[2]}; 
     const auto wdl = Activation::Softmax(wdl_raw, v_softmax_temp);
 
-    result.winrate[0] = wdl[0];                  // wdl head winrate 
-    result.winrate[1] = wdl[1];                  // wdl head drawrate 
-    result.winrate[2] = wdl[2];                  // wdl head lossrate 
-    result.winrate[3] = std::tanh(value[3]);     // stm head winrate
+    result.winrate_misc[0] = wdl[0];                  // wdl head win probability
+    result.winrate_misc[1] = wdl[1];                  // wdl head draw probability
+    result.winrate_misc[2] = wdl[2];                  // wdl head loss probability
+    result.winrate_misc[3] = std::tanh(value[3]);     // stm head winrate
 
     return result;
 }

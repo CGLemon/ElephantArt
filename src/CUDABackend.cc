@@ -12,6 +12,7 @@
 
 void CUDABackend::initialize(std::shared_ptr<Model::NNWeights> weights) {
     Utils::auto_printf("Using CUDA network.\n");
+    CUDA::gpu_info();
     reload(weights);
     prepare_worker();
 }

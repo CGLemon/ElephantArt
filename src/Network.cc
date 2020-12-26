@@ -153,9 +153,11 @@ void dummy_forward(std::vector<float> &policy,
         v = dis(rng);
     }
     const auto v_acc = std::accumulate(std::begin(value),
-                                       std::end(value), 0.0f);
-    for (auto &v : value) {
-        v /= v_acc;
+                                       std::begin(value)+ 3,
+                                       0.0f);
+
+    for (int idx = 0; idx < 3; ++idx) {
+        value[idx] = value[idx] / v_acc;
     }
 }
 

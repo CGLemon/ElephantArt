@@ -80,9 +80,13 @@ void init_options_map() {
     options_map["playouts"] << Utils::Option::setoption(1600);
     options_map["fpu_root_reduction"] << Utils::Option::setoption(0.25f);
     options_map["fpu_reduction"] << Utils::Option::setoption(0.25f);
-    options_map["logconst"] << Utils::Option::setoption(0.015f);
-    options_map["logpuct"] << Utils::Option::setoption(1.7f);
-    options_map["cpuct"] << Utils::Option::setoption(0.5f);
+    options_map["cpuct_init"] << Utils::Option::setoption(2.5f);
+    options_map["cpuct_root_init"] << Utils::Option::setoption(2.5f);
+    options_map["cpuct_base"] << Utils::Option::setoption(19652.f);
+    options_map["cpuct_root_base"] << Utils::Option::setoption(19652.f);
+    options_map["draw_factor"] << Utils::Option::setoption(0.f);
+    options_map["draw_root_factor"] << Utils::Option::setoption(0.f);
+
     options_map["random_min_visits"] << Utils::Option::setoption(1);
     
     options_map["dirichlet_noise"] << Utils::Option::setoption(false);
