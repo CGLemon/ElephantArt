@@ -22,6 +22,12 @@
 #include "Blas.h"
 #include "Model.h"
 #include "Utils.h"
+#include "config.h"
+#include "WinogradHelper.h"
+
+#ifdef USE_FAST_PARSER
+#include "fast_double_parser.h"
+#endif 
 
 template <typename container>
 void process_bn_var(container &weights) {
@@ -200,14 +206,13 @@ void Model::load_weights(const std::string &filename,
 
 void Model::fill_weights(std::istream &weights_file,
                          std::shared_ptr<NNWeights> &nn_weight) {
-
-
+    auto timer = Utils::Timer{};
     auto counter = size_t{0};
 
     // Part 1.
     auto line = std::string{};
     if (std::getline(weights_file, line)) {
-        const auto p = Utils::CommandParser(line);
+        const auto p = Utils::CommandParser(line, 2);
         if (p.get_command(0)->str != "fork" ||
                 p.get_command(1)->str != "main") {
             throw "Weights file format is not acceptable";
@@ -315,7 +320,7 @@ void Model::fill_weights(std::istream &weights_file,
             input_conv_shape[2] != 3) {
             throw "The input layer is wrong";
         }
-        
+        timer.record();
         // residual tower
         for (int b = 0; b < residuals; ++b) {
 
@@ -392,8 +397,10 @@ void Model::fill_weights(std::istream &weights_file,
                 tower_ptr->apply_se = false;
             }
         }
+
+        timer.record();
         const auto off_set = residuals * 4 + 2 + 2 * se_cnt;
-        
+
         // policy head
         const auto p_ex_conv_shape = netmodel[off_set];
         fill_convolution_layer(nn_weight->p_ex_conv,
@@ -466,6 +473,8 @@ void Model::fill_weights(std::istream &weights_file,
         }
 
         nn_weight->loaded = true;
+        timer.record();
+
         process_weights(nn_weight);
     };
 
@@ -473,13 +482,13 @@ void Model::fill_weights(std::istream &weights_file,
     auto netinfo = NetInfo{};
     auto netmodel = NetModel{};
     while (std::getline(weights_file, line)) {
-        const auto p = Utils::CommandParser(line);
+        const auto p = Utils::CommandParser(line, 2);
         if (p.get_command(0)->str == "fork") {
             if (p.get_command(1)->str == "info") {
                 get_netinfo(netinfo, weights_file);
                 auto nntype = netinfo["NNType"];
                 if (nntype != "Residual") {
-                    throw "Only support residual Network";
+                    throw "Only support Residual Network";
                 }
             } else if (p.get_command(1)->str == "model") {
                 get_netmode(netmodel, weights_file);
@@ -498,6 +507,7 @@ void Model::fill_weights(std::istream &weights_file,
     if (netinfo.empty() || netmodel.empty()) {
         throw "The weighs information must be provided";
     }
+    timer.record();
 
     weights_file.clear();
     weights_file.seekg(0, std::ios::beg);
@@ -512,6 +522,8 @@ void Model::fill_weights(std::istream &weights_file,
             }
         }
     }
+
+    dump_nn_info(nn_weight, timer);
 }
 
 NNResult Model::get_result(std::vector<float> &policy,
@@ -551,7 +563,7 @@ void Model::process_weights(std::shared_ptr<NNWeights> &nn_weight) {
         nn_weight->input_conv.biases[idx] = 0.0f;
     }
     // residual tower
-    for (auto &residual :  nn_weight->residual_tower) {
+    for (auto &residual : nn_weight->residual_tower) {
         for (auto idx = size_t{0}; idx < residual.conv_1.biases.size(); ++idx) {
             residual.bn_1.means[idx] -= residual.conv_1.biases[idx] *
                                             residual.bn_1.stddevs[idx];
@@ -575,21 +587,91 @@ void Model::process_weights(std::shared_ptr<NNWeights> &nn_weight) {
                                              nn_weight->v_ex_bn.stddevs[idx];
         nn_weight->v_ex_conv.biases[idx] = 0.0f;
     }
+
+    if (option<bool>("winograd")) {
+        nn_weight->winograd = true;
+    } else {
+        return;
+    }
+    auto channels = nn_weight->residual_channels;
+    if (nn_weight->input_conv.kernel_size == 3) {
+        nn_weight->input_conv.weights = Winograd::transform_f(
+                                            nn_weight->input_conv.weights,
+                                            channels, INPUT_CHANNELS);
+    }
+    for (auto &residual : nn_weight->residual_tower) {
+        if (residual.conv_1.kernel_size == 3) {
+            residual.conv_1.weights = Winograd::transform_f(
+                                          residual.conv_1.weights,
+                                          channels, channels);
+        }
+        if (residual.conv_2.kernel_size == 3) { 
+            residual.conv_2.weights = Winograd::transform_f(
+                                          residual.conv_2.weights,
+                                          channels, channels);
+        }
+    }
+
+    if (nn_weight->p_ex_conv.kernel_size == 3) {
+        auto p_channels = nn_weight->policy_extract_channels;
+        nn_weight->p_ex_conv.weights = Winograd::transform_f(
+                                           nn_weight->p_ex_conv.weights,
+                                           p_channels, channels);
+    }
+
+    if (nn_weight->p_map.kernel_size == 3) {
+        auto p_channels = nn_weight->policy_extract_channels;
+        nn_weight->p_map.weights = Winograd::transform_f(
+                                       nn_weight->p_map.weights,
+                                       POLICYMAP, p_channels);
+    }
+
+    if (nn_weight->v_ex_conv.kernel_size == 3) {
+        auto v_channels = nn_weight->value_extract_channels;
+        nn_weight->p_map.weights = Winograd::transform_f(
+                                       nn_weight->v_ex_conv.weights,
+                                       v_channels, channels);
+    }
+
 }
 
+void Model::dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &timer) {
+    Utils::auto_printf("Loading Information :\n");
+    Utils::auto_printf("Time :\n");
+    Utils::auto_printf("  initial proccess : %.4f second(s)\n", timer.get_record_time(1));
+    Utils::auto_printf("  input layer proccess : %.4f second(s)\n", timer.get_record_time(2) - timer.get_record_time(1));
+    Utils::auto_printf("  tower layers proccess: %.4f second(s)\n", timer.get_record_time(3) - timer.get_record_time(2));
+    Utils::auto_printf("  output layers proccess: %.4f second(s)\n", timer.get_record_time(4) - timer.get_record_time(3));
+    Utils::auto_printf("Channels - Blocks : ( %d - %d )\n", nn_weight->residual_channels, nn_weight->residual_blocks);
+    Utils::auto_printf("Policy Channels : %d\n", nn_weight->policy_extract_channels);
+    Utils::auto_printf("Value Channels : %d\n", nn_weight->value_extract_channels);
+}
 
 std::vector<float> get_weights_from_file(std::istream &weights_file) {
     auto weights = std::vector<float>{};
     auto line = std::string{};
-
+#ifdef USE_FAST_PARSER
+    auto w_str = std::string{};
+#endif
     if (std::getline(weights_file, line)) {
         // On MacOS, if the numeric is too small, stringstream
-        // can not parse the number to float but double is ok.
+        // can not parse the number to float, but double is ok.
         double weight;
         std::stringstream line_buffer(line);
+
+#ifdef USE_FAST_PARSER
+        while(line_buffer >> w_str) {
+            bool isok = fast_double_parser::parse_number(w_str.c_str(), &weight);
+            if (!isok) {
+                throw "There is non-numeric in parameters";
+            }
+            weights.emplace_back(weight);
+        }
+#else 
         while(line_buffer >> weight) {
             weights.emplace_back(weight);
         }
+#endif
     }
     return weights;
 }

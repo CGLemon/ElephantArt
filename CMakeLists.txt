@@ -5,6 +5,11 @@ if (USE_AVX)
     set(CMAKE_CXX_FLAGS "-mavx -mfma ${CMAKE_CXX_FLAGS}")
 endif()
 
+if(USE_FAST_PARSER)
+    add_definitions(-DUSE_FAST_PARSER)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/fast_double_parser/include)
+endif()
+
 if(GPU_BACKEND STREQUAL "CUDA")
     message(STATUS "Using CUDA backend.")
     add_definitions(-DUSE_CUDA)

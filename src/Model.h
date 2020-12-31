@@ -26,6 +26,7 @@
 #include <sstream>
 
 #include "Position.h"
+#include "Utils.h"
 
 static constexpr auto INPUT_STATUS = 4;
 static constexpr auto INPUT_MOVES = 1;
@@ -93,6 +94,7 @@ struct Model {
             bool apply_se;
         };
         bool loaded{false};
+        bool winograd{false};
         int input_channels{0};
         int residual_blocks{0};
         int residual_channels{0};
@@ -141,7 +143,9 @@ struct Model {
                              std::shared_ptr<NNWeights> &nn_weight);
     
     static void process_weights(std::shared_ptr<NNWeights> &nn_weight);
-    
+
+    static void dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &timer);
+
     static void fill_weights(std::istream &weights_file,
                              std::shared_ptr<NNWeights> &nn_weight);
     

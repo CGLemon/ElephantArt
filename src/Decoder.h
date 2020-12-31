@@ -32,6 +32,7 @@ class Decoder {
 public:
     static void initialize();
     static Move maps2move(const int idx);
+    static bool maps_valid(const int idx);
     static int move2maps(const Move &move);
 
     static std::string get_mapstring();

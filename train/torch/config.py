@@ -66,7 +66,3 @@ def gather_networkconfig(filename):
     d = json_loader(filename)
     n = NN_parser(d)
     return n
-
-
-
-    

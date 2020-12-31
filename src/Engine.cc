@@ -20,6 +20,7 @@
 #include "config.h"
 #include "Model.h"
 #include "Decoder.h"
+#include "Utils.h"
 
 #include <iomanip>
 #include <sstream>
@@ -43,9 +44,17 @@ void Engine::initialize() {
     }
     
     if (m_network == nullptr) {
-        m_network = std::make_shared<Network>();
+        m_network = std::make_unique<Network>();
         m_network->initialize(option<int>("playouts"),
                               option<std::string>("weights_file"));
+    }
+
+    while (m_search_group.size() < games) {
+        m_search_group.emplace_back(std::make_shared<Search>(*get_position(m_search_group.size()-1), *m_network));
+    }
+
+    while (m_search_group.size() > games) {
+        m_search_group.pop_back();
     }
 }
 
@@ -61,6 +70,10 @@ std::shared_ptr<Position> Engine::get_position(const int g) const {
     return m_positions[adj_g];
 }
 
+std::shared_ptr<Search> Engine::get_search(const int g) const {
+    const auto adj_g = adj_position_ref(g);
+    return m_search_group[adj_g];
+}
 
 void Engine::reset_game(const int g) {
     assert(g >= 0 || g < option<int>("num_games"));
@@ -144,9 +157,11 @@ Engine::Response Engine::raw_nn(const int symmetry, const int g) {
         rep << "Illegal symmetry";
         return rep.str();
     }
-    
+
+    auto timer = Utils::Timer{};
     auto &p = *get_position(g);
     auto nnout = m_network->get_output(&p, Network::DIRECT, symmetry);
+    auto microsecond = timer.get_duration_microseconds();
     for (int p = 0; p < POLICYMAP; ++p) {
         rep << "map probabilities : " << p+1 << std::endl;
         for (int y = 0; y < Board::HEIGHT; ++y) {
@@ -168,7 +183,11 @@ Engine::Response Engine::raw_nn(const int symmetry, const int g) {
     rep << std::endl << std::endl;
     rep << "stm winrate : " << std::endl;
     rep << nnout.winrate_misc[3];
-    rep << std::endl;
+    rep << std::endl << std::endl;
+
+    rep << "run time ";
+    rep << microsecond;
+    rep << " microsecond(s)" << std::endl;
 
     return rep.str();
 }

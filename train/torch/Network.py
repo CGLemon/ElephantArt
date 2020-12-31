@@ -81,7 +81,6 @@ class ConvBlock(nn.Module):
 
         if collector != None:
             collector.append(self.conv.weight)
-            # collector.append(self.conv.bias)
             collector.append(torch.zeros(out_channels))
             collector.append(self.bn.running_mean)
             collector.append(self.bn.running_var)
@@ -146,9 +145,6 @@ class ResBlock(nn.Module):
             gammas, betas = torch.split(seprocess, self.channels, dim=1)
             gammas = torch.reshape(gammas, (b, c, 1, 1));
             betas = torch.reshape(betas, (b, c, 1, 1));
-
-            print(out.size())
-            print(seprocess.size())
             out = torch.sigmoid(gammas) * out + betas
             
         out += identity

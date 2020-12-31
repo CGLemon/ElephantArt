@@ -21,6 +21,7 @@
 
 #include "Position.h"
 #include "Network.h"
+#include "Search.h"
 
 #include <memory>
 #include <string>
@@ -55,8 +56,10 @@ private:
     int adj_position_ref(const int g) const;
 
     std::shared_ptr<Position> get_position(const int g) const;
+    std::shared_ptr<Search> get_search(const int g) const;
 
-    std::shared_ptr<Network> m_network{nullptr};
+    std::unique_ptr<Network> m_network{nullptr};
+    std::vector<std::shared_ptr<Search>> m_search_group;
     std::vector<std::shared_ptr<Position>> m_positions;
 
 };

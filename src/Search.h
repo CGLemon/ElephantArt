@@ -34,14 +34,21 @@ private:
 
 };
 
+struct SearchInfo {
+    Move move;
+};
+
 class Search {
 public:
     static constexpr auto MAX_PLAYOUTS = 150000;
     Search(Position &position, Network &network);
     ~Search();
 
+    SearchInfo nn_direct();
+    SearchInfo random_move();
+
 private:
-    
+    Position m_rootposition;
     Position & m_position;
     Network & m_network;
 

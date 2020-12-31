@@ -178,8 +178,12 @@ void strip_stream(std::ostream &out, const size_t times) {
     }
 }
 
-CommandParser::CommandParser(std::string input) {
-    parser(std::move(input));
+CommandParser::CommandParser(std::string &input) {
+    parser(std::forward<std::string>(input), 1024 * 1024 * 1024);
+}
+
+CommandParser::CommandParser(std::string &input, const size_t max) {
+    parser(std::forward<std::string>(input), max);
 }
 
 CommandParser::CommandParser(int argc, char** argv) {
@@ -187,14 +191,14 @@ CommandParser::CommandParser(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
         out << argv[i] << " ";
     }
-    parser(out.str());
+    parser(std::move(out.str()), 1024 * 1024 * 1024);
 }
 
 bool CommandParser::valid() const {
     return m_count != 0;
 }
 
-void CommandParser::parser(std::string &&input) {
+void CommandParser::parser(std::string &input, const size_t max) {
 
     m_count = 0;
     auto stream = std::istringstream{input};
@@ -202,6 +206,19 @@ void CommandParser::parser(std::string &&input) {
     while (stream >> in) {
         m_commands.emplace_back(std::make_shared<std::string>(in));
         m_count++;
+        if (m_count >= max) break;
+    }
+}
+
+void CommandParser::parser(std::string &&input, const size_t max) {
+
+    m_count = 0;
+    auto stream = std::istringstream{input};
+    auto in = std::string{};
+    while (stream >> in) {
+        m_commands.emplace_back(std::make_shared<std::string>(in));
+        m_count++;
+        if (m_count >= max) break;
     }
 }
 

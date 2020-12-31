@@ -76,6 +76,7 @@ void init_options_map() {
     options_map["cache_moves"] << Utils::Option::setoption(20);
     options_map["weights_file"] << Utils::Option::setoption("NO_WEIGHT_FILE");
     options_map["float_precision"] << Utils::Option::setoption(5);
+    options_map["winograd"] << Utils::Option::setoption(false);
     
     options_map["playouts"] << Utils::Option::setoption(1600);
     options_map["fpu_root_reduction"] << Utils::Option::setoption(0.25f);

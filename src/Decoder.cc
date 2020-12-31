@@ -37,17 +37,17 @@ void Decoder::initialize() {
         return true;
     };
 
-    const auto fill_maps = [&](const int off_set,
+    const auto fill_maps = [&](const int m_offset,
                                const Types::Vertices from_vtx,
                                const int to_x,
                                const int to_y) -> void {
-        auto& move = policymaps_moves[off_set];
+        auto& move = policymaps_moves[m_offset];
         if (in_boundary(to_x, to_y)) {
             const auto to_vtx = static_cast<Types::Vertices>(Board::get_vertex(to_x, to_y));
             move = Move(from_vtx, to_vtx);
             assert(move.is_ok());
         } else {
-            policymaps_valid[off_set] = false;
+            policymaps_valid[m_offset] = false;
             assert(!move.valid());
         }
     };
@@ -66,7 +66,7 @@ void Decoder::initialize() {
             }
             
             const auto idx = Board::get_index(x, y);
-            const auto off_set = idx + p * Board::INTERSECTIONS;
+            const auto m_offset = idx + p * Board::INTERSECTIONS;
 
             const int ms[18] = {
                 1, 2, 3, 4, 5, 6, 7, 8, 9,
@@ -74,7 +74,7 @@ void Decoder::initialize() {
             };
             const auto to_x = x;
             const auto to_y = y + ms[p];
-            fill_maps(off_set, v, to_x, to_y);
+            fill_maps(m_offset, v, to_x, to_y);
         }
     }
 
@@ -88,7 +88,7 @@ void Decoder::initialize() {
                 continue;
             }
             const auto idx = Board::get_index(x, y);
-            const auto off_set = idx + (p + 18) * Board::INTERSECTIONS;
+            const auto m_offset = idx + (p + 18) * Board::INTERSECTIONS;
 
             const int ms[16] = {
                 1, 2, 3, 4, 5, 6, 7, 8,
@@ -96,7 +96,7 @@ void Decoder::initialize() {
             };
             const auto to_x = x + ms[p];
             const auto to_y = y;
-            fill_maps(off_set, v, to_x, to_y);
+            fill_maps(m_offset, v, to_x, to_y);
         }
     }
     
@@ -110,7 +110,7 @@ void Decoder::initialize() {
                 continue;
             }
             const auto idx = Board::get_index(x, y);
-            const auto off_set = idx + (p + 34) * Board::INTERSECTIONS;
+            const auto m_offset = idx + (p + 34) * Board::INTERSECTIONS;
 
             const int ms[8][2] = {
                 {2,1}, {2,-1}, {-2,1}, {-2,-1},
@@ -118,7 +118,7 @@ void Decoder::initialize() {
             };
             const auto to_x = x + ms[p][0];
             const auto to_y = y + ms[p][1];
-            fill_maps(off_set, v, to_x, to_y);
+            fill_maps(m_offset, v, to_x, to_y);
         }
     }
     
@@ -132,14 +132,14 @@ void Decoder::initialize() {
                 continue;
             }
             const auto idx = Board::get_index(x, y);
-            const auto off_set = idx + (p + 42) * Board::INTERSECTIONS;
+            const auto m_offset = idx + (p + 42) * Board::INTERSECTIONS;
 
             const int ms[4][2] = {
                 {1,1}, {1,-1}, {-1,1}, {-1,-1}
             };
             const auto to_x = x + ms[p][0];
             const auto to_y = y + ms[p][1];
-            fill_maps(off_set, v, to_x, to_y);
+            fill_maps(m_offset, v, to_x, to_y);
         }
     }
     
@@ -153,16 +153,17 @@ void Decoder::initialize() {
                 continue;
             }
             const auto idx = Board::get_index(x, y);
-            const auto off_set = idx + (p + 46) * Board::INTERSECTIONS;
+            const auto m_offset = idx + (p + 46) * Board::INTERSECTIONS;
 
             const int ms[4][2] = {
                 {2,2}, {2,-2}, {-2,2}, {-2,-2}
             };
             const auto to_x = x + ms[p][0];
             const auto to_y = y + ms[p][1];
-            fill_maps(off_set, v, to_x, to_y);
+            fill_maps(m_offset, v, to_x, to_y);
         }
     }
+
     for (int idx = 0; idx < POLICYMAP * Board::INTERSECTIONS; ++idx) {
         const auto &move = policymaps_moves[idx];
         if (move.valid()) {
@@ -174,8 +175,11 @@ void Decoder::initialize() {
 
 Move Decoder::maps2move(const int idx) {
     assert(idx >= 0 && idx < POLICYMAP * Board::INTERSECTIONS);
-    assert(policymaps_valid[idx]);
     return policymaps_moves[idx];
+}
+
+bool Decoder::maps_valid(const int idx) {
+    return policymaps_valid[idx];
 }
 
 int Decoder::move2maps(const Move &move) {

@@ -167,6 +167,11 @@ void Blas::fixed_gemm(const int M, const int N, const int K,
 
 #endif
 #ifdef USE_EIGEN
+    (void) alpha;
+    (void) beta;
+    (void) lda;
+    (void) ldb;
+    (void) ldc;
     auto C_mat = EigenMatrixMap<float>(C, N, M);
     C_mat.noalias() = 
         ConstEigenMatrixMap<float>(B, N, K) *
@@ -203,7 +208,11 @@ void Blas::winograd_gemm(const int set_U, const int set_V, const int set_M,
 
 #endif
 #ifdef USE_EIGEN
-
+    (void) alpha;
+    (void) beta;
+    (void) lda;
+    (void) ldb;
+    (void) ldc;
     auto C_mat = EigenMatrixMap<float>(C + set_M, N, M);
     C_mat.noalias() =
         ConstEigenMatrixMap<float>(B + set_V, N, K) *
@@ -248,6 +257,8 @@ void Blas::dense(const int input_size,
 
 #endif
 #ifdef USE_EIGEN
+    (void) alpha;
+    (void) beta;
     if (batch_size == 1) {
         EigenVectorMap<float> y(outputs, output_size);
         y.noalias() =
