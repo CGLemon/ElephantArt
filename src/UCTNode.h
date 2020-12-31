@@ -34,6 +34,9 @@ public:
     UCTNode(std::shared_ptr<UCTNodeData> data);
     ~UCTNode();
 
+    UCTNodeEvals prepare_root_node(Network &network,
+                                   Position &position);
+
     bool expend_children(Network &network,
                          Position &position,
                          const float min_psa_ratio,
@@ -45,22 +48,14 @@ public:
     int get_visits() const;
     int get_color() const;
 
-    float get_nn_stmeval(const Types::Color color) const;
-    float get_nn_winloss(const Types::Color color) const;
-    float get_nn_draw() const;
-    float get_accumulated_evals() const;
-    float get_accumulated_wls() const;
-    float get_accumulated_draws() const;
-
-    float get_stmeval(const Types::Color color,
-                      const bool use_virtual_loss = true) const;
-    float get_winloss(const Types::Color color,
-                      const bool use_virtual_loss = true) const;
-    float get_draw() const;
-
     float get_eval_variance(const float default_var, const int visits) const;
     float get_eval_lcb(const Types::Color color) const;
+    std::vector<std::pair<float, int>> get_lcb_list(const Types::Color color);
+    std::vector<std::pair<float, int>> get_winrate_list(const Types::Color color);
+    int get_best_move();
+    int randomize_first_proportionally(float random_temp);
 
+    UCTNode *get_child(const int maps);
     UCTNode *get();
 
     UCTNode *uct_select_child(const Types::Color color,
@@ -83,11 +78,6 @@ public:
     bool is_valid() const;
 
 private:
-    float m_policy;
-    int m_maps;
-    UCTNode *m_parent;
-    std::shared_ptr<SearchParameters> m_parameters;
-
     float m_red_stmeval{0.0f};
     float m_red_winloss{0.0f};
     float m_draw{0.0f};
@@ -101,16 +91,37 @@ private:
     std::atomic<float> m_accumulated_red_stmevals{0.0f};
     std::atomic<float> m_accumulated_red_wls{0.0f};
     std::atomic<float> m_accumulated_draws{0.0f};
+
+    std::shared_ptr<UCTNodeData> m_data{nullptr};
+
+    std::vector<std::shared_ptr<UCTNodePointer>> m_children;
+    std::shared_ptr<SearchParameters> parameters() const;
     
     void link_nodelist(std::vector<Network::PolicyMapsPair> &nodelist, float min_psa_ratio);
     void link_nn_output(const Network::Netresult &raw_netlist,
                         const Types::Color color);
-
-    std::vector<std::shared_ptr<UCTNodePointer>> m_children;
-    std::shared_ptr<SearchParameters> parameters() const;
+    void inflate_all_children();
+    void dirichlet_noise(const float epsilon, const float alpha);
+    void set_policy(const float p);
 
     int get_threads() const;
     int get_virtual_loss() const;
+
+    float get_nn_stmeval(const Types::Color color) const;
+    float get_nn_winloss(const Types::Color color) const;
+    float get_nn_meaneval(const Types::Color color) const;
+    float get_nn_draw() const;
+    float get_accumulated_evals() const;
+    float get_accumulated_wls() const;
+    float get_accumulated_draws() const;
+
+    float get_stmeval(const Types::Color color,
+                      const bool use_virtual_loss) const;
+    float get_winloss(const Types::Color color,
+                      const bool use_virtual_loss) const;
+    float get_meaneval(const Types::Color color,
+                       const bool use_virtual_loss = true) const;
+    float get_draw() const;
 
     enum Status : std::uint8_t {
         INVALID,  // INVALID means that the node is illegal.

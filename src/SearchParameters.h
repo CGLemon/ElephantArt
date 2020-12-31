@@ -18,13 +18,13 @@ public:
 
     float fpu_root_reduction;
     float fpu_reduction;
-
     float cpuct_init;
     float cpuct_root_init;
     float cpuct_base;
     float cpuct_root_base;
     float draw_factor;
     float draw_root_factor;
+    float dirichlet_epsilon;
 };
 
 #endif

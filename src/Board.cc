@@ -638,7 +638,6 @@ void Board::pre_initialize() {
 }
 
 void Board::piece_stream(std::ostream &out, Types::Piece p) const {
-
     p == Types::R_PAWN      ? out << "P" : p == Types::B_PAWN      ? out << "p" :
     p == Types::R_HORSE     ? out << "N" : p == Types::B_HORSE     ? out << "n" :
     p == Types::R_CANNON    ? out << "C" : p == Types::B_CANNON    ? out << "c" :

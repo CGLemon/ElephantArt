@@ -161,12 +161,12 @@ Engine::Response Engine::raw_nn(const int symmetry, const int g) {
         }
         rep << std::endl;
     }
-    rep << "wdl probabilities : " << std::endl;
+    rep << "wdl probabilities ( win / draw / loss ) : " << std::endl;
     for (int v = 0; v < 3; ++v) {
         rep << nnout.winrate_misc[v] << " ";
     }
     rep << std::endl << std::endl;
-    rep << "stm winrate: " << std::endl;
+    rep << "stm winrate : " << std::endl;
     rep << nnout.winrate_misc[3];
     rep << std::endl;
 

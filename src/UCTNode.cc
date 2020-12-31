@@ -21,10 +21,7 @@
 
 UCTNode::UCTNode(std::shared_ptr<UCTNodeData> data) {
     assert(data->parameters != nullptr);
-    m_parameters = data->parameters;
-    m_policy = data->policy;
-    m_maps = data->maps;
-    m_parent = data->parent;
+    m_data = data;
 }
 
 UCTNode::~UCTNode() {
@@ -124,11 +121,11 @@ UCTNodeEvals UCTNode::get_node_evals() const {
 }
 
 int UCTNode::get_maps() const {
-    return m_maps;
+    return m_data->maps;
 }
 
 float UCTNode::get_policy() const {
-    return m_policy;
+    return m_data->policy;
 }
 
 int UCTNode::get_visits() const {
@@ -147,6 +144,10 @@ float UCTNode::get_nn_winloss(const Types::Color color) const {
         return m_red_winloss;
     }
     return 1.0f - m_red_winloss;
+}
+
+float UCTNode::get_nn_meaneval(const Types::Color color) const {
+    return (get_nn_stmeval(color) + get_nn_winloss(color)) * 0.5f;
 }
 
 float UCTNode::get_nn_draw() const {
@@ -186,7 +187,7 @@ float UCTNode::get_eval_lcb(const Types::Color color) const {
         return get_policy() - 1e6f;
     }
 
-    const auto mean = (get_stmeval(color, false) + get_winloss(color, false)) / 2.0f;
+    const auto mean = get_meaneval(color, false);
     const auto stddev = std::sqrt(get_eval_variance(1.0f, visits) / float(visits));
     const auto z = Utils::cached_t_quantile(visits - 1);
 
@@ -249,11 +250,81 @@ float UCTNode::get_winloss(const Types::Color color,
     return 1.0f - wl;
 }
 
+float UCTNode::get_meaneval(const Types::Color color,
+                            const bool use_virtual_loss) const {
+    return (get_winloss(color, use_virtual_loss) + get_stmeval(color, use_virtual_loss)) * 0.5f;
+}
+
 float UCTNode::get_draw() const {
     auto visits = get_visits();
     auto accumulated_draws = get_accumulated_draws();
     auto draw = accumulated_draws / static_cast<float>(visits);
     return draw;
+}
+
+UCTNode *UCTNode::get_child(const int maps) {
+    wait_expanded();
+    assert(has_children());
+
+    std::shared_ptr<UCTNodePointer> res = nullptr;
+
+    for (const auto &child : m_children) { 
+        const int child_maps = child->data()->maps;
+        if (maps == child_maps) {
+            res = child;
+            break;
+        }
+    }
+
+    assert(res != nullptr);
+    res->inflate();
+    return res->get();
+}
+
+std::vector<std::pair<float, int>> UCTNode::get_lcb_list(const Types::Color color) {
+
+    wait_expanded();
+    assert(has_children());
+    assert(color == m_color);
+  
+    auto list = std::vector<std::pair<float, int>>{};
+    inflate_all_children();
+
+    for (const auto & child : m_children) {
+        const auto node = child->get();
+        const auto visits = node->get_visits();
+        const auto maps = node->get_maps();
+        const auto lcb = node->get_eval_lcb(color);
+        if (visits > 0) {
+            list.emplace_back(lcb, maps);
+        }
+    }
+
+    std::stable_sort(rbegin(list), rend(list));
+    return list;
+}
+
+std::vector<std::pair<float, int>> UCTNode::get_winrate_list(const Types::Color color) {
+
+    wait_expanded();
+    assert(has_children());
+    assert(color == m_color);
+
+    auto list = std::vector<std::pair<float, int>>{};
+    inflate_all_children();
+
+    for (const auto &child : m_children) {
+        const auto node = child->get();
+        const auto visits = node->get_visits();
+        const auto maps = node->get_maps();
+        const auto winrate = node->get_meaneval(color, false);
+        if (visits > 0) {
+            list.emplace_back(winrate, maps);
+        }
+    }
+
+    std::stable_sort(rbegin(list), rend(list));
+    return list;
 }
 
 UCTNode *UCTNode::uct_select_child(const Types::Color color,
@@ -285,7 +356,7 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
     const float cpuct = cpuct_init + std::log((float(parentvisits) + cpuct_base + 1) / cpuct_base);
     const float numerator = std::sqrt(float(parentvisits));
     const float fpu_reduction = fpu_reduction_factor * std::sqrt(total_visited_policy);
-    const float fpu_value = float(get_nn_stmeval(color)) - fpu_reduction;
+    const float fpu_value = get_nn_meaneval(color) - fpu_reduction;
 
     std::shared_ptr<UCTNodePointer> best_node = nullptr;
     float best_value = std::numeric_limits<float>::lowest();
@@ -306,10 +377,9 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
             if (node->is_expending()) {
                 q_value = -1.0f - fpu_reduction;
             } else if (node->get_visits() > 0) {
-                const float stmeval = node->get_stmeval(color);
-                const float winloss = node->get_winloss(color);
+                const float eval = node->get_meaneval(color);
                 const float draw_value = node->get_draw() * draw_factor;
-                q_value = (stmeval + winloss) / 2.0f + draw_value;
+                q_value = eval + draw_value;
             }
         }
 
@@ -335,12 +405,11 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
 
 void UCTNode::update(UCTNodeEvals &evals) {
 
-    const float eval = (evals.red_stmeval + evals.red_winloss) / 2.0f;
-
+    const float eval = 0.5f * (evals.red_stmeval + evals.red_winloss);
     const float old_stmeval = m_accumulated_red_stmevals.load();
     const float old_winloss = m_accumulated_red_wls.load();
     const float old_visits = m_visits.load();
-    const float old_eval = (old_stmeval + old_winloss) / old_visits;
+    const float old_eval = 0.5f * (old_stmeval + old_winloss) / old_visits;
     const float old_delta = old_visits > 0 ? eval - old_eval : 0.0f;
     const float new_delta = eval - (old_eval + eval) / (old_visits + 1);
 
@@ -353,6 +422,120 @@ void UCTNode::update(UCTNodeEvals &evals) {
     Utils::atomic_add(m_accumulated_red_wls, evals.red_winloss);
     Utils::atomic_add(m_accumulated_draws, evals.draw);
 }
+
+void UCTNode::dirichlet_noise(const float epsilon, const float alpha) {
+
+    auto child_cnt = m_children.size();
+    auto dirichlet_buffer = std::vector<float>{};
+    std::gamma_distribution<float> gamma(alpha, 1.0f);
+    for (auto i = size_t{0}; i < child_cnt; i++) {
+        float gen = gamma(Random<random_t::XoroShiro128Plus>::get_Rng());
+        dirichlet_buffer.emplace_back(gen);
+    }
+
+    auto sample_sum =
+        std::accumulate(std::begin(dirichlet_buffer), std::end(dirichlet_buffer), 0.0f);
+
+    // If the noise vector sums to 0 or a denormal, then don't try to
+    // normalize.
+    if (sample_sum < std::numeric_limits<float>::min()) {
+        return;
+    }
+
+    for (auto &v : dirichlet_buffer) {
+        v /= sample_sum;
+    }
+
+    child_cnt = 0;
+    // Be Sure all node are expended.
+    inflate_all_children();
+    for (const auto &child : m_children) {
+        auto node = child->get();
+        auto policy = node->get_policy();
+        auto eta_a = dirichlet_buffer[child_cnt++];
+        policy = policy * (1 - epsilon) + epsilon * eta_a;
+        node->set_policy(policy);
+    }
+}
+
+UCTNodeEvals UCTNode::prepare_root_node(Network &network,
+                                        Position &position) {
+
+    const auto epsilon = parameters()->dirichlet_epsilon;
+    const auto noise = parameters()->dirichlet_noise;
+    const auto is_root = true;
+    const auto success = expend_children(network, position, 0.0f, is_root);
+    const auto had_childen = has_children();
+    assert(success && had_childen);
+
+    if (success && had_childen) {
+        inflate_all_children();
+        const auto legal_move = m_children.size();
+        if (noise) {
+            const auto alpha = 0.03f * 361.0f / static_cast<float>(legal_move);
+            dirichlet_noise(epsilon, alpha);
+        }
+    }
+
+    return get_node_evals();
+}
+
+int UCTNode::get_best_move() {
+
+    wait_expanded();
+    assert(has_children());
+
+    auto lcblist = get_lcb_list(m_color);
+    float best_value = std::numeric_limits<float>::lowest();
+    int best_move = -1;
+
+    for (auto &lcb : lcblist) {
+        const auto lcb_value = lcb.first;
+        const auto maps = lcb.second;
+        if (lcb_value > best_value) {
+            best_value = lcb_value;
+            best_move = maps;
+        }
+    }
+
+    if (lcblist.empty() && has_children()) {
+        best_move = m_children[0]->get()->get_maps();
+    }
+
+    assert(best_move != -1);
+    return best_move;
+}
+
+int UCTNode::randomize_first_proportionally(float random_temp) {
+
+    int select_move = -1;
+    auto accum = double{0.0};
+    auto accum_vector = std::vector<std::pair<double, int>>{};
+
+    for (const auto &child : m_children) {
+        auto node = child->get();
+        const auto visits = node->get_visits();
+        const auto maps = node->get_maps();
+        if (visits > parameters()->random_min_visits) {
+           accum += std::pow((double)visits, (1.0 / random_temp));
+           accum_vector.emplace_back(std::pair<double, int>(accum, maps));
+        }
+    }
+
+    auto distribution = std::uniform_real_distribution<double>{0.0, accum};
+    auto pick = distribution(Random<random_t::XoroShiro128Plus>::get_Rng());
+    auto size = accum_vector.size();
+
+    for (auto idx = size_t{0}; idx < size; ++idx) {
+        if (pick < accum_vector[idx].first) {
+            select_move = accum_vector[idx].second;
+            break;
+        }
+    }
+
+    return select_move;
+}
+
 
 void UCTNode::increment_threads() {
     m_loading_threads.fetch_add(1);
@@ -403,7 +586,17 @@ bool UCTNode::is_valid() const {
 }
 
 std::shared_ptr<SearchParameters> UCTNode::parameters() const {
-    return m_parameters;
+    return m_data->parameters;
+}
+
+void UCTNode::set_policy(const float p) {
+    m_data->policy = p;
+}
+
+void UCTNode::inflate_all_children() {
+    for (const auto &child : m_children) {
+        child->inflate();
+    }
 }
 
 bool UCTNode::acquire_expanding() {

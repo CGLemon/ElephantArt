@@ -90,6 +90,8 @@ void init_options_map() {
     options_map["random_min_visits"] << Utils::Option::setoption(1);
     
     options_map["dirichlet_noise"] << Utils::Option::setoption(false);
+    options_map["dirichlet_epsilon"] << Utils::Option::setoption(0.25f);
+
     options_map["ponder"] << Utils::Option::setoption(false);
     options_map["collect"] << Utils::Option::setoption(false);
 

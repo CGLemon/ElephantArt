@@ -356,11 +356,9 @@ Option Option::setoption<const char *>(const char *val, int /*max*/, int /*min*/
 
 template<>
 Option Option::setoption<bool>(bool val, int /*max*/, int /*min*/) {
-
     if (val) {
-      return Option{type::Bool, "true", 0, 0};
+        return Option{type::Bool, "true", 0, 0};
     }
-
     return Option{type::Bool, "false", 0, 0};
 }
 
@@ -428,10 +426,9 @@ void Option::set<float>(float value) {
 }
 
 void Option::option_handle() const {
-
     if (m_max < m_min) {
         auto out = std::ostringstream{};
-        out << " In option :";
+        out << " Option Error :";
         out << " Max : " << m_max << " |";
         out << " Min : " << m_min << " |";
         out << " Minimal is bigger than maximal.";
@@ -441,7 +438,7 @@ void Option::option_handle() const {
 
     if (m_type == type::Invalid) {
         auto out = std::ostringstream{};
-        out << " In option :";
+        out << " Option Error :";
         out << " Please initialize first.";
         throw std::runtime_error(out.str());
     }
