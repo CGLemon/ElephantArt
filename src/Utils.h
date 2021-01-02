@@ -121,6 +121,7 @@ private:
         Bool,
         Integer,
         Float,
+        Char
     };
 
     type m_type{type::Invalid};
@@ -144,6 +145,11 @@ private:
     operator float() const {
         assert(m_type == type::Float);
         return std::stof(m_value);
+    }
+
+    operator char() const {
+        assert(m_type == type::Char);
+        return char(m_value[0]);
     }
 
     operator std::string() const {
@@ -193,7 +199,6 @@ void Option::adjust() {
         set<T>(lower);
     }
 }
-
 
 class Timer {
 public:

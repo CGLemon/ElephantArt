@@ -36,6 +36,7 @@ OPTIONS_EXPASSION(std::string)
 OPTIONS_EXPASSION(bool)
 OPTIONS_EXPASSION(int)
 OPTIONS_EXPASSION(float)
+OPTIONS_EXPASSION(char)
 
 #undef OPTIONS_EXPASSION
 
@@ -54,11 +55,11 @@ OPTIONS_SET_EXPASSION(std::string)
 OPTIONS_SET_EXPASSION(bool)
 OPTIONS_SET_EXPASSION(int)
 OPTIONS_SET_EXPASSION(float)
+OPTIONS_SET_EXPASSION(char)
 
 #undef OPTIONS_SET_EXPASSION
 
 void init_options_map() {
-
     options_map["name"] << Utils::Option::setoption(PROGRAM);
     options_map["version"] << Utils::Option::setoption(VERSION);
 
@@ -97,6 +98,22 @@ void init_options_map() {
     options_map["collect"] << Utils::Option::setoption(false);
 
     options_map["waittime"] << Utils::Option::setoption(10);
+
+    options_map["black_pawn_en"] << Utils::Option::setoption('p');
+    options_map["black_horse_en"] << Utils::Option::setoption('n');
+    options_map["black_cannon_en"] << Utils::Option::setoption('c');
+    options_map["black_rook_en"] << Utils::Option::setoption('r');
+    options_map["black_elephant_en"] << Utils::Option::setoption('b');
+    options_map["black_advisor_en"] << Utils::Option::setoption('a');
+    options_map["black_king_en"] << Utils::Option::setoption('k');
+
+    options_map["red_pawn_en"] << Utils::Option::setoption('P');
+    options_map["red_horse_en"] << Utils::Option::setoption('N');
+    options_map["red_cannon_en"] << Utils::Option::setoption('C');
+    options_map["red_rook_en"] << Utils::Option::setoption('R');
+    options_map["red_elephant_en"] << Utils::Option::setoption('B');
+    options_map["red_advisor_en"] << Utils::Option::setoption('A');
+    options_map["red_king_en"] << Utils::Option::setoption('K');
 }
 
 void init_basic_parameters() {
@@ -116,6 +133,7 @@ ArgsParser::ArgsParser(int argc, char** argv) {
     };
 
     init_options_map();
+
     const auto name = parser.remove_command(0);
 
     if (const auto res = parser.find({"--help", "-h"})) {

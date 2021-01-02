@@ -80,7 +80,6 @@ public:
 
     ENABLE_BASE_OPERATORS_ON(Piece)
 
-
     enum Vertices : int {
                                                                             // invalid
     VTX_A0 = 0, VTX_B0, VTX_C0, VTX_D0, VTX_E0, VTX_F0, VTX_G0, VTX_H0, VTX_I0, VTX_J0,
@@ -111,8 +110,9 @@ public:
     enum Rank : int {
         RANK_0 = 0, RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_9, RANK_NB
     };
-    ENABLE_INCR_OPERATORS_ON(File);
-    ENABLE_INCR_OPERATORS_ON(Rank);
+
+    ENABLE_INCR_OPERATORS_ON(File)
+    ENABLE_INCR_OPERATORS_ON(Rank)
 };
 
 #undef ENABLE_BASE_OPERATORS_ON

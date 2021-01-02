@@ -19,18 +19,17 @@
 #ifndef CONFIG_H_INCLUDE
 #define CONFIG_H_INCLUDE
 
+#include <string>
+#include <unordered_map>
+
 #define MARCRO_WIDTH 9
 #define MARCRO_HEIGHT 10
 #define MARCRO_SHIFT 10
-
-#include <string>
-#include <unordered_map>
 
 const std::string PROGRAM = "Saya";
 
 const std::string VERSION = "pre-alpha"; 
 
-extern bool cfg_quiet;
 
 template<typename T>
 T option(std::string name);

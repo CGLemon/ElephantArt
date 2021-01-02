@@ -1,4 +1,7 @@
 #include <numeric>
+#include <algorithm>
+#include <sstream>
+#include <iomanip>
 
 #include "Board.h"
 #include "Search.h"
@@ -6,6 +9,7 @@
 #include "Random.h"
 #include "Model.h"
 #include "Decoder.h"
+#include "config.h"
 
 ThreadPool SearchPool;
 
@@ -22,23 +26,47 @@ Search::~Search() {
 
 SearchInfo Search::nn_direct() {
     m_rootposition = m_position;
+    auto analysis = std::vector<std::pair<float, int>>();
+    auto acc = 0.0f;
     auto eval = m_network.get_output(&m_rootposition, Network::Ensemble::NONE);
-    int best_maps = -1;
-    float best_policy = std::numeric_limits<float>::lowest();
-
     for (int m = 0; m < POLICYMAP * Board::INTERSECTIONS; ++m) {
-        if (eval.policy[m] > best_policy && Decoder::maps_valid(m)) {
-            if (!m_rootposition.is_legal(Decoder::maps2move(m))) {
-                continue;
-            }
-
-            best_policy = eval.policy[m];
-            best_maps = m;
+        if (!Decoder::maps_valid(m)) {
+            continue;
         }
+
+        if (!m_rootposition.is_legal(Decoder::maps2move(m))) {
+            continue;
+        }
+        analysis.emplace_back(eval.policy[m], m);
+        acc += eval.policy[m];
     }
 
+    std::stable_sort(std::rbegin(analysis), std::rend(analysis));
+
     auto info = SearchInfo{};
-    info.move = Decoder::maps2move(best_maps);
+    info.move = Decoder::maps2move(std::begin(analysis)->second);
+
+    auto out = std::ostringstream{};
+    auto pres = option<int>("float_precision");
+    for (int i = 0; i < 10; ++i) {
+        const auto policy = analysis[i].first;
+        const auto maps = analysis[i].second;
+        const auto move = Decoder::maps2move(maps);
+        out << "Move "
+            << move.to_string()
+            << " -> Policy : raw "
+            << std::fixed
+            << std::setprecision(pres)
+            << policy
+            << " | normalize "
+            << std::fixed
+            << std::setprecision(pres)
+            << policy / acc
+            << std::endl;
+    }
+
+    Utils::auto_printf(out);
+    info.analysis = out.str();
 
     return info;
 }
@@ -52,7 +80,7 @@ SearchInfo Search::random_move() {
     while (true) {
         const auto randmaps = rng.randfix<POLICYMAP * Board::INTERSECTIONS>();
 
-        if (Decoder::maps_valid(randmaps)) {
+        if (!Decoder::maps_valid(randmaps)) {
             continue;
         }
 

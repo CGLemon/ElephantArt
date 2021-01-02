@@ -70,17 +70,15 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
     const auto lambda_syntax_not_understood =
         [&](Utils::CommandParser &p, size_t ignore) -> void {
 
-        if (p.get_count() <= ignore) { return; }
+        if (p.get_count() <= ignore) return;
         out << p.get_commands(ignore)->str << " ";
         out << ": syntax not understood" << std::endl;
     };
 
     if (const auto res = parser.find("legal-moves", 0)) {
-
         lambda_syntax_not_understood(parser, 1);
         const auto ascii_out = m_ascii_engine->gather_movelist();
         out << ascii_out << std::endl;
-
     } else if (const auto res = parser.find("fen", 0)) {
         lambda_syntax_not_understood(parser, 7);
         const auto cnt = parser.get_count();
@@ -89,13 +87,11 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         const auto fen = parser.get_slice(1, max)->str;
         const auto ascii_out = m_ascii_engine->fen(fen);
         out << ascii_out << std::endl;
-        
     } else if (const auto res = parser.find("move", 0)) {
         lambda_syntax_not_understood(parser, 2);
         const auto move = parser.get_command(1)->str;
         const auto ascii_out = m_ascii_engine->do_textmove(move);
         out << ascii_out << std::endl;
-        
     } else if (const auto res = parser.find("undo", 0)) {
         lambda_syntax_not_understood(parser, 1);
         const auto ascii_out = m_ascii_engine-> undo_move();
@@ -104,26 +100,41 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         lambda_syntax_not_understood(parser, 2);
         const auto cnt = parser.get_count();
         if (cnt == 1) {
-            out << m_ascii_engine-> raw_nn(0);
+            out << m_ascii_engine->raw_nn(0);
         } else {
             const auto symmetry = parser.get_command(1)->get<int>();
-            out << m_ascii_engine-> raw_nn(symmetry);
+            out << m_ascii_engine->raw_nn(symmetry);
         }
     } else if (const auto res = parser.find("input-planes", 0)) {
         lambda_syntax_not_understood(parser, 2);
         const auto cnt = parser.get_count();
         if (cnt == 1) {
-            out << m_ascii_engine-> input_planes(0);
+            out << m_ascii_engine->input_planes(0);
         } else {
             const auto symmetry = parser.get_command(1)->get<int>();
-            out << m_ascii_engine-> input_planes(symmetry);
+            out << m_ascii_engine->input_planes(symmetry);
         }
     } else if (const auto res = parser.find("history-board", 0)) {
         lambda_syntax_not_understood(parser, 1);
-        out << m_ascii_engine-> history_board();
+        out << m_ascii_engine->history_board();
     } else if (const auto res = parser.find("dump-maps", 0)) {
         lambda_syntax_not_understood(parser, 1);
-        out << m_ascii_engine-> get_maps();
+        out << m_ascii_engine->get_maps();
+    } else if (const auto res = parser.find({"genmove", "g"}, 0)) {
+        lambda_syntax_not_understood(parser, 2);
+        const auto cnt = parser.get_count();
+        if (cnt == 1) { 
+
+        } else {
+            const auto mode = parser.get_command(1)->str;
+            if (mode == "rand") {
+                out << m_ascii_engine->rand_move();
+            } else if (mode == "nn-direct") {
+                out << m_ascii_engine->nn_direct();
+            }
+        }
+
+
     } else if (const auto res = parser.find("position", 0)) {
 
     } else {

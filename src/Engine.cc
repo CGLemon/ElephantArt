@@ -223,6 +223,30 @@ Engine::Response Engine::history_board(const int g) {
     return rep.str();
 }
 
+Engine::Response Engine::rand_move(const int g) {
+    auto rep = std::ostringstream{};
+    const auto p = get_position(g); 
+    const auto s = get_search(g);
+
+    const auto res = s->random_move();
+    const auto success = p->do_move(res.move);
+    assert(success);
+
+    return rep.str();
+}
+
+Engine::Response Engine::nn_direct(const int g) {
+    auto rep = std::ostringstream{};
+    const auto p = get_position(g); 
+    const auto s = get_search(g);
+
+    const auto res = s->nn_direct();
+    const auto success = p->do_move(res.move);
+    assert(success);
+
+    return rep.str();
+}
+
 Engine::Response Engine::get_maps() {
     return Decoder::get_mapstring();
 }

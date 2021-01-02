@@ -21,11 +21,14 @@
 
 UCTNode::UCTNode(std::shared_ptr<UCTNodeData> data) {
     assert(data->parameters != nullptr);
+    increment_nodes();
     m_data = data;
 }
 
 UCTNode::~UCTNode() {
     assert(get_threads() == 0);
+    decrement_nodes();
+    release_all_children();
 }
 
 bool UCTNode::expend_children(Network &network,
@@ -75,7 +78,7 @@ bool UCTNode::expend_children(Network &network,
 
 void UCTNode::link_nodelist(std::vector<Network::PolicyMapsPair> &nodelist, float min_psa_ratio) {
 
-    std::stable_sort(rbegin(nodelist), rend(nodelist));
+    std::stable_sort(std::rbegin(nodelist), std::rend(nodelist));
 
     const float min_psa = nodelist[0].first * min_psa_ratio;
     for (const auto &node : nodelist) {
@@ -86,8 +89,10 @@ void UCTNode::link_nodelist(std::vector<Network::PolicyMapsPair> &nodelist, floa
             data->maps = node.second;
             data->policy = node.first;
             data->parameters = parameters();
+            data->node_status = node_status();
             data->parent = get();
             m_children.emplace_back(std::make_shared<UCTNodePointer>(data));
+            increment_edges();
         }
     }
     assert(!m_children.empty());
@@ -300,7 +305,7 @@ std::vector<std::pair<float, int>> UCTNode::get_lcb_list(const Types::Color colo
         }
     }
 
-    std::stable_sort(rbegin(list), rend(list));
+    std::stable_sort(std::rbegin(list), std::rend(list));
     return list;
 }
 
@@ -323,7 +328,7 @@ std::vector<std::pair<float, int>> UCTNode::get_winrate_list(const Types::Color 
         }
     }
 
-    std::stable_sort(rbegin(list), rend(list));
+    std::stable_sort(std::rbegin(list), std::rend(list));
     return list;
 }
 
@@ -472,7 +477,7 @@ UCTNodeEvals UCTNode::prepare_root_node(Network &network,
         inflate_all_children();
         const auto legal_move = m_children.size();
         if (noise) {
-            const auto alpha = 0.03f * 361.0f / static_cast<float>(legal_move);
+            const auto alpha = 0.03f * 90.0f / static_cast<float>(legal_move);
             dirichlet_noise(epsilon, alpha);
         }
     }
@@ -509,20 +514,20 @@ int UCTNode::get_best_move() {
 int UCTNode::randomize_first_proportionally(float random_temp) {
 
     int select_move = -1;
-    auto accum = double{0.0};
-    auto accum_vector = std::vector<std::pair<double, int>>{};
+    auto accum = float{0.0f};
+    auto accum_vector = std::vector<std::pair<float, int>>{};
 
     for (const auto &child : m_children) {
         auto node = child->get();
         const auto visits = node->get_visits();
         const auto maps = node->get_maps();
         if (visits > parameters()->random_min_visits) {
-           accum += std::pow((double)visits, (1.0 / random_temp));
-           accum_vector.emplace_back(std::pair<double, int>(accum, maps));
+           accum += std::pow((float)visits, (1.0 / random_temp));
+           accum_vector.emplace_back(std::pair<float, int>(accum, maps));
         }
     }
 
-    auto distribution = std::uniform_real_distribution<double>{0.0, accum};
+    auto distribution = std::uniform_real_distribution<float>{0.0, accum};
     auto pick = distribution(Random<random_t::XoroShiro128Plus>::get_Rng());
     auto size = accum_vector.size();
 
@@ -536,7 +541,6 @@ int UCTNode::randomize_first_proportionally(float random_temp) {
     return select_move;
 }
 
-
 void UCTNode::increment_threads() {
     m_loading_threads.fetch_add(1);
 }
@@ -544,6 +548,23 @@ void UCTNode::increment_threads() {
 void UCTNode::decrement_threads() {
     m_loading_threads.fetch_sub(1);
 }
+
+void UCTNode::increment_nodes() {
+    node_status()->nodes.fetch_add(1);
+}
+
+void UCTNode::decrement_nodes() {
+    node_status()->nodes.fetch_sub(1); 
+}
+
+void UCTNode::increment_edges() {
+    node_status()->edges.fetch_add(1); 
+}
+
+void UCTNode::decrement_edges() {
+    node_status()->edges.fetch_sub(1); 
+}
+
 
 void UCTNode::set_active(const bool active) {
     if (is_valid()) {
@@ -589,13 +610,39 @@ std::shared_ptr<SearchParameters> UCTNode::parameters() const {
     return m_data->parameters;
 }
 
+std::shared_ptr<UCTNodeStats> UCTNode::node_status() const {
+    return m_data->node_status;
+}
+
 void UCTNode::set_policy(const float p) {
     m_data->policy = p;
 }
 
 void UCTNode::inflate_all_children() {
     for (const auto &child : m_children) {
-        child->inflate();
+        inflate(child);
+    }
+}
+
+void UCTNode::release_all_children() {
+    for (const auto &child : m_children) {
+        release(child);
+    }
+}
+
+void UCTNode::inflate(std::shared_ptr<UCTNodePointer> child) {
+    auto success = child->inflate();
+    if (success) {
+        decrement_edges();
+        increment_nodes();
+    }
+}
+
+void UCTNode::release(std::shared_ptr<UCTNodePointer> child) {
+    auto success = child->release();
+    if (success) {
+        decrement_nodes();
+        increment_edges();
     }
 }
 

@@ -256,7 +256,6 @@ private:
     std::uint16_t m_data{INVALID};
 
     static constexpr std::uint16_t TO_MASK = 0x00ff;
-
     static constexpr std::uint16_t FROM_MASK = 0xff00;
 };
 

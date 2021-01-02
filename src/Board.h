@@ -47,7 +47,7 @@ public:
 
     static std::array<std::array<int, INTERSECTIONS>, NUM_SYMMETRIES> symmetry_nn_idx_table;
 
-    static std::array<std::array<int, NUM_VERTICES>, NUM_SYMMETRIES> symmetry_nn_vtx_table;
+    static std::array<std::array<Types::Vertices, NUM_VERTICES>, NUM_SYMMETRIES> symmetry_nn_vtx_table;
 
     void reset_board();
     void dump_board() const;
@@ -56,15 +56,15 @@ public:
                                             const int y,
                                             const int symmetry);
 
-    static int get_vertex(const int x, const int y);
+    static Types::Vertices get_vertex(const int x, const int y);
     static int get_index(const int x, const int y);
     static Types::Color swap_color(const Types::Color color);
-    static int get_x(const int vtx);
-    static int get_y(const int vtx);
-    static std::pair<int, int> get_xy(const int vtx);
+    static int get_x(const Types::Vertices vtx);
+    static int get_y(const Types::Vertices vtx);
+    static std::pair<int, int> get_xy(const Types::Vertices vtx);
     static std::string get_start_position();
     Types::Piece get_piece(const int x, const int y) const;
-    Types::Piece get_piece(const int vtx) const;
+    Types::Piece get_piece(const Types::Vertices vtx) const;
 
     Types::Color get_to_move() const;
     int get_movenum() const;
@@ -74,7 +74,7 @@ public:
 
     int generate_movelist(Types::Color color, std::vector<Move> &MoveList) const;
 
-    static bool is_on_board(const int vtx);
+    static bool is_on_board(const Types::Vertices vtx);
 
     void fen_stream(std::ostream &out) const;
     void board_stream(std::ostream &out) const;
@@ -194,7 +194,7 @@ private:
     static void init_symmetry();
     static void dump_memory();
 
-    Types::Piece_t get_piece_type(const int vtx) const;
+    Types::Piece_t get_piece_type(const Types::Vertices vtx) const;
     BitBoard &get_piece_bitboard_ref(Types::Piece_t pt);
 
     std::array<BitBoard, 2> m_bb_color;
@@ -225,14 +225,15 @@ private:
     void info_stream(std::ostream &out) const;
 
     void update_zobrist(Types::Piece p, Types::Vertices form, Types::Vertices to);
+    void update_zobrist_remove(Types::Piece p, Types::Vertices vtx);
     void update_zobrist_tomove(Types::Color old_color, Types::Color new_color);
 };
 
-inline int Board::get_vertex(const int x, const int y) {
+inline Types::Vertices Board::get_vertex(const int x, const int y) {
     assert(x >= 0 || x < WIDTH);
     assert(y >= 0 || y < HEIGHT);
 
-    return x + y * SHIFT;
+    return Types::Vertices(x + y * SHIFT);
 }
 
 inline int Board::get_index(const int x, const int y) {
@@ -242,15 +243,15 @@ inline int Board::get_index(const int x, const int y) {
     return x + y * WIDTH;
 }
 
-inline int Board::get_x(const int vertex) {
+inline int Board::get_x(const Types::Vertices vertex) {
     return vertex % SHIFT;
 }
 
-inline int Board::get_y(const int vertex) {
+inline int Board::get_y(const Types::Vertices vertex) {
     return vertex / SHIFT;
 }
 
-inline std::pair<int, int> Board::get_xy(const int vertex) {
+inline std::pair<int, int> Board::get_xy(const Types::Vertices vertex) {
     return std::make_pair(get_x(vertex), get_y(vertex));
 }
 
@@ -265,6 +266,11 @@ inline Types::Color Board::swap_color(const Types::Color color) {
 inline void Board::update_zobrist(Types::Piece p, Types::Vertices form, Types::Vertices to) {
     m_hash ^= Zobrist::zobrist[p][form];
     m_hash ^= Zobrist::zobrist[p][to];
+}
+
+inline void Board::update_zobrist_remove(Types::Piece p, Types::Vertices vtx) {
+    m_hash ^= Zobrist::zobrist[p][vtx];
+    m_hash ^= Zobrist::zobrist[Types::EMPTY_PIECE][vtx];
 }
 
 inline void Board::update_zobrist_tomove(Types::Color old_color, Types::Color new_color) {

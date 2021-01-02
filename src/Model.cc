@@ -212,7 +212,7 @@ void Model::fill_weights(std::istream &weights_file,
     // Part 1.
     auto line = std::string{};
     if (std::getline(weights_file, line)) {
-        const auto p = Utils::CommandParser(line, 2);
+        const auto p = Utils::CommandParser(line);
         if (p.get_command(0)->str != "fork" ||
                 p.get_command(1)->str != "main") {
             throw "Weights file format is not acceptable";
@@ -636,13 +636,33 @@ void Model::process_weights(std::shared_ptr<NNWeights> &nn_weight) {
 }
 
 void Model::dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &timer) {
-    Utils::auto_printf("Loading Information :\n");
+
+    const auto duration = [](Utils::Timer &timer, int t) -> float {
+        auto cnt = timer.get_record_count();
+        if (t == 1) {
+            return timer.get_record_time(1);
+        } else if (t > 1 && t <= cnt) {
+            return timer.get_record_time((size_t)t) - timer.get_record_time((size_t)t-1);
+        }
+        return 0;
+    };
+
+    Utils::auto_printf("Neural Network Information :\n");
     Utils::auto_printf("Time :\n");
-    Utils::auto_printf("  initial proccess : %.4f second(s)\n", timer.get_record_time(1));
-    Utils::auto_printf("  input layer proccess : %.4f second(s)\n", timer.get_record_time(2) - timer.get_record_time(1));
-    Utils::auto_printf("  tower layers proccess: %.4f second(s)\n", timer.get_record_time(3) - timer.get_record_time(2));
-    Utils::auto_printf("  output layers proccess: %.4f second(s)\n", timer.get_record_time(4) - timer.get_record_time(3));
-    Utils::auto_printf("Channels - Blocks : ( %d - %d )\n", nn_weight->residual_channels, nn_weight->residual_blocks);
+    Utils::auto_printf("  initialization proccess : %.4f second(s)\n", duration(timer, 1));
+    Utils::auto_printf("  input layer proccess : %.4f second(s)\n", duration(timer, 2));
+    Utils::auto_printf("  tower layers proccess: %.4f second(s)\n", duration(timer, 3));
+    Utils::auto_printf("  output layers proccess: %.4f second(s)\n", duration(timer, 4));
+    Utils::auto_printf("Channels / Blocks :  %d / %d\n", nn_weight->residual_channels, nn_weight->residual_blocks);
+    Utils::auto_printf("Tower Struct :\n");
+    for (auto i = 0; i < nn_weight->residual_blocks; ++i) {
+        Utils::auto_printf("  block %2d : ", i+1);
+        if (nn_weight->residual_tower[i].apply_se) {
+            Utils::auto_printf("ResidualBlock-SE\n");
+        } else {
+            Utils::auto_printf("ResidualBlock\n");
+        }
+    }
     Utils::auto_printf("Policy Channels : %d\n", nn_weight->policy_extract_channels);
     Utils::auto_printf("Value Channels : %d\n", nn_weight->value_extract_channels);
 }
@@ -661,8 +681,8 @@ std::vector<float> get_weights_from_file(std::istream &weights_file) {
 
 #ifdef USE_FAST_PARSER
         while(line_buffer >> w_str) {
-            bool isok = fast_double_parser::parse_number(w_str.c_str(), &weight);
-            if (!isok) {
+            bool is_ok = fast_double_parser::parse_number(w_str.c_str(), &weight);
+            if (!is_ok) {
                 throw "There is non-numeric in parameters";
             }
             weights.emplace_back(weight);

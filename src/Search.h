@@ -36,6 +36,7 @@ private:
 
 struct SearchInfo {
     Move move;
+    std::string analysis;
 };
 
 class Search {

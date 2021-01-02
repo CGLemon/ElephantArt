@@ -30,7 +30,7 @@ constexpr std::array<Types::Piece, Board::NUM_VERTICES> Board::START_VERTICES;
 constexpr std::array<Types::Direction, 8> Board::m_dirs;
 
 std::array<std::array<int, Board::INTERSECTIONS>, Board::NUM_SYMMETRIES> Board::symmetry_nn_idx_table;
-std::array<std::array<int, Board::NUM_VERTICES>, Board::NUM_SYMMETRIES> Board::symmetry_nn_vtx_table;
+std::array<std::array<Types::Vertices, Board::NUM_VERTICES>, Board::NUM_SYMMETRIES> Board::symmetry_nn_vtx_table;
 
 std::array<std::array<BitBoard, Board::NUM_VERTICES>, 2> Board::m_pawn_attacks;
 std::array<BitBoard, Board::NUM_VERTICES> Board::m_advisor_attacks;
@@ -107,62 +107,77 @@ bool Board::fen2board(std::string &fen) {
 
     // part 1 : position
     fen_format >> fen_stream;
+    const auto black_pawn_en = option<char>("black_pawn_en");
+    const auto black_cannon_en = option<char>("black_cannon_en");
+    const auto black_rook_en = option<char>("black_rook_en");
+    const auto black_horse_en = option<char>("black_horse_en");
+    const auto black_elephant_en = option<char>("black_elephant_en");
+    const auto black_advisor_en = option<char>("black_advisor_en");
+    const auto black_king_en = option<char>("black_king_en");
+
+    const auto red_pawn_en = option<char>("red_pawn_en");
+    const auto red_cannon_en = option<char>("red_cannon_en");
+    const auto red_rook_en = option<char>("red_rook_en");
+    const auto red_horse_en = option<char>("red_horse_en");
+    const auto red_elephant_en = option<char>("red_elephant_en");
+    const auto red_advisor_en = option<char>("red_advisor_en");
+    const auto red_king_en = option<char>("red_king_en");
 
     auto vtx = Types::VTX_A9;
     for (const auto &c : fen_stream) {
         bool skip = false;
-        if (c == 'p') {
+        if (c == black_pawn_en) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_pawn |= bb;
             bb_black |= bb;
-        } else if (c == 'c') {
+        } else if (c == black_cannon_en) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_cannon |= bb;
             bb_black |= bb;
-        } else if (c == 'r') {
+        } else if (c == black_rook_en) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_rook |= bb;
             bb_black |= bb;
-        } else if (c == 'n') {
+        } else if (c == black_horse_en) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_horse |= bb;
             bb_black |= bb;
-        } else if (c == 'b') {
+        } else if (c == black_elephant_en) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_elephant |= bb;
             bb_black |= bb;
-        } else if (c == 'a') {
+        } else if (c == black_advisor_en) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_advisor |= bb;
             bb_black |= bb;
-        } else if (c == 'k') {
+        } else if (c == black_king_en) {
             king_vertex_black = vtx;
             bb_black |= Utils::vertex2bitboard(vtx);
-        } else if (c == 'P') {
+        } else if (c == red_pawn_en) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_pawn |= bb;
             bb_red |= bb;
-        } else if (c == 'C') {
+        } else if (c == red_cannon_en) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_cannon |= bb;
             bb_red|= bb;
-        } else if (c == 'R') {
+        } else if (c == red_rook_en) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_rook |= bb;
             bb_red |= bb;
-        } else if (c == 'N') {
+        } else if (c == red_horse_en) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_horse |= bb;
             bb_red |= bb;
-        } else if (c == 'B') {
+        } else if (c == red_elephant_en) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_elephant |= bb;
             bb_red |= bb;
-        } else if (c == 'A') {
+        } else if (c == red_advisor_en) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_advisor |= bb;
             bb_red |= bb;
-        } else if (c == 'K') {
+        } else if (c == red_king_en) {
             king_vertex_red = vtx;
             bb_red |= Utils::vertex2bitboard(vtx);
         } else if (c >= '1' && c <= '9') {
@@ -265,7 +280,7 @@ std::pair<int, int> Board::get_symmetry(const int x,
 
 void Board::init_symmetry() {
 
-    for (auto &tables :  symmetry_nn_vtx_table) {
+    for (auto &tables : symmetry_nn_vtx_table) {
         for (auto &table : tables) {
             table = Types::NO_VERTEX;
         }
@@ -638,13 +653,13 @@ void Board::pre_initialize() {
 }
 
 void Board::piece_stream(std::ostream &out, Types::Piece p) const {
-    p == Types::R_PAWN      ? out << "P" : p == Types::B_PAWN      ? out << "p" :
-    p == Types::R_HORSE     ? out << "N" : p == Types::B_HORSE     ? out << "n" :
-    p == Types::R_CANNON    ? out << "C" : p == Types::B_CANNON    ? out << "c" :
-    p == Types::R_ROOK      ? out << "R" : p == Types::B_ROOK      ? out << "r" :
-    p == Types::R_ELEPHANT  ? out << "B" : p == Types::B_ELEPHANT  ? out << "b" :
-    p == Types::R_ADVISOR   ? out << "A" : p == Types::B_ADVISOR   ? out << "a" :
-    p == Types::R_KING      ? out << "K" : p == Types::B_KING      ? out << "k" :
+    p == Types::R_PAWN      ? out << option<char>("red_pawn_en")     : p == Types::B_PAWN      ? out << option<char>("black_pawn_en")     :
+    p == Types::R_HORSE     ? out << option<char>("red_horse_en")    : p == Types::B_HORSE     ? out << option<char>("black_horse_en")    :
+    p == Types::R_CANNON    ? out << option<char>("red_cannon_en")   : p == Types::B_CANNON    ? out << option<char>("black_cannon_en")   :
+    p == Types::R_ROOK      ? out << option<char>("red_rook_en")     : p == Types::B_ROOK      ? out << option<char>("black_rook_en")     :
+    p == Types::R_ELEPHANT  ? out << option<char>("red_elephant_en") : p == Types::B_ELEPHANT  ? out << option<char>("black_elephant_en") :
+    p == Types::R_ADVISOR   ? out << option<char>("red_advisor_en")  : p == Types::B_ADVISOR   ? out << option<char>("black_advisor_en")  :
+    p == Types::R_KING      ? out << option<char>("red_king_en")     : p == Types::B_KING      ? out << option<char>("black_king_en")     :
     p == Types::EMPTY_PIECE ? out << " " : out << "error";
 }
 
@@ -759,7 +774,7 @@ std::uint64_t Board::calc_hash(const int symmetry) const {
     return res;
 }
 
-bool Board::is_on_board(const int vtx) {
+bool Board::is_on_board(const Types::Vertices vtx) {
     return START_VERTICES[vtx] != Types::INVAL_PIECE;
 }
 
@@ -778,8 +793,7 @@ Types::Piece Board::get_piece(const int x, const int y) const {
     return get_piece(get_vertex(x, y));
 }
 
-
-Types::Piece Board::get_piece(const int vtx) const {
+Types::Piece Board::get_piece(const Types::Vertices vtx) const {
 
     auto color = Types::INVALID_COLOR;
 
@@ -806,7 +820,7 @@ Types::Piece Board::get_piece(const int vtx) const {
     return p;
 }
 
-Types::Piece_t Board::get_piece_type(const int vtx) const {
+Types::Piece_t Board::get_piece_type(const Types::Vertices vtx) const {
 
     auto pt = Types::EMPTY_PIECE_T;
     auto at = Utils::vertex2bitboard(vtx);
@@ -911,11 +925,12 @@ int Board::generate_move<Types::ELEPHANT>(Types::Color color, std::vector<Move> 
     int cnt = 0;
     auto bb_e = m_bb_elephant & m_bb_color[color];
     auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
+    auto mask = color == Types::RED ? RedSide : BlackSide;
     while (bb_e) {
         const auto vtx = Utils::extract(bb_e);
         const auto attack = m_elephant_magics[vtx].attack(occupancy);
         const auto block = attack & m_bb_color[color];
-        auto legal_bitboard = attack ^ block;
+        auto legal_bitboard = (attack ^ block) & mask;
         cnt += lambda_separate_bitboarad(vtx, legal_bitboard, MoveList);
     }
     return cnt;
@@ -970,7 +985,7 @@ int Board::generate_move<Types::CANNON>(Types::Color color, std::vector<Move> &M
     return cnt;
 }
 
-// Generate the all legal move to the list.
+// Generating the all legal moves to the list.
 int Board::generate_movelist(Types::Color color, std::vector<Move> &MoveList) const {
 
     const auto reserve = option<int>("reserve_movelist");
@@ -1010,7 +1025,7 @@ void Board::do_move(Move move) {
     const auto form_bitboard = Utils::vertex2bitboard(from);
     const auto to_bitboard = Utils::vertex2bitboard(to);
 
-    // Get the color.
+    // Get the color
     auto color = Types::INVALID_COLOR;
     if (m_bb_color[Types::BLACK] & form_bitboard) {
         color = Types::BLACK;
@@ -1019,9 +1034,23 @@ void Board::do_move(Move move) {
     }
     assert(color == m_tomove);
 
-    // Get the Piece type.
+    // Get the piece type
     const auto pt = get_piece_type(from);
     assert(pt != Types::EMPTY_PIECE_T);
+
+    // Eat piece
+    const auto opp_color = swap_color(color);
+    const bool eat = m_bb_color[opp_color] & to_bitboard;
+    if (eat) {
+        const auto eaten_pt = get_piece_type(to);
+        if (pt == Types::KING) {
+            m_king_vertex[opp_color] = Types::NO_VERTEX;
+        } else {
+            auto &ref_bb = get_piece_bitboard_ref(eaten_pt);
+            ref_bb ^= to_bitboard;
+        }
+        m_bb_color[opp_color] ^= to_bitboard;
+    }
 
     // Update bitboard
     if (pt == Types::KING) {
@@ -1043,6 +1072,9 @@ void Board::do_move(Move move) {
 
     // Update zobrist
     update_zobrist(p , from, to);
+    if (eat) {
+        update_zobrist_remove(p, to);
+    } 
 
     // Swap color
     swap_to_move();

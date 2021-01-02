@@ -20,6 +20,7 @@
 #include <atomic>
 #include <vector>
 #include <cstdint>
+#include <thread>
 
 #define POINTER_MASK (3ULL)
 
@@ -45,12 +46,12 @@ public:
     Node *read_ptr(uint64_t v) const;
     Node *get() const;
 
-    void inflate();
+    bool inflate();
+    bool release();
 
     std::shared_ptr<Data> data() const;
 
 private:
-
     bool acquire_inflating();
 
     std::shared_ptr<Data> m_data{nullptr};
@@ -64,6 +65,11 @@ private:
 template<typename Node, typename Data>
 NodePointer<Node, Data>::NodePointer(std::shared_ptr<Data> data) {
     m_data = data;
+}
+
+template<typename Node, typename Data>
+NodePointer<Node, Data>::~NodePointer() {
+    release();
 }
 
 template<typename Node, typename Data>
@@ -111,20 +117,21 @@ inline Node *NodePointer<Node, Data>::get() const {
 }
 
 template<typename Node, typename Data>
-bool NodePointer<Node, Data>::acquire_inflating() {
+inline bool NodePointer<Node, Data>::acquire_inflating() {
     auto uninflated = UNINFLATED;
     auto newval = INFLATING;
     return m_pointer.compare_exchange_strong(uninflated, newval);
 }
 
 template<typename Node, typename Data>
-void NodePointer<Node, Data>::inflate() {
+inline bool NodePointer<Node, Data>::inflate() {
     while (true) {
         auto v = m_pointer.load();
         if (is_pointer(v)) {
-            return;
+            return false;
         }
         if (!acquire_inflating()) {
+            std::this_thread::yield();
             continue;
         }
         auto new_ponter =
@@ -132,19 +139,21 @@ void NodePointer<Node, Data>::inflate() {
             POINTER;
         auto old_ponter = m_pointer.exchange(new_ponter);
         assert(is_inflating(old_ponter));
+        return true;
     }
 }
 
 template<typename Node, typename Data>
-NodePointer<Node, Data>::~NodePointer() {
-
+inline bool NodePointer<Node, Data>::release() {
     auto v = m_pointer.load();
     if (is_pointer(v)) {
         delete read_ptr(v);
+        return true;
     }
+    return false;
 }
 
 template<typename Node, typename Data>
-std::shared_ptr<Data> NodePointer<Node, Data>::data() const {
+inline std::shared_ptr<Data> NodePointer<Node, Data>::data() const {
     return m_data;
 }

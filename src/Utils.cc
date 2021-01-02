@@ -393,6 +393,10 @@ Option Option::setoption<float>(float val, int max, int min) {
     return op;
 }
 
+template<>
+Option Option::setoption<char>(char val, int /*max*/, int /*min*/) {
+    return Option{type::Char, std::string{val}, 0, 0};
+}
 
 #define OPTION_EXPASSION(T)    \
 template<>                     \
@@ -404,6 +408,7 @@ OPTION_EXPASSION(std::string)
 OPTION_EXPASSION(bool)
 OPTION_EXPASSION(float)
 OPTION_EXPASSION(int)
+OPTION_EXPASSION(char)
 
 template<>
 const char* Option::get<const char*>() const {
@@ -440,6 +445,12 @@ void Option::set<float>(float value) {
     option_handle();
     m_value = std::to_string(value);
     adjust<float>();
+}
+
+template<>
+void Option::set<char>(char value) {
+    option_handle();
+    m_value = std::to_string(value);
 }
 
 void Option::option_handle() const {

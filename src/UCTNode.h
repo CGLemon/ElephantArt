@@ -15,10 +15,17 @@
 #include <vector>
 
 class UCTNode;
+
+struct UCTNodeStats {
+    std::atomic<int> nodes{0};
+    std::atomic<int> edges{0};
+};
+
 struct UCTNodeData {
     float policy{0.0f};
     int maps{-1};
     std::shared_ptr<SearchParameters> parameters{nullptr};
+    std::shared_ptr<UCTNodeStats> node_status{nullptr};
     UCTNode *parent{nullptr};
 };
 
@@ -96,11 +103,13 @@ private:
 
     std::vector<std::shared_ptr<UCTNodePointer>> m_children;
     std::shared_ptr<SearchParameters> parameters() const;
+    std::shared_ptr<UCTNodeStats> node_status() const;
     
     void link_nodelist(std::vector<Network::PolicyMapsPair> &nodelist, float min_psa_ratio);
     void link_nn_output(const Network::Netresult &raw_netlist,
                         const Types::Color color);
     void inflate_all_children();
+    void release_all_children();
     void dirichlet_noise(const float epsilon, const float alpha);
     void set_policy(const float p);
 
@@ -123,14 +132,22 @@ private:
                        const bool use_virtual_loss = true) const;
     float get_draw() const;
 
+    void increment_nodes();
+    void decrement_nodes();
+
+    void increment_edges();
+    void decrement_edges();
+
+    void inflate(std::shared_ptr<UCTNodePointer> child);
+    void release(std::shared_ptr<UCTNodePointer> child);
+
     enum Status : std::uint8_t {
         INVALID,  // INVALID means that the node is illegal.
         PRUNED,
         ACTIVE
     };
     std::atomic<Status> m_status{ACTIVE};
-    
-    
+
     enum class ExpandState : std::uint8_t {
         INITIAL = 0,
         EXPANDING,
