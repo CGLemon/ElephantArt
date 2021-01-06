@@ -204,4 +204,3 @@ std::string Decoder::get_mapstring() {
     }
     return out.str();
 }
-

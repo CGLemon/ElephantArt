@@ -37,32 +37,30 @@ void ASCII::init() {
 }
 
 void ASCII::loop() {
-
     while (true) {
-
         m_ascii_engine->display();
-        std::cout << "Saya : ";
-        auto input = std::string{};
+        Utils::printf<Utils::SYNC>("Saya : ");
 
+        auto input = std::string{};
         if (std::getline(std::cin, input)) {
 
             auto parser = Utils::CommandParser(input);
+            Utils::printf<Utils::EXTERN>("%s\n", input.c_str());
 
             if (!parser.valid()) {
-                std::cout << " No input command" << std::endl;
+                Utils::printf<Utils::SYNC>(" No input command\n");
                 continue;
             }
 
             if (parser.get_count() == 1 && parser.find("quit")) {
-                std::cout << " exit " << std::endl;
+                Utils::printf<Utils::SYNC>("Exit\n");
                 break;
             }
-
-            std::cout << execute(parser) << std::endl;
+            auto out = execute(parser);
+            Utils::printf<Utils::STATIC>("%s\n", out.c_str());
         }
     }
 }
-
 
 std::string ASCII::execute(Utils::CommandParser &parser) {
 
@@ -133,8 +131,6 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
                 out << m_ascii_engine->nn_direct();
             }
         }
-
-
     } else if (const auto res = parser.find("position", 0)) {
 
     } else {

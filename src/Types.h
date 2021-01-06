@@ -113,6 +113,10 @@ public:
 
     ENABLE_INCR_OPERATORS_ON(File)
     ENABLE_INCR_OPERATORS_ON(Rank)
+
+    enum Language : int {
+        ASCII = 0, TRADITIONAL_CHINESE
+    };
 };
 
 #undef ENABLE_BASE_OPERATORS_ON

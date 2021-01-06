@@ -114,6 +114,10 @@ void UCTNode::link_nn_output(const Network::Netresult &raw_netlist,
     m_draw = draw;
 }
 
+const std::vector<std::shared_ptr<UCTNode::UCTNodePointer>> &UCTNode::get_children() const {
+    return m_children;
+}
+
 UCTNodeEvals UCTNode::get_node_evals() const {
 
     auto evals = UCTNodeEvals{};
@@ -171,7 +175,7 @@ float UCTNode::get_accumulated_draws() const {
     return m_accumulated_draws.load();
 }
 
-int UCTNode::get_color() const {
+Types::Color UCTNode::get_color() const {
     return m_color;
 }
 

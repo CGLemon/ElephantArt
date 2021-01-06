@@ -48,6 +48,8 @@ public:
     int get_gameply() const;
     Move get_last_move() const;
 
+    Types::Piece_t get_piece_type(const Types::Vertices vtx) const;
+
     Board board;
     
     std::uint64_t get_hash() const;

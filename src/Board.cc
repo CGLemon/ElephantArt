@@ -17,7 +17,6 @@
 */
 
 #include "Board.h"
-#include "Utils.h"
 #include "Random.h"
 
 #include <functional>
@@ -617,7 +616,8 @@ void Board::init_magics() {
     }
 
     auto t = timer.get_duration();
-    Utils::auto_printf("Generating Magic numbers to spent %.4f second(s)\n", t);
+    Utils::printf<Utils::STATS>("Generating Magic numbers to spent %.4f second(s)\n", t);
+    // Utils::auto_printf("Generating Magic numbers to spent %.4f second(s)\n", t);
 }
 
 void Board::dump_memory() {
@@ -642,7 +642,8 @@ void Board::dump_memory() {
         res += sizeof(BitBoard) * m_cannonrank_magics[v].attacks.capacity();
         res += sizeof(BitBoard) * m_cannonfile_magics[v].attacks.capacity();
     }
-    Utils::auto_printf("Attacks Table Memory : %.4f (Mib)\n", (double)res / (1024.f * 1024.f));
+    Utils::printf<Utils::STATS>("Attacks Table Memory : %.4f (Mib)\n", (double)res / (1024.f * 1024.f));
+    // Utils::auto_printf("Attacks Table Memory : %.4f (Mib)\n", (double)res / (1024.f * 1024.f));
 }
 
 void Board::pre_initialize() {
@@ -652,7 +653,8 @@ void Board::pre_initialize() {
     dump_memory();
 }
 
-void Board::piece_stream(std::ostream &out, Types::Piece p) const {
+template<>
+void Board::piece_stream<Types::ASCII>(std::ostream &out, Types::Piece p) const {
     p == Types::R_PAWN      ? out << option<char>("red_pawn_en")     : p == Types::B_PAWN      ? out << option<char>("black_pawn_en")     :
     p == Types::R_HORSE     ? out << option<char>("red_horse_en")    : p == Types::B_HORSE     ? out << option<char>("black_horse_en")    :
     p == Types::R_CANNON    ? out << option<char>("red_cannon_en")   : p == Types::B_CANNON    ? out << option<char>("black_cannon_en")   :
@@ -663,12 +665,21 @@ void Board::piece_stream(std::ostream &out, Types::Piece p) const {
     p == Types::EMPTY_PIECE ? out << " " : out << "error";
 }
 
-void Board::piece_stream(std::ostream &out, const int x, const int y) const {
-    auto p = get_piece(x, y);
-    piece_stream(out, p);
+template<>
+void Board::piece_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out, Types::Piece p) const {
+    using STR = std::string;
+    p == Types::R_PAWN      ? out << option<STR>("red_pawn_ch")     : p == Types::B_PAWN      ? out << option<STR>("black_pawn_ch")     :
+    p == Types::R_HORSE     ? out << option<STR>("red_horse_ch")    : p == Types::B_HORSE     ? out << option<STR>("black_horse_ch")    :
+    p == Types::R_CANNON    ? out << option<STR>("red_cannon_ch")   : p == Types::B_CANNON    ? out << option<STR>("black_cannon_ch")   :
+    p == Types::R_ROOK      ? out << option<STR>("red_rook_ch")     : p == Types::B_ROOK      ? out << option<STR>("black_rook_ch")     :
+    p == Types::R_ELEPHANT  ? out << option<STR>("red_elephant_ch") : p == Types::B_ELEPHANT  ? out << option<STR>("black_elephant_ch") :
+    p == Types::R_ADVISOR   ? out << option<STR>("red_advisor_ch")  : p == Types::B_ADVISOR   ? out << option<STR>("black_advisor_ch")  :
+    p == Types::R_KING      ? out << option<STR>("red_king_ch")     : p == Types::B_KING      ? out << option<STR>("black_king_ch")     :
+    p == Types::EMPTY_PIECE ? out << "  " : out << "error";
 }
 
-void Board::info_stream(std::ostream &out) const {
+template<>
+void Board::info_stream<Types::ASCII>(std::ostream &out) const {
 
     out << "{";
     if (m_tomove == Types::RED) {
@@ -696,6 +707,36 @@ void Board::info_stream(std::ostream &out) const {
     out << std::endl;
 }
 
+template<>
+void Board::info_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out) const {
+
+    out << "{";
+    if (m_tomove == Types::RED) {
+        out << "下一手 ：紅方";
+    } else if (m_tomove == Types::BLACK) {
+        out << "下一手 ：黑方";
+    }  else {
+        out << "color error!";
+    }
+
+    out << "，上一手棋 ：";
+    out << get_last_move().to_string(); 
+
+    out << "，第 ";
+    out << get_movenum(); 
+    out << " 手棋";
+
+    out << "，哈希 ：";
+    out << std::hex;
+    out << get_hash();
+    out << std::dec;
+
+    out << "，\n Fen ：";
+    fen_stream(out);
+    out << "}";
+    out << std::endl;
+}
+
 void Board::fen_stream(std::ostream &out) const {
 
     for (int y = HEIGHT - 1; y >= 0; --y) {
@@ -712,7 +753,7 @@ void Board::fen_stream(std::ostream &out) const {
                 out << skip;
                 skip = 0;
             }
-            piece_stream(out, pis);
+            piece_stream<Types::ASCII>(out, pis);
         }
         if (skip != 0) {
             out << skip;
@@ -729,7 +770,8 @@ void Board::fen_stream(std::ostream &out) const {
     out << " - - 0 " << m_gameply;
 }
 
-void Board::board_stream(std::ostream &out) const {
+template<>
+void Board::board_stream<Types::ASCII>(std::ostream &out) const {
 
     for (int y = 0; y < HEIGHT; ++y) {
         Utils::space_stream(out, 1);
@@ -741,7 +783,7 @@ void Board::board_stream(std::ostream &out) const {
 
             const auto coordinate_x = x;
             const auto coordinate_y = HEIGHT - y - 1;
-            piece_stream(out, coordinate_x, coordinate_y);
+            piece_stream<Types::ASCII>(out, coordinate_x, coordinate_y);
         }
         out << " | ";
         out << HEIGHT - y - 1;
@@ -752,7 +794,33 @@ void Board::board_stream(std::ostream &out) const {
     out << "   a   b   c   d   e   f   g   h   i";
     Utils::strip_stream(out, 1);
 
-    info_stream(out);
+    info_stream<Types::ASCII>(out);
+}
+
+template<>
+void Board::board_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out) const {
+
+    for (int y = 0; y < HEIGHT; ++y) {
+        Utils::space_stream(out, 1);
+        out << "+----+----+----+----+----+----+----+----+----+";
+        Utils::strip_stream(out, 1);
+
+        for (int x = 0; x < WIDTH; ++x) {
+            out << " | ";
+            const auto coordinate_x = x;
+            const auto coordinate_y = HEIGHT - y - 1;
+            piece_stream<Types::TRADITIONAL_CHINESE>(out, coordinate_x, coordinate_y);
+        }
+        out << " | ";
+        out << HEIGHT - y - 1;
+        Utils::strip_stream(out, 1);
+    }
+    Utils::space_stream(out, 1);
+    out << "+----+----+----+----+----+----+----+----+----+" << std::endl;
+    out << "    a    b    c    d    e    f    g    h    i";
+    Utils::strip_stream(out, 2);
+
+    info_stream<Types::TRADITIONAL_CHINESE>(out);
 }
 
 std::uint64_t Board::calc_hash(const int symmetry) const {
@@ -776,12 +844,6 @@ std::uint64_t Board::calc_hash(const int symmetry) const {
 
 bool Board::is_on_board(const Types::Vertices vtx) {
     return START_VERTICES[vtx] != Types::INVAL_PIECE;
-}
-
-void Board::dump_board() const {
-    auto out = std::ostringstream{};
-    board_stream(out);
-    Utils::auto_printf(out);
 }
 
 std::string Board::get_start_position() {
@@ -1022,8 +1084,8 @@ void Board::swap_to_move() {
 void Board::do_move(Move move) {
     const auto from = move.get_from();
     const auto to = move.get_to();
-    const auto form_bitboard = Utils::vertex2bitboard(from);
-    const auto to_bitboard = Utils::vertex2bitboard(to);
+    const auto form_bitboard =  move.get_from_bitboard();
+    const auto to_bitboard = move.get_to_bitboard();
 
     // Get the color
     auto color = Types::INVALID_COLOR;

@@ -56,7 +56,7 @@ void Utils::dump_bitboard(const BitBoard &bitboard, std::ostream &out) {
 void Utils::dump_bitboard(const BitBoard &bitboard) {
     auto out = std::ostringstream{};
     dump_bitboard(bitboard, out);
-    Utils::auto_printf(out);
+    Utils::printf<Utils::AUTO>(out);
 }
 
 Types::Vertices Move::get_from() const { 

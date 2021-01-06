@@ -22,6 +22,7 @@
 #include "Uint128_t.h"
 #include "BitBoard.h"
 #include "Zobrist.h"
+#include "Utils.h"
 
 #include <cassert>
 #include <array>
@@ -50,8 +51,6 @@ public:
     static std::array<std::array<Types::Vertices, NUM_VERTICES>, NUM_SYMMETRIES> symmetry_nn_vtx_table;
 
     void reset_board();
-    void dump_board() const;
-
     static std::pair<int, int> get_symmetry(const int x,
                                             const int y,
                                             const int symmetry);
@@ -66,6 +65,8 @@ public:
     Types::Piece get_piece(const int x, const int y) const;
     Types::Piece get_piece(const Types::Vertices vtx) const;
 
+    Types::Piece_t get_piece_type(const Types::Vertices vtx) const;
+
     Types::Color get_to_move() const;
     int get_movenum() const;
     int get_gameply() const;
@@ -77,7 +78,9 @@ public:
     static bool is_on_board(const Types::Vertices vtx);
 
     void fen_stream(std::ostream &out) const;
-    void board_stream(std::ostream &out) const;
+
+    template<Types::Language> void board_stream(std::ostream &out) const;
+    template<Types::Language> void dump_board() const;
 
     bool fen2board(std::string &fen);
 
@@ -194,7 +197,6 @@ private:
     static void init_symmetry();
     static void dump_memory();
 
-    Types::Piece_t get_piece_type(const Types::Vertices vtx) const;
     BitBoard &get_piece_bitboard_ref(Types::Piece_t pt);
 
     std::array<BitBoard, 2> m_bb_color;
@@ -217,12 +219,10 @@ private:
 
     std::uint64_t m_hash;
 
-    template<Types::Piece_t>
-    int generate_move(Types::Color color, std::vector<Move> &MoveList) const;
-
-    void piece_stream(std::ostream &out, Types::Piece p) const;
-    void piece_stream(std::ostream &out, const int x, const int y) const;
-    void info_stream(std::ostream &out) const;
+    template<Types::Piece_t> int generate_move(Types::Color color, std::vector<Move> &MoveList) const;
+    template<Types::Language> void piece_stream(std::ostream &out, Types::Piece p) const;
+    template<Types::Language> void piece_stream(std::ostream &out, const int x, const int y) const;
+    template<Types::Language> void info_stream(std::ostream &out) const;
 
     void update_zobrist(Types::Piece p, Types::Vertices form, Types::Vertices to);
     void update_zobrist_remove(Types::Piece p, Types::Vertices vtx);
@@ -279,4 +279,17 @@ inline void Board::update_zobrist_tomove(Types::Color old_color, Types::Color ne
     }
 }
 
+template<Types::Language L>
+void Board::piece_stream(std::ostream &out, const int x, const int y) const {
+    const auto p = get_piece(x, y);
+    piece_stream<L>(out, p);
+}
+
+template<Types::Language L>
+void Board::dump_board() const {
+    auto out = std::ostringstream{};
+    board_stream<L>(out);
+    Utils::printf<Utils::STATIC>(out);
+    // Utils::auto_printf(out);
+}
 #endif

@@ -33,6 +33,7 @@ T option<T>(std::string name) {                     \
 }                                                   \
 
 OPTIONS_EXPASSION(std::string)
+OPTIONS_EXPASSION(const char*)
 OPTIONS_EXPASSION(bool)
 OPTIONS_EXPASSION(int)
 OPTIONS_EXPASSION(float)
@@ -52,6 +53,7 @@ bool set_option<T>(std::string name, T val) {        \
 }
 
 OPTIONS_SET_EXPASSION(std::string)
+OPTIONS_SET_EXPASSION(const char*)
 OPTIONS_SET_EXPASSION(bool)
 OPTIONS_SET_EXPASSION(int)
 OPTIONS_SET_EXPASSION(float)
@@ -70,12 +72,16 @@ void init_options_map() {
     options_map["batchsize"] << Utils::Option::setoption(1, 256, 1);
 
     options_map["quiet"] << Utils::Option::setoption(false);
+    options_map["quiet_stats"] << Utils::Option::setoption(false);
+    options_map["quiet_search_verbose"] << Utils::Option::setoption(false);
+    options_map["log_file"] << Utils::Option::setoption(NO_LOG_FILE_NAME);
+
     options_map["num_games"] << Utils::Option::setoption(1, 32, 1);
     options_map["reserve_movelist"] << Utils::Option::setoption(60);
 
     options_map["softmax_temp"] << Utils::Option::setoption(1.0f);
     options_map["cache_moves"] << Utils::Option::setoption(20);
-    options_map["weights_file"] << Utils::Option::setoption("NO_WEIGHT_FILE");
+    options_map["weights_file"] << Utils::Option::setoption(NO_WEIGHT_FILE_NAME);
     options_map["float_precision"] << Utils::Option::setoption(5);
     options_map["winograd"] << Utils::Option::setoption(false);
     
@@ -96,6 +102,7 @@ void init_options_map() {
 
     options_map["ponder"] << Utils::Option::setoption(false);
     options_map["collect"] << Utils::Option::setoption(false);
+    options_map["collect_buffer_size"] << Utils::Option::setoption(1000, 10000, 0);
 
     options_map["waittime"] << Utils::Option::setoption(10);
 
@@ -114,6 +121,23 @@ void init_options_map() {
     options_map["red_elephant_en"] << Utils::Option::setoption('B');
     options_map["red_advisor_en"] << Utils::Option::setoption('A');
     options_map["red_king_en"] << Utils::Option::setoption('K');
+
+    options_map["using_traditional_chinese"] << Utils::Option::setoption(false);
+    options_map["black_pawn_ch"] << Utils::Option::setoption("卒");
+    options_map["black_horse_ch"] << Utils::Option::setoption("馬");
+    options_map["black_cannon_ch"] << Utils::Option::setoption("砲");
+    options_map["black_rook_ch"] << Utils::Option::setoption("車");
+    options_map["black_elephant_ch"] << Utils::Option::setoption("象");
+    options_map["black_advisor_ch"] << Utils::Option::setoption("士");
+    options_map["black_king_ch"] << Utils::Option::setoption("將");
+
+    options_map["red_pawn_ch"] << Utils::Option::setoption("兵");
+    options_map["red_horse_ch"] << Utils::Option::setoption("傌");
+    options_map["red_cannon_ch"] << Utils::Option::setoption("炮");
+    options_map["red_rook_ch"] << Utils::Option::setoption("俥");
+    options_map["red_elephant_ch"] << Utils::Option::setoption("像");
+    options_map["red_advisor_ch"] << Utils::Option::setoption("仕");
+    options_map["red_king_ch"] << Utils::Option::setoption("帥");
 }
 
 void init_basic_parameters() {
@@ -138,6 +162,28 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 
     if (const auto res = parser.find({"--help", "-h"})) {
         set_option("help", true);
+    }
+
+    if (const auto res = parser.find({"--chinese", "-ch"})) {
+        set_option("using_traditional_chinese", true);
+    }
+
+    if (const auto res = parser.find("--quiet")) {
+        set_option("quiet", true);
+    }
+
+    if (const auto res = parser.find("--quiet_stats")) {
+        set_option("quiet_stats", true);
+    }
+
+    if (const auto res = parser.find("--collect")) {
+        set_option("collect", true);
+    }
+
+    if (const auto res = parser.find_next({"--logfile", "-l"})) {
+        if (is_parameter(res->str)) {
+            set_option("log_file", res->get<std::string>());
+        }
     }
 
     if (const auto res = parser.find_next({"--mode", "-m"})) {
@@ -172,7 +218,7 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         }
     }
 
-    if (const auto res = parser.find_next("--gpu")) {
+    if (const auto res = parser.find_next({"--gpu", "-g"})) {
         if (is_parameter(res->str)) {
             set_option("gpu", res->get<int>());
         }
@@ -180,9 +226,9 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 }
 
 void ArgsParser::help() const {
-    Utils::auto_printf("Argumnet\n");
-    Utils::auto_printf(" --help, -h\n");
-    Utils::auto_printf(" --mode, -m [ascii/ucci]\n");  
+    Utils::printf<Utils::AUTO>("Argumnet\n");
+    Utils::printf<Utils::AUTO>(" --help, -h\n");
+    Utils::printf<Utils::AUTO>(" --mode, -m [ascii/ucci]\n");  
 }
 
 void ArgsParser::dump() const {

@@ -16,12 +16,13 @@
     along with Saya.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <sstream>
 #include <algorithm>
 #include <stdexcept>
+#include <fstream>
+#include <mutex>
 
 #include "Utils.h"
 #include "config.h"
@@ -145,26 +146,172 @@ float cached_t_quantile(int v) {
     return z_lookup[z_entries - 1];
 }
 
-void auto_printf(const char *fmt, ...) {
+static std::mutex IOMutex;
 
-    if (option<bool>("quiet")) {
-        return;
+template <>
+void printf_base<EXTERN>(const char *fmt, va_list va) {
+    if (option<std::string>("log_file") != NO_LOG_FILE_NAME) {
+        std::lock_guard<std::mutex> lock(IOMutex);
+        auto fp = fopen(option<const char*>("log_file"), "a");
+        if (fp) {
+            vfprintf(fp, fmt, va);
+            fclose(fp);
+        }
     }
-
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stdout, fmt, ap);
-    va_end(ap);
 }
 
-void auto_printf(std::ostringstream &out) {
+template <>
+void printf<EXTERN>(const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    printf_base<EXTERN>(fmt, va);
+    va_end(va);
+}
 
-    if (option<bool>("quiet")) {
-        return;
+template <>
+void printf<EXTERN>(std::ostringstream &out) {
+    if (option<std::string>("log_file") != NO_LOG_FILE_NAME) {
+        std::lock_guard<std::mutex> lock(IOMutex);
+        auto fp = std::fstream{};
+        fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out);
+        if (fp.is_open()) {
+            fp << out.str();
+            fp.close();
+        }
     }
+}
 
+template <>
+void printf_base<SYNC>(const char *fmt, va_list va) {
+    va_list va2;
+    va_copy(va2, va);
+    vfprintf(stdout, fmt, va);
+
+    printf_base<EXTERN>(fmt, va2);
+
+    va_end(va);
+}
+
+template <>
+void printf<SYNC>(const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    printf_base<SYNC>(fmt, va);
+    va_end(va);
+}
+
+template <>
+void printf<SYNC>(std::ostringstream &out) {
     std::cout << out.str();
+    printf<EXTERN>(out);
 }
+
+template <>
+void printf_base<STATIC>(const char *fmt, va_list va) {
+    if (option<std::string>("log_file") == NO_LOG_FILE_NAME) {
+        vfprintf(stdout, fmt, va);
+    } else {
+        std::lock_guard<std::mutex> lock(IOMutex);
+        auto fp = fopen(option<const char*>("log_file"), "a");
+        if (fp) {
+            vfprintf(fp, fmt, va);
+            fclose(fp);
+        }
+    }
+}
+
+template <>
+void printf<STATIC>(const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    printf_base<STATIC>(fmt, va);
+    va_end(va);
+}
+
+template <>
+void printf<STATIC>(std::ostringstream &out) {
+    if (option<std::string>("log_file") == NO_LOG_FILE_NAME) {
+        std::cout << out.str();
+    } else {
+        std::lock_guard<std::mutex> lock(IOMutex);
+        auto fp = std::fstream{};
+        fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out);
+        if (fp.is_open()) {
+            fp << out.str();
+            fp.close();
+        }
+    }
+}
+
+template <>
+void printf_base<AUTO>(const char *fmt, va_list va) {
+    if (option<bool>("quiet")) {
+        return;
+    }
+    printf_base<STATIC>(fmt, va);
+}
+
+template <>
+void printf<AUTO>(const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    printf_base<AUTO>(fmt, va);
+    va_end(va);
+}
+
+template <>
+void printf<AUTO>(std::ostringstream &out) {
+    if (option<bool>("quiet")) {
+        return;
+    }
+    printf<STATIC>(out);
+}
+
+
+template <>
+void printf_base<STATS>(const char *fmt, va_list va) {
+    if (option<bool>("quiet_stats")) {
+        return;
+    }
+    printf_base<AUTO>(fmt, va);
+}
+
+template <>
+void printf<STATS>(const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    printf_base<STATS>(fmt, va);
+    va_end(va);
+}
+
+template <>
+void printf<STATS>(std::ostringstream &out) {
+    if (option<bool>("quiet_stats")) {
+        return;
+    }
+    printf<AUTO>(out);
+}
+
+// void auto_printf(const char *fmt, ...) {
+// 
+//     if (option<bool>("quiet")) {
+//         return;
+//     }
+// 
+//     va_list ap;
+//     va_start(ap, fmt);
+//     vfprintf(stdout, fmt, ap);
+//     va_end(ap);
+// }
+// 
+// void auto_printf(std::ostringstream &out) {
+// 
+//     if (option<bool>("quiet")) {
+//         return;
+//     }
+// 
+//     std::cout << out.str();
+// }
 
 void space_stream(std::ostream &out, const size_t times) {
     for (auto t = size_t{0}; t < times; ++t) {

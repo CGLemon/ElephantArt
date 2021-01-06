@@ -181,7 +181,7 @@ void Model::load_weights(const std::string &filename,
 
     if (!file.is_open()) {
         file.close();
-        Utils::auto_printf("Could not opne file : %s!\n", filename.c_str());
+        Utils::printf<Utils::AUTO>("Could not opne file : %s!\n", filename.c_str());
         return;
     }
 
@@ -194,12 +194,12 @@ void Model::load_weights(const std::string &filename,
     try {
         fill_weights(buffer, nn_weight);
     } catch (const char* err) {
-        Utils::auto_printf("Loading network file warning!\n", err);
-        Utils::auto_printf("    Cause : %s.\n", err);
+        Utils::printf<Utils::AUTO>("Loading network file warning!\n", err);
+        Utils::printf<Utils::AUTO>("    Cause : %s.\n", err);
     }
     
     if (nn_weight->loaded) {
-        Utils::auto_printf("Loading is successful!\n");
+        Utils::printf<Utils::AUTO>("Loading is successful!\n");
     }
 }
 
@@ -647,24 +647,24 @@ void Model::dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &ti
         return 0;
     };
 
-    Utils::auto_printf("Neural Network Information :\n");
-    Utils::auto_printf("Time :\n");
-    Utils::auto_printf("  initialization proccess : %.4f second(s)\n", duration(timer, 1));
-    Utils::auto_printf("  input layer proccess : %.4f second(s)\n", duration(timer, 2));
-    Utils::auto_printf("  tower layers proccess: %.4f second(s)\n", duration(timer, 3));
-    Utils::auto_printf("  output layers proccess: %.4f second(s)\n", duration(timer, 4));
-    Utils::auto_printf("Channels / Blocks :  %d / %d\n", nn_weight->residual_channels, nn_weight->residual_blocks);
-    Utils::auto_printf("Tower Struct :\n");
+    Utils::printf<Utils::STATS>("Neural Network Information :\n");
+    Utils::printf<Utils::STATS>("Time :\n");
+    Utils::printf<Utils::STATS>("  initialization proccess : %.4f second(s)\n", duration(timer, 1));
+    Utils::printf<Utils::STATS>("  input layer proccess : %.4f second(s)\n", duration(timer, 2));
+    Utils::printf<Utils::STATS>("  tower layers proccess: %.4f second(s)\n", duration(timer, 3));
+    Utils::printf<Utils::STATS>("  output layers proccess: %.4f second(s)\n", duration(timer, 4));
+    Utils::printf<Utils::STATS>("Channels / Blocks :  %d / %d\n", nn_weight->residual_channels, nn_weight->residual_blocks);
+    Utils::printf<Utils::STATS>("Tower Struct :\n");
     for (auto i = 0; i < nn_weight->residual_blocks; ++i) {
-        Utils::auto_printf("  block %2d : ", i+1);
+        Utils::printf<Utils::STATS>("  block %2d : ", i+1);
         if (nn_weight->residual_tower[i].apply_se) {
-            Utils::auto_printf("ResidualBlock-SE\n");
+            Utils::printf<Utils::STATS>("ResidualBlock-SE\n");
         } else {
-            Utils::auto_printf("ResidualBlock\n");
+            Utils::printf<Utils::STATS>("ResidualBlock\n");
         }
     }
-    Utils::auto_printf("Policy Channels : %d\n", nn_weight->policy_extract_channels);
-    Utils::auto_printf("Value Channels : %d\n", nn_weight->value_extract_channels);
+    Utils::printf<Utils::STATS>("Policy Channels : %d\n", nn_weight->policy_extract_channels);
+    Utils::printf<Utils::STATS>("Value Channels : %d\n", nn_weight->value_extract_channels);
 }
 
 std::vector<float> get_weights_from_file(std::istream &weights_file) {

@@ -53,8 +53,6 @@
 #include <string>
 #include <vector>
 
-using namespace Utils;
-
 Network::~Network() {
     m_forward->destroy();  
 }
@@ -64,19 +62,19 @@ void Network::initialize(const int playouts, const std::string &weightsfile) {
 #ifndef __APPLE__
 #ifdef USE_OPENBLAS
     openblas_set_num_threads(1);
-    auto_printf("BLAS Core: %s\n", openblas_get_corename());
+    Utils::printf<Utils::AUTO>("BLAS Core: %s\n", openblas_get_corename());
 #endif
 #ifdef USE_MKL
     mkl_set_num_threads(1);
     MKLVersion Version;
     mkl_get_version(&Version);
-    auto_printf("BLAS core: MKL %s\n", Version.Processor);
+    Utils::printf<Utils::AUTO>("BLAS core: MKL %s\n", Version.Processor);
 #endif
 #endif
 
 #ifdef USE_EIGEN
-    auto_printf("BLAS Core: built-in Eigen %d.%d.%d library.\n",
-                 EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION);
+    Utils::printf<Utils::AUTO>("BLAS Core: built-in Eigen %d.%d.%d library.\n",
+                               EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION);
 #endif
     set_playouts(playouts);
 
@@ -94,7 +92,7 @@ void Network::initialize(const int playouts, const std::string &weightsfile) {
     m_forward->initialize(m_weights);
 
     if (m_weights->loaded) {
-        auto_printf("Weights are pushed down\n");
+        Utils::printf<Utils::AUTO>("Weights are pushed down\n");
     }
 
     m_weights.reset();
@@ -111,7 +109,7 @@ void Network::reload_weights(const std::string &weightsfile) {
     m_forward->reload(m_weights);
 
     if (m_weights->loaded) {
-        auto_printf("Weights are pushed down\n");
+        Utils::printf<Utils::AUTO>("Weights are pushed down\n");
     }
     m_weights.reset();
     m_weights = nullptr;

@@ -144,8 +144,8 @@ size_t Cache<EntryType>::get_estimated_size() {
 
 template <typename EntryType> 
 void Cache<EntryType>::dump_stats() {
-    Utils::auto_printf("NNCache: %d/%d hits/lookups = %.1f%% hitrate, %d inserts, %lu size\n",
-                       m_hits, m_lookups, 100. * m_hits / (m_lookups + 1), m_inserts,
-                       m_cache.size());
+    Utils::printf<Utils::STATS>("NNCache: %d/%d hits/lookups = %.1f%% hitrate, %d inserts, %lu size\n",
+                                m_hits, m_lookups, 100. * m_hits / (m_lookups + 1), m_inserts,
+                                m_cache.size());
 }
 #endif

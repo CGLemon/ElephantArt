@@ -21,24 +21,25 @@
 
 #include "Engine.h"
 #include "Utils.h"
+#include "CMLInterface.h"
 
 #include <memory>
 #include <string>
 
-class ASCII {
+class ASCII : public CMLInterface {
 public:
     ASCII();
     ASCII(const ASCII&) = delete;
     ASCII& operator=(const ASCII&) = delete;
 
 private:
-    void init();
+    virtual void init();
 
-    void loop();
+    virtual void loop();
+
+    virtual std::string execute(Utils::CommandParser &parser);
 
     std::unique_ptr<Engine> m_ascii_engine{nullptr};
-
-    std::string execute(Utils::CommandParser &parser);
 };
 
 #endif

@@ -25,7 +25,9 @@
  * https://www.xqbase.com/protocol/cchess_ucci.htm
  */
 
-class UCCI {
+#include "CMLInterface.h"
+
+class UCCI : public CMLInterface {
 
     
 

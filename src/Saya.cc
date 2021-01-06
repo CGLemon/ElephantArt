@@ -18,13 +18,14 @@
 
 #include "ASCII.h"
 #include "config.h"
+#include "Utils.h"
 
 #include <iostream>
 #include <string>
 #include <sstream>
 #include <memory>
 
-const static std::string get_License() {
+const static std::string get_license() {
 
     auto out = std::ostringstream{};
     out << "    ";
@@ -42,9 +43,10 @@ static void ascii_loop() {
 
 int main(int argc, char** argv) {
 
-    std::cout << get_License();
+    const auto args = ArgsParser(argc, argv);
+    const auto license = get_license();
 
-    auto args = ArgsParser(argc, argv);
+    Utils::printf<Utils::SYNC>("%s", license.c_str());
     args.dump();
 
     init_basic_parameters();

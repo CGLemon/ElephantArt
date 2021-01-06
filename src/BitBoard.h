@@ -238,9 +238,9 @@ public:
 
     std::uint16_t get_data() const;
 
-    BitBoard get_from_bitboard() const {return Utils::vertex2bitboard(get_from()); }
+    BitBoard get_from_bitboard() const { return Utils::vertex2bitboard(get_from()); }
 
-    BitBoard get_to_bitboard() const {return Utils::vertex2bitboard(get_to()); }
+    BitBoard get_to_bitboard() const { return Utils::vertex2bitboard(get_to()); }
 
     bool hit(BitBoard &b) const;
 

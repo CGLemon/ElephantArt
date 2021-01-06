@@ -21,6 +21,7 @@
 
 #include "config.h"
 
+#include <cstdarg>
 #include <thread>
 #include <iostream>
 #include <cassert>
@@ -35,12 +36,23 @@
 
 namespace Utils {
 
-void auto_printf(const char *fmt, ...);
+enum Printf_t {
+    SYNC, STATIC, AUTO, EXTERN, STATS
+};
 
-void auto_printf(std::ostringstream &out);
+template <Printf_t>
+void printf_base(const char *fmt, va_list va);
+
+template <Printf_t>
+void printf(const char *fmt, ...);
+
+template <Printf_t>
+void printf(std::ostringstream &out);
+
+// void auto_printf(const char *fmt, ...);
+// void auto_printf(std::ostringstream &out);
 
 void space_stream(std::ostream &out, const size_t times);
-
 void strip_stream(std::ostream &out, const size_t times);
 
 float cached_t_quantile(int v);

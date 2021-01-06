@@ -53,7 +53,7 @@ public:
     int get_maps() const;
     float get_policy() const;
     int get_visits() const;
-    int get_color() const;
+    Types::Color get_color() const;
 
     float get_eval_variance(const float default_var, const int visits) const;
     float get_eval_lcb(const Types::Color color) const;
@@ -62,6 +62,7 @@ public:
     int get_best_move();
     int randomize_first_proportionally(float random_temp);
 
+    const std::vector<std::shared_ptr<UCTNodePointer>> &get_children() const;
     UCTNode *get_child(const int maps);
     UCTNode *get();
 

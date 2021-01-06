@@ -65,7 +65,7 @@ SearchInfo Search::nn_direct() {
             << std::endl;
     }
 
-    Utils::auto_printf(out);
+    Utils::printf<Utils::AUTO>(out);
     info.analysis = out.str();
 
     return info;

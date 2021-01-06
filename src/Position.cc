@@ -32,7 +32,11 @@ void Position::init_game(int tag) {
 }
 
 void Position::display() const {
-    board.dump_board();
+    if (option<bool>("using_traditional_chinese")) {
+        board.dump_board<Types::TRADITIONAL_CHINESE>();
+    } else {
+        board.dump_board<Types::ASCII>();
+    }
 }
 
 void Position::push_board() {
@@ -200,6 +204,10 @@ Move Position::get_last_move() const {
     return board.get_last_move();
 }
 
+Types::Piece_t Position::get_piece_type(const Types::Vertices vtx) const {
+    return board.get_piece_type(vtx);
+}
+
 const std::shared_ptr<const Board> Position::get_past_board(const int p) const {
     const auto movenum = get_movenum();
     assert(0 <= p && p <= movenum);
@@ -209,7 +217,11 @@ const std::shared_ptr<const Board> Position::get_past_board(const int p) const {
 std::string Position::history_board() const {
     auto out = std::ostringstream{};
     for (const auto &board : m_history) {
-        board->board_stream(out);
+        if (option<bool>("using_traditional_chinese")) {
+            board->board_stream<Types::TRADITIONAL_CHINESE>(out);
+        } else {
+            board->board_stream<Types::ASCII>(out);
+        }
     }
     return out.str();
 }
