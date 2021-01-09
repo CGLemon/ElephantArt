@@ -292,6 +292,30 @@ void printf<STATS>(std::ostringstream &out) {
     printf<AUTO>(out);
 }
 
+template <>
+void printf_base<ANALYSIS>(const char *fmt, va_list va) {
+    if (option<bool>("quiet_search_verbose")) {
+        return;
+    }
+    printf_base<AUTO>(fmt, va);
+}
+
+template <>
+void printf<ANALYSIS>(const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    printf_base<ANALYSIS>(fmt, va);
+    va_end(va);
+}
+
+template <>
+void printf<ANALYSIS>(std::ostringstream &out) {
+    if (option<bool>("quiet_search_verbose")) {
+        return;
+    }
+    printf<AUTO>(out);
+}
+
 // void auto_printf(const char *fmt, ...) {
 // 
 //     if (option<bool>("quiet")) {

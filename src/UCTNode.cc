@@ -21,14 +21,17 @@
 
 UCTNode::UCTNode(std::shared_ptr<UCTNodeData> data) {
     assert(data->parameters != nullptr);
-    increment_nodes();
     m_data = data;
+    increment_nodes();
 }
 
 UCTNode::~UCTNode() {
     assert(get_threads() == 0);
     decrement_nodes();
     release_all_children();
+    for (auto i = size_t{0}; i < m_children.size(); ++i) {
+        decrement_edges();
+    }
 }
 
 bool UCTNode::expend_children(Network &network,
@@ -286,7 +289,7 @@ UCTNode *UCTNode::get_child(const int maps) {
     }
 
     assert(res != nullptr);
-    res->inflate();
+    inflate(res);
     return res->get();
 }
 
@@ -337,7 +340,7 @@ std::vector<std::pair<float, int>> UCTNode::get_winrate_list(const Types::Color 
 }
 
 UCTNode *UCTNode::uct_select_child(const Types::Color color,
-                                   const bool is_root) const {
+                                   const bool is_root) {
     wait_expanded();
     assert(has_children());
 
@@ -407,14 +410,19 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
             best_node = child;
         }
     }
-
-    best_node->inflate();
+    inflate(best_node);
     return best_node->get();
 }
 
-void UCTNode::update(UCTNodeEvals &evals) {
+void UCTNode::apply_evals(std::shared_ptr<UCTNodeEvals> evals) {
+    m_red_stmeval = evals->red_stmeval;
+    m_red_winloss = evals->red_winloss;
+    m_draw = evals->draw;
+}
 
-    const float eval = 0.5f * (evals.red_stmeval + evals.red_winloss);
+void UCTNode::update(std::shared_ptr<UCTNodeEvals> evals) {
+
+    const float eval = 0.5f * (evals->red_stmeval + evals->red_winloss);
     const float old_stmeval = m_accumulated_red_stmevals.load();
     const float old_winloss = m_accumulated_red_wls.load();
     const float old_visits = m_visits.load();
@@ -427,9 +435,9 @@ void UCTNode::update(UCTNodeEvals &evals) {
 
     m_visits.fetch_add(1);
     Utils::atomic_add(m_squared_eval_diff, delta);
-    Utils::atomic_add(m_accumulated_red_stmevals, evals.red_stmeval);
-    Utils::atomic_add(m_accumulated_red_wls, evals.red_winloss);
-    Utils::atomic_add(m_accumulated_draws, evals.draw);
+    Utils::atomic_add(m_accumulated_red_stmevals, evals->red_stmeval);
+    Utils::atomic_add(m_accumulated_red_wls, evals->red_winloss);
+    Utils::atomic_add(m_accumulated_draws, evals->draw);
 }
 
 void UCTNode::dirichlet_noise(const float epsilon, const float alpha) {
@@ -470,7 +478,6 @@ void UCTNode::dirichlet_noise(const float epsilon, const float alpha) {
 UCTNodeEvals UCTNode::prepare_root_node(Network &network,
                                         Position &position) {
 
-    const auto epsilon = parameters()->dirichlet_epsilon;
     const auto noise = parameters()->dirichlet_noise;
     const auto is_root = true;
     const auto success = expend_children(network, position, 0.0f, is_root);
@@ -479,9 +486,12 @@ UCTNodeEvals UCTNode::prepare_root_node(Network &network,
 
     if (success && had_childen) {
         inflate_all_children();
-        const auto legal_move = m_children.size();
         if (noise) {
-            const auto alpha = 0.03f * 90.0f / static_cast<float>(legal_move);
+            const auto legal_move = m_children.size();
+            const auto epsilon = parameters()->dirichlet_epsilon;
+            const auto factor = parameters()->dirichlet_factor;
+            const auto init = parameters()->dirichlet_init;
+            const auto alpha = init * factor / static_cast<float>(legal_move);
             dirichlet_noise(epsilon, alpha);
         }
     }
@@ -630,7 +640,7 @@ void UCTNode::inflate_all_children() {
 
 void UCTNode::release_all_children() {
     for (const auto &child : m_children) {
-        release(child);
+         release(child);
     }
 }
 

@@ -5,6 +5,8 @@ SearchParameters::SearchParameters() {
 }
 
 void SearchParameters::reset() {
+    threads            = option<int>("threads");
+    visits             = option<int>("visits");
     playouts           = option<int>("playouts");
     random_min_visits  = option<int>("random_min_visits");
 
@@ -21,4 +23,6 @@ void SearchParameters::reset() {
     draw_factor        = option<float>("draw_factor");
     draw_root_factor   = option<float>("draw_root_factor");
     dirichlet_epsilon  = option<float>("dirichlet_epsilon");
+    dirichlet_factor   = option<float>("dirichlet_factor");
+    dirichlet_init     = option<float>("dirichlet_init");
 }

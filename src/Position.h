@@ -20,6 +20,7 @@
 #define POSITION_H_INCLUDE
 
 #include "Board.h"
+#include "Types.h"
 
 #include <vector>
 #include <memory>
@@ -31,6 +32,7 @@ public:
 
     void display() const;
 
+    void do_resigned();
     void push_board();
     bool fen(std::string &fen);
     bool is_legal(Move move) const;
@@ -39,7 +41,7 @@ public:
     bool do_textmove(std::string move);
 
     bool undo();
-
+    bool gameover();
     bool position(std::string &fen, std::string &moves);
 
     std::vector<Move> get_movelist() const;
@@ -52,12 +54,16 @@ public:
 
     Board board;
     
+    Types::Color get_winner() const;
     std::uint64_t get_hash() const;
     std::uint64_t calc_hash(const int symmetry = Board::IDENTITY_SYMMETRY) const;
 
     const std::shared_ptr<const Board> get_past_board(const int p) const;
     std::string history_board() const;
+
 private:
+    Types::Color resigned{Types::INVALID_COLOR};
+
     std::uint64_t position_hash;
     int m_startboard;
     std::vector<std::shared_ptr<const Board>> m_history;

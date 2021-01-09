@@ -654,7 +654,7 @@ void Board::pre_initialize() {
 }
 
 template<>
-void Board::piece_stream<Types::ASCII>(std::ostream &out, Types::Piece p) const {
+void Board::piece_stream<Types::ASCII>(std::ostream &out, Types::Piece p) {
     p == Types::R_PAWN      ? out << option<char>("red_pawn_en")     : p == Types::B_PAWN      ? out << option<char>("black_pawn_en")     :
     p == Types::R_HORSE     ? out << option<char>("red_horse_en")    : p == Types::B_HORSE     ? out << option<char>("black_horse_en")    :
     p == Types::R_CANNON    ? out << option<char>("red_cannon_en")   : p == Types::B_CANNON    ? out << option<char>("black_cannon_en")   :
@@ -666,7 +666,7 @@ void Board::piece_stream<Types::ASCII>(std::ostream &out, Types::Piece p) const 
 }
 
 template<>
-void Board::piece_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out, Types::Piece p) const {
+void Board::piece_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out, Types::Piece p) {
     using STR = std::string;
     p == Types::R_PAWN      ? out << option<STR>("red_pawn_ch")     : p == Types::B_PAWN      ? out << option<STR>("black_pawn_ch")     :
     p == Types::R_HORSE     ? out << option<STR>("red_horse_ch")    : p == Types::B_HORSE     ? out << option<STR>("black_horse_ch")    :
@@ -1227,6 +1227,10 @@ void Board::increment_movenum() {
 void Board::decrement_movenum() {
     m_movenum--;
     m_gameply = (m_movenum / 2) + 1;
+}
+
+std::array<Types::Vertices, 2> Board::get_kings() const {
+    return m_king_vertex;
 }
 
 Types::Color Board::get_to_move() const {

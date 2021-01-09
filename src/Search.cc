@@ -11,17 +11,161 @@
 #include "Decoder.h"
 #include "config.h"
 
-ThreadPool SearchPool;
+Search::Search(Position &position, Network &network, Train &train) : 
+    m_position(position),  m_network(network), m_train(train) {
 
-Search::Search(Position &position, Network &network) : 
-    m_position(position),  m_network(network) {
-
-    m_threadGroup = std::make_unique<ThreadGroup<void>>(SearchPool);
     m_parameters = std::make_shared<SearchParameters>();
+
+    const auto t = m_parameters->threads - 1;
+    m_searchpool.initialize(t);
+    m_threadGroup = std::make_unique<ThreadGroup<void>>(m_searchpool);
+
+    m_maxplayouts = m_parameters->playouts;
+    m_maxvisits = m_parameters->visits;
 }
 
 Search::~Search() {
+    clear_nodes();
+}
 
+void Search::increment_playouts() {
+    m_playouts.fetch_add(1);
+}
+
+float Search::get_min_psa_ratio() {
+    auto v = m_playouts.load();
+    if (v >= MAX_PLAYOUTS) {
+        return 1.0f;
+    }
+    return 0.0f;
+}
+
+bool Search::is_uct_running() {
+    return m_running.load();
+}
+
+void Search::set_running(bool is_running) {
+    m_running.store(is_running);
+}
+
+void Search::set_playouts(int playouts) {
+    m_playouts.store(playouts);
+}
+
+bool Search::stop_thinking() const {
+   return m_playouts.load() > m_maxplayouts ||
+              m_rootnode->get_visits() > m_maxvisits;
+}
+
+void Search::play_simulation(Position &currposition, UCTNode *const node,
+                             UCTNode *const root_node, SearchResult &search_result) {
+
+    node->increment_threads();
+
+    if (node->expandable()) {
+        if (currposition.gameover()) {
+            search_result.from_gameover(currposition);
+            node->apply_evals(search_result.nn_evals());
+        } else {
+            const bool had_children = node->has_children();
+            const bool success = node->expend_children(m_network,
+                                                       currposition,
+                                                       get_min_psa_ratio());
+            if (!had_children && success) {
+                const auto nn_evals = node->get_node_evals();
+                search_result.from_nn_evals(nn_evals);
+            }
+        }
+    }
+
+    if (node->has_children() && !search_result.valid()) {
+        auto color = currposition.get_to_move();
+        auto next = node->uct_select_child(color, node == root_node);
+        auto maps = next->get_maps();
+        auto move = Decoder::maps2move(maps);
+        currposition.do_move_assume_legal(move);
+        play_simulation(currposition, next, root_node, search_result);
+    }
+
+    if (search_result.valid()) {
+        auto out = search_result.nn_evals();
+        node->update(out);
+    }
+
+    node->decrement_threads();
+}
+
+SearchInfo Search::uct_search() {
+    m_rootposition = m_position;
+    const auto uct_worker = [&]() -> void {
+        do {
+            auto currposition = std::make_unique<Position>(m_rootposition);
+            auto result = SearchResult{};
+            play_simulation(*currposition, m_rootnode, m_rootnode, result);
+            if (result.valid()) {
+                increment_playouts();
+            }
+        } while(is_uct_running());
+    };
+    auto info = SearchInfo{};
+    auto out = std::ostringstream{};
+
+    prepare_uct(out);
+    m_threadGroup->fill_tasks(uct_worker);
+
+    bool keep_running = true;
+    do {
+        auto currposition = std::make_unique<Position>(m_rootposition);
+        auto result = SearchResult{};
+        play_simulation(*currposition, m_rootnode, m_rootnode, result);
+        if (result.valid()) {
+            increment_playouts();
+        }
+
+        keep_running &= (!stop_thinking());
+        set_running(keep_running);
+    } while (is_uct_running());
+
+    m_threadGroup->wait_all();
+    info.move = uct_best_move();
+    clear_nodes();
+
+    return info;
+}
+
+Move Search::uct_best_move() const {
+    const auto maps = m_rootnode->get_best_move();
+    return Decoder::maps2move(maps);
+}
+
+void Search::prepare_uct(std::ostream &out) {
+    auto data = std::make_shared<UCTNodeData>();
+    m_nodestats = std::make_shared<UCTNodeStats>();
+    data->parameters = m_parameters;
+    data->node_status = m_nodestats;
+    m_rootnode = new UCTNode(data);
+
+    set_playouts(0);
+    set_running(true);
+    m_rootnode->prepare_root_node(m_network, m_rootposition);
+
+    auto nn_eval = m_rootnode->get_node_evals();
+    out << "stm eval : " << nn_eval.red_stmeval << std::endl;
+    out << "winloss : " << nn_eval.red_winloss << std::endl;
+    out << "draw probability : " << nn_eval.draw << std::endl;
+}
+
+void Search::clear_nodes() {
+    if (m_rootnode) {
+        delete m_rootnode;
+        m_rootnode = nullptr;
+    }
+    if (m_nodestats) {
+        assert(m_nodestats->nodes.load() == 0);
+        assert(m_nodestats->edges.load() == 0);
+        m_nodestats.reset();
+        m_nodestats = nullptr;
+    }
 }
 
 SearchInfo Search::nn_direct() {
@@ -65,8 +209,7 @@ SearchInfo Search::nn_direct() {
             << std::endl;
     }
 
-    Utils::printf<Utils::AUTO>(out);
-    info.analysis = out.str();
+    Utils::printf<Utils::ANALYSIS>(out);
 
     return info;
 }

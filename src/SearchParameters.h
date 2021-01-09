@@ -3,12 +3,14 @@
 
 #include "config.h"
 
-class SearchParameters {
-public:
+struct SearchParameters {
+
     SearchParameters();
 
     void reset();
 
+    int threads;
+    int visits;
     int playouts;
     int random_min_visits;
 
@@ -25,6 +27,8 @@ public:
     float draw_factor;
     float draw_root_factor;
     float dirichlet_epsilon;
+    float dirichlet_factor;
+    float dirichlet_init;
 };
 
 #endif

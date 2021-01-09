@@ -61,7 +61,7 @@ public:
     ENABLE_BASE_OPERATORS_ON(Direction)
 
     enum Color : int {
-        RED = 0, BLACK, INVALID_COLOR, COLOR_NB = 2
+        RED = 0, BLACK, EMPTY_COLOR, INVALID_COLOR, COLOR_NB = 2
     };
 
     enum Piece_t : int {

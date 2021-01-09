@@ -70,6 +70,7 @@ void init_options_map() {
 
     options_map["gpu"] << Utils::Option::setoption(0);
     options_map["batchsize"] << Utils::Option::setoption(1, 256, 1);
+    options_map["threads"] << Utils::Option::setoption(1, 256, 1);
 
     options_map["quiet"] << Utils::Option::setoption(false);
     options_map["quiet_stats"] << Utils::Option::setoption(false);
@@ -84,8 +85,11 @@ void init_options_map() {
     options_map["weights_file"] << Utils::Option::setoption(NO_WEIGHT_FILE_NAME);
     options_map["float_precision"] << Utils::Option::setoption(5);
     options_map["winograd"] << Utils::Option::setoption(false);
-    
+    options_map["min_cutoff"] << Utils::Option::setoption(1);
+
+    options_map["ponder"] << Utils::Option::setoption(false);
     options_map["playouts"] << Utils::Option::setoption(1600);
+    options_map["visits"] << Utils::Option::setoption(1600);
     options_map["fpu_root_reduction"] << Utils::Option::setoption(0.25f);
     options_map["fpu_reduction"] << Utils::Option::setoption(0.25f);
     options_map["cpuct_init"] << Utils::Option::setoption(2.5f);
@@ -95,14 +99,15 @@ void init_options_map() {
     options_map["draw_factor"] << Utils::Option::setoption(0.f);
     options_map["draw_root_factor"] << Utils::Option::setoption(0.f);
 
-    options_map["random_min_visits"] << Utils::Option::setoption(1);
-    
-    options_map["dirichlet_noise"] << Utils::Option::setoption(false);
-    options_map["dirichlet_epsilon"] << Utils::Option::setoption(0.25f);
-
-    options_map["ponder"] << Utils::Option::setoption(false);
     options_map["collect"] << Utils::Option::setoption(false);
     options_map["collect_buffer_size"] << Utils::Option::setoption(1000, 10000, 0);
+    options_map["random_min_visits"] << Utils::Option::setoption(1);
+    options_map["random_move_cnt"] << Utils::Option::setoption(0);
+
+    options_map["dirichlet_noise"] << Utils::Option::setoption(false);
+    options_map["dirichlet_epsilon"] << Utils::Option::setoption(0.25f);
+    options_map["dirichlet_init"] << Utils::Option::setoption(0.3f);
+    options_map["dirichlet_factor"] << Utils::Option::setoption(60.f);
 
     options_map["waittime"] << Utils::Option::setoption(10);
 
@@ -176,6 +181,10 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         set_option("quiet_stats", true);
     }
 
+    if (const auto res = parser.find("--quiet_verbose")) {
+        set_option("quiet_search_verbose", true);
+    }
+
     if (const auto res = parser.find("--collect")) {
         set_option("collect", true);
     }
@@ -197,6 +206,18 @@ ArgsParser::ArgsParser(int argc, char** argv) {
     if (const auto res = parser.find_next({"--playouts", "-p"})) {
         if (is_parameter(res->str)) {
             set_option("playouts", res->get<int>());
+        }
+    }
+
+    if (const auto res = parser.find_next({"--visits", "-v"})) {
+        if (is_parameter(res->str)) {
+            set_option("visits", res->get<int>());
+        }
+    }
+
+    if (const auto res = parser.find_next({"--threads", "-t"})) {
+        if (is_parameter(res->str)) {
+            set_option("threads", res->get<int>());
         }
     }
 

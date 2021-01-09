@@ -21,12 +21,12 @@
 
 #include "Engine.h"
 #include "Utils.h"
-#include "CMLInterface.h"
+#include "CLInterface.h"
 
 #include <memory>
 #include <string>
 
-class ASCII : public CMLInterface {
+class ASCII : public CLInterface {
 public:
     ASCII();
     ASCII(const ASCII&) = delete;

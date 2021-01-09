@@ -180,8 +180,9 @@ void Model::load_weights(const std::string &filename,
     file.open(filename.c_str());
 
     if (!file.is_open()) {
-        file.close();
-        Utils::printf<Utils::AUTO>("Could not opne file : %s!\n", filename.c_str());
+        if (filename != NO_WEIGHT_FILE_NAME) {
+            Utils::printf<Utils::AUTO>("Could not opne file : %s!\n", filename.c_str());
+        }
         return;
     }
 

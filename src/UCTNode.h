@@ -43,7 +43,6 @@ public:
 
     UCTNodeEvals prepare_root_node(Network &network,
                                    Position &position);
-
     bool expend_children(Network &network,
                          Position &position,
                          const float min_psa_ratio,
@@ -67,9 +66,10 @@ public:
     UCTNode *get();
 
     UCTNode *uct_select_child(const Types::Color color,
-                              const bool is_root) const;
-    
-    void update(UCTNodeEvals &evals);
+                              const bool is_root);
+
+    void apply_evals(std::shared_ptr<UCTNodeEvals> evals);
+    void update(std::shared_ptr<UCTNodeEvals> evals);
 
     void increment_threads();
     void decrement_threads();

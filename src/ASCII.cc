@@ -57,7 +57,7 @@ void ASCII::loop() {
                 break;
             }
             auto out = execute(parser);
-            Utils::printf<Utils::STATIC>("%s\n", out.c_str());
+            Utils::printf<Utils::SYNC>("%s\n", out.c_str());
         }
     }
 }
@@ -122,13 +122,15 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         lambda_syntax_not_understood(parser, 2);
         const auto cnt = parser.get_count();
         if (cnt == 1) { 
-
+            out << m_ascii_engine->uct_search();
         } else {
             const auto mode = parser.get_command(1)->str;
             if (mode == "rand") {
                 out << m_ascii_engine->rand_move();
             } else if (mode == "nn-direct") {
                 out << m_ascii_engine->nn_direct();
+            } else if (mode == "uct") {
+                out << m_ascii_engine->uct_search();
             }
         }
     } else if (const auto res = parser.find("position", 0)) {

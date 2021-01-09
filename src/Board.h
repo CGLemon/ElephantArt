@@ -72,6 +72,7 @@ public:
     int get_gameply() const;
     std::uint64_t get_hash() const;
     Move get_last_move() const;
+    std::array<Types::Vertices, 2> get_kings() const;
 
     int generate_movelist(Types::Color color, std::vector<Move> &MoveList) const;
 
@@ -81,6 +82,7 @@ public:
 
     template<Types::Language> void board_stream(std::ostream &out) const;
     template<Types::Language> void dump_board() const;
+    template<Types::Language> static void piece_stream(std::ostream &out, Types::Piece p);
 
     bool fen2board(std::string &fen);
 
@@ -220,7 +222,6 @@ private:
     std::uint64_t m_hash;
 
     template<Types::Piece_t> int generate_move(Types::Color color, std::vector<Move> &MoveList) const;
-    template<Types::Language> void piece_stream(std::ostream &out, Types::Piece p) const;
     template<Types::Language> void piece_stream(std::ostream &out, const int x, const int y) const;
     template<Types::Language> void info_stream(std::ostream &out) const;
 

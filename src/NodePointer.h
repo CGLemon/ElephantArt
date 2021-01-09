@@ -134,11 +134,11 @@ inline bool NodePointer<Node, Data>::inflate() {
             std::this_thread::yield();
             continue;
         }
-        auto new_ponter =
+        auto new_pointer =
             reinterpret_cast<std::uint64_t>(new Node(m_data)) |
             POINTER;
-        auto old_ponter = m_pointer.exchange(new_ponter);
-        assert(is_inflating(old_ponter));
+        auto old_pointer = m_pointer.exchange(new_pointer);
+        assert(is_inflating(old_pointer));
         return true;
     }
 }
@@ -148,6 +148,8 @@ inline bool NodePointer<Node, Data>::release() {
     auto v = m_pointer.load();
     if (is_pointer(v)) {
         delete read_ptr(v);
+        auto pointer = m_pointer.exchange(UNINFLATED);
+        assert(pointer == v);
         return true;
     }
     return false;

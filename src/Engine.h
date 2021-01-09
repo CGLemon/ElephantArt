@@ -22,6 +22,7 @@
 #include "Position.h"
 #include "Network.h"
 #include "Search.h"
+#include "Train.h"
 
 #include <memory>
 #include <string>
@@ -52,15 +53,18 @@ public:
     Response history_board(const int g = DEFUALT_POSITION);
     Response rand_move(const int g = DEFUALT_POSITION);
     Response nn_direct(const int g = DEFUALT_POSITION);
+    Response uct_search(const int g = DEFUALT_POSITION);
     Response get_maps();
 
 private:
-    int adj_position_ref(const int g) const;
+    int adjust_ref(const int g) const;
 
     std::shared_ptr<Position> get_position(const int g) const;
     std::shared_ptr<Search> get_search(const int g) const;
+    std::shared_ptr<Train> get_train(const int g) const;
 
     std::unique_ptr<Network> m_network{nullptr};
+    std::vector<std::shared_ptr<Train>> m_train_group;
     std::vector<std::shared_ptr<Search>> m_search_group;
     std::vector<std::shared_ptr<Position>> m_positions;
 

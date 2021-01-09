@@ -29,12 +29,12 @@ void Engine::initialize() {
 
     const auto games = (size_t)option<int>("num_games");
 
+    m_positions.clear();
+    m_train_group.clear();
+    m_search_group.clear();
+
     while (m_positions.size() < games) {
         m_positions.emplace_back(std::make_shared<Position>());
-    }
-
-    while (m_positions.size() > games) {
-        m_positions.pop_back();
     }
     
     int tag = 0;
@@ -49,16 +49,20 @@ void Engine::initialize() {
                               option<std::string>("weights_file"));
     }
 
-    while (m_search_group.size() < games) {
-        m_search_group.emplace_back(std::make_shared<Search>(*get_position(m_search_group.size()-1), *m_network));
+    while (m_train_group.size() < games) {
+        m_train_group.emplace_back(std::make_shared<Train>());
     }
 
-    while (m_search_group.size() > games) {
-        m_search_group.pop_back();
+    while (m_search_group.size() < games) {
+        const auto s = m_search_group.size();
+        m_search_group.emplace_back(std::make_shared<Search>(
+                                        *get_position(s),
+                                        *m_network,
+                                        *get_train(s)));
     }
 }
 
-int Engine::adj_position_ref(const int g) const {
+int Engine::adjust_ref(const int g) const {
     if (g < 0 || g > option<int>("num_games")) {
         return DEFUALT_POSITION;
     }
@@ -66,13 +70,18 @@ int Engine::adj_position_ref(const int g) const {
 }
 
 std::shared_ptr<Position> Engine::get_position(const int g) const {
-    const auto adj_g = adj_position_ref(g);
+    const auto adj_g = adjust_ref(g);
     return m_positions[adj_g];
 }
 
 std::shared_ptr<Search> Engine::get_search(const int g) const {
-    const auto adj_g = adj_position_ref(g);
+    const auto adj_g = adjust_ref(g);
     return m_search_group[adj_g];
+}
+
+std::shared_ptr<Train> Engine::get_train(const int g) const {
+    const auto adj_g = adjust_ref(g);
+    return m_train_group[adj_g];
 }
 
 void Engine::reset_game(const int g) {
@@ -241,6 +250,18 @@ Engine::Response Engine::nn_direct(const int g) {
     const auto s = get_search(g);
 
     const auto res = s->nn_direct();
+    const auto success = p->do_move(res.move);
+    assert(success);
+
+    return rep.str();
+}
+
+Engine::Response Engine::uct_search(const int g) {
+    auto rep = std::ostringstream{};
+    const auto p = get_position(g); 
+    const auto s = get_search(g);
+
+    const auto res = s->uct_search();
     const auto success = p->do_move(res.move);
     assert(success);
 

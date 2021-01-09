@@ -29,6 +29,7 @@ void Position::init_game(int tag) {
     m_history.clear();
     board.reset_board();
     push_board();
+    resigned = Types::INVALID_COLOR;
 }
 
 void Position::display() const {
@@ -37,6 +38,11 @@ void Position::display() const {
     } else {
         board.dump_board<Types::ASCII>();
     }
+}
+
+void Position::do_resigned() {
+    assert(resigned == Types::INVALID_COLOR);
+    resigned = get_to_move();
 }
 
 void Position::push_board() {
@@ -178,6 +184,27 @@ bool Position::position(std::string &fen, std::string& moves) {
     }
 
     return moves_success;
+}
+
+bool Position::gameover() {
+    return get_winner() != Types::INVALID_COLOR;
+}
+
+Types::Color Position::get_winner() const {
+    if (resigned != Types::INVALID_COLOR) {
+        if (resigned == Types::EMPTY_COLOR) {
+            return Types::EMPTY_COLOR;
+        }
+        return Board::swap_color(resigned);
+    }
+
+    const auto kings = board.get_kings();
+    if (kings[Types::RED] == Types::NO_VERTEX) {
+        return Types::BLACK;
+    } else if (kings[Types::BLACK] == Types::NO_VERTEX) {
+        return Types::RED;
+    }
+    return Types::INVALID_COLOR;
 }
 
 Types::Color Position::get_to_move() const {

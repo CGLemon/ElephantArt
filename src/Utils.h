@@ -37,7 +37,7 @@
 namespace Utils {
 
 enum Printf_t {
-    SYNC, STATIC, AUTO, EXTERN, STATS
+    SYNC, STATIC, AUTO, EXTERN, STATS, ANALYSIS
 };
 
 template <Printf_t>
