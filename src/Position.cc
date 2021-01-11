@@ -33,10 +33,11 @@ void Position::init_game(int tag) {
 }
 
 void Position::display() const {
+    const auto lastmove = get_last_move();
     if (option<bool>("using_traditional_chinese")) {
-        board.dump_board<Types::TRADITIONAL_CHINESE>();
+        board.dump_board<Types::TRADITIONAL_CHINESE>(lastmove);
     } else {
-        board.dump_board<Types::ASCII>();
+        board.dump_board<Types::ASCII>(lastmove);
     }
 }
 
@@ -47,7 +48,7 @@ void Position::do_resigned() {
 
 void Position::push_board() {
     m_history.emplace_back(std::make_shared<const Board>(board));
-    assert(get_movenum() == (int)m_history.size() - 1);
+    assert(get_movenum() == (int)m_history.size()-1);
 }
 
 bool Position::fen(std::string &fen) {
@@ -55,7 +56,7 @@ bool Position::fen(std::string &fen) {
     auto fork_board = std::make_shared<Board>(board);
     auto success = fork_board->fen2board(fen);
     auto current_movenum = fork_board->get_movenum();
- 
+
     if (!success) {
         return false;
     } 
@@ -66,10 +67,10 @@ bool Position::fen(std::string &fen) {
             fill_board->increment_movenum();
             fill_board->swap_to_move();
             m_history.emplace_back(std::make_shared<const Board>(*fill_board));
-            assert(fill_board->get_movenum() == (int)m_history.size() - 1);
         }
+        assert(fill_board->get_movenum() == (int)m_history.size()-1);
     } else {
-        m_history.resize(current_movenum-1);
+        m_history.resize(current_movenum+1);
     }
 
     m_history[current_movenum] = fork_board;
@@ -87,6 +88,9 @@ bool Position::is_legal(Move move) const {
 void Position::do_move_assume_legal(Move move) {
     board.do_move(move);
     push_board();
+    if (is_eaten()) {
+        m_startboard = get_movenum();
+    }
 }
 
 bool Position::do_move(Move move) {
@@ -235,19 +239,28 @@ Types::Piece_t Position::get_piece_type(const Types::Vertices vtx) const {
     return board.get_piece_type(vtx);
 }
 
+Types::Piece Position::get_piece(const Types::Vertices vtx) const {
+    return board.get_piece(vtx);
+}
+
 const std::shared_ptr<const Board> Position::get_past_board(const int p) const {
     const auto movenum = get_movenum();
     assert(0 <= p && p <= movenum);
     return m_history[movenum - p];
 }
 
+bool Position::is_eaten() const {
+    return board.is_eaten();
+}
+
 std::string Position::history_board() const {
     auto out = std::ostringstream{};
+    const auto lastmove = get_last_move();
     for (const auto &board : m_history) {
         if (option<bool>("using_traditional_chinese")) {
-            board->board_stream<Types::TRADITIONAL_CHINESE>(out);
+            board->board_stream<Types::TRADITIONAL_CHINESE>(out, lastmove);
         } else {
-            board->board_stream<Types::ASCII>(out);
+            board->board_stream<Types::ASCII>(out, lastmove);
         }
     }
     return out.str();

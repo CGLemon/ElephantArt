@@ -65,7 +65,7 @@ public:
     SearchInfo uct_search();
 
 private:
-    void prepare_uct(std::ostream &out);
+    void prepare_uct();
     void clear_nodes();
     void increment_playouts();
     void play_simulation(Position &currposition, UCTNode *const node,

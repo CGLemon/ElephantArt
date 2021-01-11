@@ -38,17 +38,21 @@ bool UCTNode::expend_children(Network &network,
                               Position &position,
                               const float min_psa_ratio,
                               const bool is_root) {
-    
+
+    if (position.gameover()) {
+        return false;
+    }
+
     if (!acquire_expanding()) {
         return false;
     }
-    
+
     const auto raw_netlist =
         network.get_output(&position, Network::Ensemble::RANDOM_SYMMETRY);
-    
+
     m_color = position.get_to_move();
     link_nn_output(raw_netlist, m_color);
-    
+
     auto nodelist = std::vector<Network::PolicyMapsPair>{};
     float legal_accumulate = 0.0f;
 
@@ -61,7 +65,7 @@ bool UCTNode::expend_children(Network &network,
         nodelist.emplace_back(policy, maps);
         legal_accumulate += policy;
     }
-    
+
     if (legal_accumulate > 0.0f) {
         for (auto &node : nodelist) {
             node.first /= legal_accumulate;
@@ -72,7 +76,7 @@ bool UCTNode::expend_children(Network &network,
             node.first = 1.0f / cnt;
         }
     }
-    
+
     link_nodelist(nodelist, min_psa_ratio);
     expand_done();
     
@@ -108,7 +112,10 @@ void UCTNode::link_nn_output(const Network::Netresult &raw_netlist,
     auto wl = raw_netlist.winrate_misc[0] - raw_netlist.winrate_misc[2];
     auto draw = raw_netlist.winrate_misc[1];
 
-    if (color == Types::BLACK) {        
+    stmeval = (stmeval + 1) * 0.5f;
+    wl = (wl + 1) * 0.5f;
+
+    if (color == Types::BLACK) {
         stmeval = 1.0f - stmeval;
         wl = 1.0f - wl;
     }
@@ -410,6 +417,7 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
             best_node = child;
         }
     }
+
     inflate(best_node);
     return best_node->get();
 }
@@ -684,4 +692,65 @@ void UCTNode::wait_expanded() const {
         }
         std::this_thread::yield();
     }
+}
+
+
+void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off) {
+    const auto color = position.get_to_move();
+    const auto lcblist = node->get_lcb_list(color);
+    const auto parentvisits = static_cast<float>(node->get_visits());
+    assert(color == node->get_color());
+
+    Utils::printf<Utils::ANALYSIS>("Search List :\n"); 
+    Utils::printf<Utils::ANALYSIS>("Root -> %7d (V: %5.2f%%)\n",
+                                   node->get_visits(),
+                                   node->get_meaneval(color, false) * 100.f);
+
+    int push = 0;
+    for (auto &lcb : lcblist) {
+        const auto lcb_value = lcb.first > 0.0f ? lcb.first : 0.0f;
+        const auto maps = lcb.second;
+    
+        auto child = node->get_child(maps);
+        const auto visits = child->get_visits();
+        //const auto pobability = child->get_policy();
+        assert(visits != 0);
+    
+        const auto eval = child->get_meaneval(color, false);
+        const auto move = Decoder::maps2move(maps);
+        const auto pv_string = move.to_string() + " " + pv_to_srting(child);
+        const auto visit_ratio = static_cast<float>(visits) / parentvisits;
+        Utils::printf<Utils::ANALYSIS>("%4s -> %7d (V: %5.2f%%) (LCB: %5.2f%%) (N: %5.2f%%) PV: %s\n", 
+                                       move.to_string().c_str(),
+                                       visits,
+                                       eval * 100.f, 
+                                       lcb_value * 100.f,
+                                       visit_ratio * 100.f,
+                                       pv_string.c_str());
+
+        push++;
+        if (push == cut_off) {
+            Utils::printf<Utils::ANALYSIS>("     ...remain %d nodes\n", (int)lcblist.size() - cut_off);
+            break;
+        }
+    
+    }
+}
+
+std::string UCT_Information::pv_to_srting(UCTNode *node) {
+    auto pvlist = std::vector<int>{};
+    auto *next = node;
+    while (next->has_children()) {
+        const auto maps = next->get_best_move();
+        pvlist.emplace_back(maps);
+        next = next->get_child(maps);
+    }
+  
+    auto res = std::string{};
+    for (const auto &maps : pvlist) {
+        const auto move = Decoder::maps2move(maps);
+        res += move.to_string();
+        res += " ";
+    }
+    return res;
 }

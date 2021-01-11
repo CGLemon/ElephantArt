@@ -49,6 +49,7 @@ void Board::reset_board() {
     m_tomove = Types::RED;
     m_gameply = 1;
     m_movenum = 0;
+    m_eaten = false;
 
     auto start_position = get_start_position();
     fen2board(start_position);
@@ -123,7 +124,7 @@ bool Board::fen2board(std::string &fen) {
     const auto red_king_en = option<char>("red_king_en");
 
     auto vtx = Types::VTX_A9;
-    for (const auto &c : fen_stream) {
+    for (const char &c : fen_stream) {
         bool skip = false;
         if (c == black_pawn_en) {
             auto bb = Utils::vertex2bitboard(vtx);
@@ -617,7 +618,6 @@ void Board::init_magics() {
 
     auto t = timer.get_duration();
     Utils::printf<Utils::STATS>("Generating Magic numbers to spent %.4f second(s)\n", t);
-    // Utils::auto_printf("Generating Magic numbers to spent %.4f second(s)\n", t);
 }
 
 void Board::dump_memory() {
@@ -643,7 +643,6 @@ void Board::dump_memory() {
         res += sizeof(BitBoard) * m_cannonfile_magics[v].attacks.capacity();
     }
     Utils::printf<Utils::STATS>("Attacks Table Memory : %.4f (Mib)\n", (double)res / (1024.f * 1024.f));
-    // Utils::auto_printf("Attacks Table Memory : %.4f (Mib)\n", (double)res / (1024.f * 1024.f));
 }
 
 void Board::pre_initialize() {
@@ -771,21 +770,46 @@ void Board::fen_stream(std::ostream &out) const {
 }
 
 template<>
-void Board::board_stream<Types::ASCII>(std::ostream &out) const {
-
+void Board::board_stream<Types::ASCII>(std::ostream &out, const Move lastmove) const {
+    const auto from_vertex = lastmove.get_from();
+    const auto to_vertex = lastmove.get_to();
     for (int y = 0; y < HEIGHT; ++y) {
         Utils::space_stream(out, 1);
         out << "+---+---+---+---+---+---+---+---+---+";
         Utils::strip_stream(out, 1);
-
+        auto mark = false;
         for (int x = 0; x < WIDTH; ++x) {
-            out << " | ";
-
             const auto coordinate_x = x;
             const auto coordinate_y = HEIGHT - y - 1;
-            piece_stream<Types::ASCII>(out, coordinate_x, coordinate_y);
+            const auto coordinate_vtx = get_vertex(coordinate_x, coordinate_y);
+            if (mark) {
+                mark = false;
+                out << ")";
+            } else {
+                out << " ";
+            }
+
+            out << "|";
+
+            if (coordinate_vtx == to_vertex) {
+                mark = true;
+                out << "(";
+            } else {
+                out << " ";
+            }
+            if (coordinate_vtx == from_vertex) {
+                out << "*";
+            } else {
+                piece_stream<Types::ASCII>(out, coordinate_x, coordinate_y);
+            }
         }
-        out << " | ";
+        if (mark) {
+            mark = false;
+            out << ")";
+        } else {
+            out << " ";
+        }
+        out << "| ";
         out << HEIGHT - y - 1;
         Utils::strip_stream(out, 1);
     }
@@ -798,20 +822,41 @@ void Board::board_stream<Types::ASCII>(std::ostream &out) const {
 }
 
 template<>
-void Board::board_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out) const {
-
+void Board::board_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out, const Move lastmove) const {
+    const auto to_vertex = lastmove.get_to();
     for (int y = 0; y < HEIGHT; ++y) {
         Utils::space_stream(out, 1);
         out << "+----+----+----+----+----+----+----+----+----+";
         Utils::strip_stream(out, 1);
-
+        auto mark = false;
         for (int x = 0; x < WIDTH; ++x) {
-            out << " | ";
             const auto coordinate_x = x;
             const auto coordinate_y = HEIGHT - y - 1;
+            const auto coordinate_vtx = get_vertex(coordinate_x, coordinate_y);
+            if (mark) {
+                mark = false;
+                out << ")";
+            } else {
+                out << " ";
+            }
+
+            out << "|";
+
+            if (coordinate_vtx == to_vertex) {
+                mark = true;
+                out << "(";
+            } else {
+                out << " ";
+            }
             piece_stream<Types::TRADITIONAL_CHINESE>(out, coordinate_x, coordinate_y);
         }
-        out << " | ";
+        if (mark) {
+            mark = false;
+            out << ")";
+        } else {
+            out << " ";
+        }
+        out << "| ";
         out << HEIGHT - y - 1;
         Utils::strip_stream(out, 1);
     }
@@ -1046,6 +1091,12 @@ int Board::generate_move<Types::CANNON>(Types::Color color, std::vector<Move> &M
     }
     return cnt;
 }
+#include "Decoder.h"
+void check(std::vector<Move> &MoveList) {
+    for (auto &move : MoveList) {
+        Decoder::move2maps(move);
+    }
+}
 
 // Generating the all legal moves to the list.
 int Board::generate_movelist(Types::Color color, std::vector<Move> &MoveList) const {
@@ -1102,10 +1153,11 @@ void Board::do_move(Move move) {
 
     // Eat piece
     const auto opp_color = swap_color(color);
-    const bool eat = m_bb_color[opp_color] & to_bitboard;
-    if (eat) {
+    m_eaten = m_bb_color[opp_color] & to_bitboard;
+
+    if (m_eaten) {
         const auto eaten_pt = get_piece_type(to);
-        if (pt == Types::KING) {
+        if (eaten_pt == Types::KING) {
             m_king_vertex[opp_color] = Types::NO_VERTEX;
         } else {
             auto &ref_bb = get_piece_bitboard_ref(eaten_pt);
@@ -1134,7 +1186,7 @@ void Board::do_move(Move move) {
 
     // Update zobrist
     update_zobrist(p , from, to);
-    if (eat) {
+    if (m_eaten) {
         update_zobrist_remove(p, to);
     } 
 
@@ -1227,6 +1279,10 @@ void Board::increment_movenum() {
 void Board::decrement_movenum() {
     m_movenum--;
     m_gameply = (m_movenum / 2) + 1;
+}
+
+bool Board::is_eaten() const {
+    return m_eaten;
 }
 
 std::array<Types::Vertices, 2> Board::get_kings() const {

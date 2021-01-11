@@ -62,6 +62,13 @@ public:
     int randomize_first_proportionally(float random_temp);
 
     const std::vector<std::shared_ptr<UCTNodePointer>> &get_children() const;
+    float get_stmeval(const Types::Color color,
+                      const bool use_virtual_loss) const;
+    float get_winloss(const Types::Color color,
+                      const bool use_virtual_loss) const;
+    float get_draw() const;
+    float get_meaneval(const Types::Color color,
+                       const bool use_virtual_loss = true) const;
     UCTNode *get_child(const int maps);
     UCTNode *get();
 
@@ -125,14 +132,6 @@ private:
     float get_accumulated_wls() const;
     float get_accumulated_draws() const;
 
-    float get_stmeval(const Types::Color color,
-                      const bool use_virtual_loss) const;
-    float get_winloss(const Types::Color color,
-                      const bool use_virtual_loss) const;
-    float get_meaneval(const Types::Color color,
-                       const bool use_virtual_loss = true) const;
-    float get_draw() const;
-
     void increment_nodes();
     void decrement_nodes();
 
@@ -167,6 +166,20 @@ private:
 
     // wait until we are on EXPANDED state
     void wait_expanded() const ;
+};
+
+class UCT_Information {
+public:
+  static size_t get_memory_used();
+  
+  static void tree_stats();
+
+  static void dump_stats(UCTNode *node, Position &position, int cut_off = -1);
+
+  static std::string pv_to_srting(UCTNode *node);
+
+  static void collect_nodes();
+
 };
 
 #endif

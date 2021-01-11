@@ -39,8 +39,7 @@ void Engine::initialize() {
     
     int tag = 0;
     for (auto &p : m_positions) {
-        p->init_game(tag);
-        tag++;
+        p->init_game(tag++);
     }
     
     if (m_network == nullptr) {
@@ -265,6 +264,42 @@ Engine::Response Engine::uct_search(const int g) {
     const auto success = p->do_move(res.move);
     assert(success);
 
+    return rep.str();
+}
+
+Engine::Response Engine::dump_collection(std::string filename, const int g) {
+    auto rep = std::ostringstream{};
+    auto t = get_train(g);
+    if (filename == "NO_FILE_NAME") {
+        t->data_stream(rep);
+    } else {
+        t->save_data(filename);
+        t->clear_buffer();
+    }
+    return rep.str();
+}
+
+Engine::Response Engine::selfplay(const int g) {
+    auto rep = std::ostringstream{};
+    auto p = get_position(g); 
+    auto s = get_search(g);
+    auto t = get_train(g);
+    while (!p->gameover()) {
+        display();
+        const auto res = s->uct_search();
+        const auto success = p->do_move(res.move);
+        assert(success);
+    }
+    const auto winner = p->get_winner();
+    assert(winner != Types::INVALID_COLOR);
+    if (winner == Types::BLACK) {
+        rep << "Black is winner";
+    } else if (winner == Types::RED) {
+        rep << "Red is winner";
+    } else if (winner == Types::EMPTY_COLOR) {
+        rep << "Draw";
+    }
+    t->gather_winner(winner);
     return rep.str();
 }
 

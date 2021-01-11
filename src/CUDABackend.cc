@@ -116,28 +116,28 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
     }
 
     for (int i = 0; i < residuals; ++i) {
-        const auto off_set = 2 * i;
+        const auto t_offset = 2 * i;
         const auto tower_channels = m_weights->residual_channels;
         const auto tower_ptr = m_weights->residual_tower.data() + i;
     
-        m_graph->tower_conv[off_set+0] = CUDA::Convolve(
+        m_graph->tower_conv[t_offset+0] = CUDA::Convolve(
             m_maxbatch,          // max batch size
             3,                   // kernel size
             tower_channels,      // input channels
             tower_channels       // output channels
         );
-        m_graph->tower_bnorm[off_set+0] = CUDA::Batchnorm(
+        m_graph->tower_bnorm[t_offset+0] = CUDA::Batchnorm(
             m_maxbatch,          // max batch size
             tower_channels       // channels
         );
 
-        m_graph->tower_conv[off_set+1] = CUDA::Convolve(
+        m_graph->tower_conv[t_offset+1] = CUDA::Convolve(
             m_maxbatch,          // max batch size
             3,                   // kernel size
             tower_channels,      // input channels
             tower_channels       // output channels
         );
-        m_graph->tower_bnorm[off_set+1] = CUDA::Batchnorm(
+        m_graph->tower_bnorm[t_offset+1] = CUDA::Batchnorm(
             m_maxbatch,          // max batch size
             tower_channels,      // channels
             !tower_ptr->apply_se // relu
@@ -204,13 +204,13 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
 
     // residual tower
     for (int i = 0; i < residuals; ++i) {
-        const auto off_set = 2 * i;
+        const auto t_offset = 2 * i;
         const auto tower_ptr = m_weights->residual_tower.data() + i;
 
-        m_graph->tower_conv[off_set+0].LoadingWeight(tower_ptr->conv_1.weights, m_scratch_size, &m_handel);
-        m_graph->tower_bnorm[off_set+0].LoadingWeight(tower_ptr->bn_1.means, tower_ptr->bn_1.stddevs);
-        m_graph->tower_conv[off_set+1].LoadingWeight(tower_ptr->conv_2.weights, m_scratch_size, &m_handel);
-        m_graph->tower_bnorm[off_set+1].LoadingWeight(tower_ptr->bn_2.means, tower_ptr->bn_2.stddevs);
+        m_graph->tower_conv[t_offset+0].LoadingWeight(tower_ptr->conv_1.weights, m_scratch_size, &m_handel);
+        m_graph->tower_bnorm[t_offset+0].LoadingWeight(tower_ptr->bn_1.means, tower_ptr->bn_1.stddevs);
+        m_graph->tower_conv[t_offset+1].LoadingWeight(tower_ptr->conv_2.weights, m_scratch_size, &m_handel);
+        m_graph->tower_bnorm[t_offset+1].LoadingWeight(tower_ptr->bn_2.means, tower_ptr->bn_2.stddevs);
 
         if (tower_ptr->apply_se) {
             m_graph->tower_se[i].LoadingWeight(tower_ptr->extend.weights,
@@ -280,27 +280,27 @@ void CUDABackend::NNGraph::batch_forward(const int batch_size,
     const auto residuals = m_weights->residual_blocks;
     for (int i = 0; i < residuals; ++i) {
         // if (i == 1) break;
-        const auto off_set = 2 * i;
+        const auto t_offset = 2 * i;
         const auto tower_ptr = m_weights->residual_tower.data() + i;
 
-        m_graph->tower_conv[off_set+0].Forward(batch_size,
-                                               cuda_conv_op[0], cuda_conv_op[1],
-                                               cuda_scratch, m_scratch_size, &m_handel);
-        m_graph->tower_bnorm[off_set+0].Forward(batch_size,
-                                                cuda_conv_op[1]);
+        m_graph->tower_conv[t_offset+0].Forward(batch_size,
+                                                cuda_conv_op[0], cuda_conv_op[1],
+                                                cuda_scratch, m_scratch_size, &m_handel);
+        m_graph->tower_bnorm[t_offset+0].Forward(batch_size,
+                                                 cuda_conv_op[1]);
 
-        m_graph->tower_conv[off_set+1].Forward(batch_size,
-                                               cuda_conv_op[1], cuda_conv_op[2],
-                                               cuda_scratch, m_scratch_size, &m_handel);
+        m_graph->tower_conv[t_offset+1].Forward(batch_size,
+                                                cuda_conv_op[1], cuda_conv_op[2],
+                                                cuda_scratch, m_scratch_size, &m_handel);
         if (tower_ptr->apply_se) {
-            m_graph->tower_bnorm[off_set+1].Forward(batch_size,
-                                                    cuda_conv_op[2]);
+            m_graph->tower_bnorm[t_offset+1].Forward(batch_size,
+                                                     cuda_conv_op[2]);
             m_graph->tower_se[i].Forward(batch_size,
                                          cuda_conv_op[2], cuda_conv_op[0], &m_handel);
         } else { 
             const auto tower_channels = m_weights->residual_channels;
-            m_graph->tower_bnorm[off_set+1].Forward(batch_size,
-                                                    cuda_conv_op[2], cuda_conv_op[0]);
+            m_graph->tower_bnorm[t_offset+1].Forward(batch_size,
+                                                     cuda_conv_op[2], cuda_conv_op[0]);
             CUDA::copy(cuda_conv_op[0], cuda_conv_op[2], batch_size * tower_channels * Board::INTERSECTIONS);
         }
     }

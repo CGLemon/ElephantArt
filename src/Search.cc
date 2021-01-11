@@ -110,7 +110,7 @@ SearchInfo Search::uct_search() {
     auto info = SearchInfo{};
     auto out = std::ostringstream{};
 
-    prepare_uct(out);
+    prepare_uct();
     m_threadGroup->fill_tasks(uct_worker);
 
     bool keep_running = true;
@@ -127,7 +127,11 @@ SearchInfo Search::uct_search() {
     } while (is_uct_running());
 
     m_threadGroup->wait_all();
+
+    m_train.gather_probabilities(*m_rootnode, m_rootposition);
+
     info.move = uct_best_move();
+    UCT_Information::dump_stats(m_rootnode, m_rootposition);
     clear_nodes();
 
     return info;
@@ -138,7 +142,7 @@ Move Search::uct_best_move() const {
     return Decoder::maps2move(maps);
 }
 
-void Search::prepare_uct(std::ostream &out) {
+void Search::prepare_uct() {
     auto data = std::make_shared<UCTNodeData>();
     m_nodestats = std::make_shared<UCTNodeStats>();
     data->parameters = m_parameters;
@@ -150,9 +154,28 @@ void Search::prepare_uct(std::ostream &out) {
     m_rootnode->prepare_root_node(m_network, m_rootposition);
 
     auto nn_eval = m_rootnode->get_node_evals();
-    out << "stm eval : " << nn_eval.red_stmeval << std::endl;
-    out << "winloss : " << nn_eval.red_winloss << std::endl;
-    out << "draw probability : " << nn_eval.draw << std::endl;
+    auto out = std::ostringstream{};
+    auto pres = option<int>("float_precision");
+    out << "red stm eval : "
+        << std::fixed
+        << std::setprecision(pres)
+        << nn_eval.red_stmeval
+        << std::endl;
+
+    out << "red winloss : "
+        << std::fixed
+        << std::setprecision(pres)
+        << nn_eval.red_winloss
+        << std::endl;
+
+    out << "draw probability : "
+        << std::fixed
+        << std::setprecision(pres)
+        << nn_eval.draw * 100.f
+        << "%"
+        << std::endl;
+
+    Utils::printf<Utils::ANALYSIS>(out);
 }
 
 void Search::clear_nodes() {
@@ -172,7 +195,7 @@ SearchInfo Search::nn_direct() {
     m_rootposition = m_position;
     auto analysis = std::vector<std::pair<float, int>>();
     auto acc = 0.0f;
-    auto eval = m_network.get_output(&m_rootposition, Network::Ensemble::NONE);
+    auto eval = m_network.get_output(&m_rootposition, Network::Ensemble::RANDOM_SYMMETRY);
     for (int m = 0; m < POLICYMAP * Board::INTERSECTIONS; ++m) {
         if (!Decoder::maps_valid(m)) {
             continue;

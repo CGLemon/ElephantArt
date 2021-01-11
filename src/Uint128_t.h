@@ -221,7 +221,7 @@ inline Uint128_t Uint128_t::operator<<(const int shift) const {
     else if (shift == 64) {
         return Uint128_t(LOWER, 0ULL);
     }
-    else if (shift < 64) {
+    else if (shift > 0 && shift < 64) {
         const auto temp = LOWER >> (64 - shift);
         return Uint128_t((UPPER << shift) | temp, LOWER << shift);
     }
@@ -243,7 +243,7 @@ inline Uint128_t Uint128_t::operator>>(const int shift) const {
     if (shift == 0) {
         return *this;
     }
-    else if (shift < 64) {
+    else if (shift > 0 && shift < 64) {
         const auto temp = UPPER << (64 - shift);
         return Uint128_t(UPPER >> shift, temp | (LOWER >> shift));
     }

@@ -55,6 +55,9 @@ public:
     Response nn_direct(const int g = DEFUALT_POSITION);
     Response uct_search(const int g = DEFUALT_POSITION);
     Response get_maps();
+    Response dump_collection(std::string filename = "NO_FILE_NAME",
+                             const int g = DEFUALT_POSITION);
+    Response selfplay(const int g = DEFUALT_POSITION);
 
 private:
     int adjust_ref(const int g) const;

@@ -184,9 +184,9 @@ bool Decoder::maps_valid(const int idx) {
 
 int Decoder::move2maps(const Move &move) {
     const auto iter = moves_map.find(move.get_data());
-    const auto idx = iter->second;
     assert(iter != std::end(moves_map));
-    return idx;
+    const auto maps = iter->second;
+    return maps;
 }
 
 std::string Decoder::get_mapstring() {

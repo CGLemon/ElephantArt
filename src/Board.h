@@ -80,8 +80,8 @@ public:
 
     void fen_stream(std::ostream &out) const;
 
-    template<Types::Language> void board_stream(std::ostream &out) const;
-    template<Types::Language> void dump_board() const;
+    template<Types::Language> void board_stream(std::ostream &out, const Move lastmove) const;
+    template<Types::Language> void dump_board(const Move lastmove) const;
     template<Types::Language> static void piece_stream(std::ostream &out, Types::Piece p);
 
     bool fen2board(std::string &fen);
@@ -103,6 +103,7 @@ public:
     void do_move(Move move);
     bool is_legal(Move move) const;
     bool is_king_face_king() const;
+    bool is_eaten() const;
 
 private:
     #define P_  Types::R_PAWN
@@ -216,7 +217,7 @@ private:
 
     int m_movenum;
     int m_gameply;
-
+    bool m_eaten;
     Move m_lastmove;
 
     std::uint64_t m_hash;
@@ -287,10 +288,9 @@ void Board::piece_stream(std::ostream &out, const int x, const int y) const {
 }
 
 template<Types::Language L>
-void Board::dump_board() const {
+void Board::dump_board(const Move lastmove) const {
     auto out = std::ostringstream{};
-    board_stream<L>(out);
+    board_stream<L>(out, lastmove);
     Utils::printf<Utils::STATIC>(out);
-    // Utils::auto_printf(out);
 }
 #endif

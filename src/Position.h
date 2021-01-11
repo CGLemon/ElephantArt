@@ -51,6 +51,7 @@ public:
     Move get_last_move() const;
 
     Types::Piece_t get_piece_type(const Types::Vertices vtx) const;
+    Types::Piece get_piece(const Types::Vertices vtx) const;
 
     Board board;
     
@@ -59,6 +60,7 @@ public:
     std::uint64_t calc_hash(const int symmetry = Board::IDENTITY_SYMMETRY) const;
 
     const std::shared_ptr<const Board> get_past_board(const int p) const;
+    bool is_eaten() const;
     std::string history_board() const;
 
 private:

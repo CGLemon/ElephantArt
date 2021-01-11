@@ -36,7 +36,6 @@ public:
     NodePointer(const NodePointer &) = delete;
     NodePointer& operator=(const NodePointer&);
 
-
     ~NodePointer();
 
     bool is_pointer() const;
@@ -63,12 +62,12 @@ private:
 };
 
 template<typename Node, typename Data>
-NodePointer<Node, Data>::NodePointer(std::shared_ptr<Data> data) {
+inline NodePointer<Node, Data>::NodePointer(std::shared_ptr<Data> data) {
     m_data = data;
 }
 
 template<typename Node, typename Data>
-NodePointer<Node, Data>::~NodePointer() {
+inline NodePointer<Node, Data>::~NodePointer() {
     release();
 }
 

@@ -146,8 +146,8 @@ std::vector<float> Model::gather_planes(const Position *const position,
         std::advance(blk_iterator, (1 + INPUT_MOVES * 7) * Board::INTERSECTIONS);
     }
 
-    const auto movenum = position->get_movenum();
-    const auto past_moves = std::min(INPUT_MOVES-1, movenum);
+    const auto movenum = position->get_movenum()+1;
+    const auto past_moves = std::min(INPUT_MOVES, movenum);
     
     // plane 1-7 and 9-15
     for (auto p = 0; p < INPUT_MOVES; ++p) {
@@ -280,10 +280,10 @@ void Model::fill_weights(std::istream &weights_file,
         }
     };
 
-    const auto fill_layer_weights = [&](NetInfo &netinfo,
-                                        NetModel &netmodel,
-                                        std::istream &weights_file,
-                                        std::shared_ptr<NNWeights> &nn_weight) -> void {
+    const auto fill_layers_weights = [&](NetInfo &netinfo,
+                                         NetModel &netmodel,
+                                         std::istream &weights_file,
+                                         std::shared_ptr<NNWeights> &nn_weight) -> void {
         
         nn_weight->residual_blocks = std::stoi(netinfo["ResidualBlocks"]);
         nn_weight->residual_channels = std::stoi(netinfo["ResidualChannels"]);
@@ -325,11 +325,11 @@ void Model::fill_weights(std::istream &weights_file,
         // residual tower
         for (int b = 0; b < residuals; ++b) {
 
-            const auto off_set = b * 4 + 2 + 2 * se_cnt;
-            const auto res_conv1_shape = netmodel[off_set];
-            const auto res_bn1_shape = netmodel[off_set+1];
-            const auto res_conv2_shape = netmodel[off_set+2];
-            const auto res_bn2_shape = netmodel[off_set+3];
+            const auto t_offset = b * 4 + 2 + 2 * se_cnt;
+            const auto res_conv1_shape = netmodel[t_offset];
+            const auto res_bn1_shape = netmodel[t_offset+1];
+            const auto res_conv2_shape = netmodel[t_offset+2];
+            const auto res_bn2_shape = netmodel[t_offset+3];
             
             nn_weight->residual_tower.emplace_back(NNWeights::ResidualBlock{});
             auto tower_ptr = nn_weight->residual_tower.data() + b;
@@ -368,14 +368,14 @@ void Model::fill_weights(std::istream &weights_file,
                 throw "The Residual Block (2) is wrong";
             }
             
-            const auto res_next_shape = netmodel[off_set+4];
+            const auto res_next_shape = netmodel[t_offset+4];
             
             if (res_next_shape.size() == 2 /* fullyconnect layer */) {
 
                 tower_ptr->apply_se = true;
                 se_cnt++;
-                const auto se_extend_shape = netmodel[off_set+4];
-                const auto se_squeeze_shape = netmodel[off_set+5];
+                const auto se_extend_shape = netmodel[t_offset+4];
+                const auto se_squeeze_shape = netmodel[t_offset+5];
                 fill_fullyconnect_layer(tower_ptr->extend,
                                         weights_file,
                                         se_extend_shape[0],
@@ -400,22 +400,22 @@ void Model::fill_weights(std::istream &weights_file,
         }
 
         timer.record();
-        const auto off_set = residuals * 4 + 2 + 2 * se_cnt;
+        const auto h_offset = residuals * 4 + 2 + 2 * se_cnt;
 
         // policy head
-        const auto p_ex_conv_shape = netmodel[off_set];
+        const auto p_ex_conv_shape = netmodel[h_offset];
         fill_convolution_layer(nn_weight->p_ex_conv,
                                weights_file,
                                p_ex_conv_shape[0],
                                p_ex_conv_shape[1],
                                p_ex_conv_shape[2]);
         
-        const auto p_ex_bn_shape = netmodel[off_set+1];
+        const auto p_ex_bn_shape = netmodel[h_offset+1];
         fill_batchnorm_layer(nn_weight->p_ex_bn,
                              weights_file,
                              p_ex_bn_shape[0]);
         
-        const auto p_map_shape = netmodel[off_set+2];
+        const auto p_map_shape = netmodel[h_offset+2];
         fill_convolution_layer(nn_weight->p_map,
                                weights_file,
                                p_map_shape[0],
@@ -430,25 +430,25 @@ void Model::fill_weights(std::istream &weights_file,
         }
          
         // value head
-        const auto v_ex_conv_shape = netmodel[off_set+3];
+        const auto v_ex_conv_shape = netmodel[h_offset+3];
         fill_convolution_layer(nn_weight->v_ex_conv,
                                weights_file,
                                v_ex_conv_shape[0],
                                v_ex_conv_shape[1],
                                v_ex_conv_shape[2]);
         
-        const auto v_ex_bn_shape = netmodel[off_set+4];
+        const auto v_ex_bn_shape = netmodel[h_offset+4];
         fill_batchnorm_layer(nn_weight->v_ex_bn,
                              weights_file,
                              v_ex_bn_shape[0]);
         
-        const auto v_fc1_shape = netmodel[off_set+5];
+        const auto v_fc1_shape = netmodel[h_offset+5];
         fill_fullyconnect_layer(nn_weight->v_fc1,
                                 weights_file,
                                 v_fc1_shape[0],
                                 v_fc1_shape[1]);
         
-        const auto v_fc2_shape = netmodel[off_set+6];
+        const auto v_fc2_shape = netmodel[h_offset+6];
         fill_fullyconnect_layer(nn_weight->v_fc2,
                                 weights_file,
                                 v_fc2_shape[0],
@@ -516,10 +516,10 @@ void Model::fill_weights(std::istream &weights_file,
         const auto p = Utils::CommandParser(line);
         if (p.get_command(0)->str == "fork") {
             if (p.get_command(1)->str == "parameters") {
-                fill_layer_weights(netinfo,
-                                   netmodel,
-                                   weights_file,
-                                   nn_weight);
+                fill_layers_weights(netinfo,
+                                    netmodel,
+                                    weights_file,
+                                    nn_weight);
             }
         }
     }

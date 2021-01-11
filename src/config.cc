@@ -89,7 +89,7 @@ void init_options_map() {
 
     options_map["ponder"] << Utils::Option::setoption(false);
     options_map["playouts"] << Utils::Option::setoption(1600);
-    options_map["visits"] << Utils::Option::setoption(1600);
+    options_map["visits"] << Utils::Option::setoption(1024 * 1024);
     options_map["fpu_root_reduction"] << Utils::Option::setoption(0.25f);
     options_map["fpu_reduction"] << Utils::Option::setoption(0.25f);
     options_map["cpuct_init"] << Utils::Option::setoption(2.5f);
@@ -100,7 +100,7 @@ void init_options_map() {
     options_map["draw_root_factor"] << Utils::Option::setoption(0.f);
 
     options_map["collect"] << Utils::Option::setoption(false);
-    options_map["collect_buffer_size"] << Utils::Option::setoption(1000, 10000, 0);
+    options_map["collection_buffer_size"] << Utils::Option::setoption(1000, 10000, 0);
     options_map["random_min_visits"] << Utils::Option::setoption(1);
     options_map["random_move_cnt"] << Utils::Option::setoption(0);
 
@@ -161,37 +161,63 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         return param[0] != '-';
     };
 
+    const auto error_commands = [is_parameter](Utils::CommandParser & parser) -> bool {
+        const auto cnt = parser.get_count();
+        if (cnt == 0) {
+            return false;
+        }
+        int t = 1;
+        Utils::printf<Utils::STATIC>("Command(s) Error!\n  The parameter(s)\n");
+        for (auto i = size_t{0}; i < cnt; ++i) {
+            const auto command = parser.get_command(i)->str;
+            if (!is_parameter(command)) {
+                if (t != 1) { Utils::printf<Utils::STATIC>("\n"); }
+                Utils::printf<Utils::STATIC>("    %d. %s", t++, command.c_str());
+            }
+        }
+        Utils::printf<Utils::STATIC>("\n  are not understood.\n");
+        return true;
+    };
+
     init_options_map();
 
     const auto name = parser.remove_command(0);
+    (void) name;
 
     if (const auto res = parser.find({"--help", "-h"})) {
         set_option("help", true);
+        parser.remove_command(res->idx);
     }
 
     if (const auto res = parser.find({"--chinese", "-ch"})) {
         set_option("using_traditional_chinese", true);
+        parser.remove_command(res->idx);
     }
 
     if (const auto res = parser.find("--quiet")) {
         set_option("quiet", true);
+        parser.remove_command(res->idx);
     }
 
     if (const auto res = parser.find("--quiet_stats")) {
         set_option("quiet_stats", true);
+        parser.remove_command(res->idx);
     }
 
     if (const auto res = parser.find("--quiet_verbose")) {
         set_option("quiet_search_verbose", true);
+        parser.remove_command(res->idx);
     }
 
     if (const auto res = parser.find("--collect")) {
         set_option("collect", true);
+        parser.remove_command(res->idx);
     }
 
     if (const auto res = parser.find_next({"--logfile", "-l"})) {
         if (is_parameter(res->str)) {
             set_option("log_file", res->get<std::string>());
+            parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
@@ -199,6 +225,7 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         if (is_parameter(res->str)) {
             if (res->str == "ascii" || res->str == "ucci") {
                 set_option("mode", res->get<std::string>());
+                parser.remove_slice(res->idx-1, res->idx+1);
             }
         }
     }
@@ -206,55 +233,70 @@ ArgsParser::ArgsParser(int argc, char** argv) {
     if (const auto res = parser.find_next({"--playouts", "-p"})) {
         if (is_parameter(res->str)) {
             set_option("playouts", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next({"--visits", "-v"})) {
         if (is_parameter(res->str)) {
             set_option("visits", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next({"--threads", "-t"})) {
         if (is_parameter(res->str)) {
             set_option("threads", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next({"--weight", "-w"})) {
         if (is_parameter(res->str)) {
             set_option("weights_file", res->get<std::string>());
+            parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--floatprecision")) {
         if (is_parameter(res->str)) {
             set_option("float_precision", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next({"--batchsize" , "-b"})) {
         if (is_parameter(res->str)) {
             set_option("batchsize", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next({"--gpu", "-g"})) {
         if (is_parameter(res->str)) {
             set_option("gpu", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
         }
+    }
+
+    if (error_commands(parser)) {
+        help();
     }
 }
 
 void ArgsParser::help() const {
-    Utils::printf<Utils::AUTO>("Argumnet\n");
-    Utils::printf<Utils::AUTO>(" --help, -h\n");
-    Utils::printf<Utils::AUTO>(" --mode, -m [ascii/ucci]\n");  
+    Utils::printf<Utils::SYNC>("Argument\n");
+    Utils::printf<Utils::SYNC>("  --help, -h\n");
+    Utils::printf<Utils::SYNC>("  --chinese, -ch\n");
+    Utils::printf<Utils::SYNC>("  --mode, -m [ascii/ucci]\n");
+    Utils::printf<Utils::SYNC>("  --playouts, -p <integer>\n");
+    Utils::printf<Utils::SYNC>("  --threads, -t <integer>\n");
+    Utils::printf<Utils::SYNC>("  --weights, -w <weight file name>\n");
+    exit(-1);
 }
 
 void ArgsParser::dump() const {
     if (option<bool>("help")) {
         help();
-        exit(-1);
     }
 }

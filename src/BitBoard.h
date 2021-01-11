@@ -250,7 +250,8 @@ public:
 
     std::string to_string() const;
 
-    static constexpr std::uint16_t INVALID = 0;
+    static constexpr std::uint16_t INVALID = std::uint16_t(Types::NO_VERTEX) +
+                                                 (std::uint16_t(Types::NO_VERTEX) << 8);
 
 private:
     std::uint16_t m_data{INVALID};

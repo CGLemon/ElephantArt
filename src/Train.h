@@ -16,7 +16,27 @@
 
 struct DataCollection {
     using MAPS_PAIR = std::pair<int, float>;
-    std::array<bool, Board::INTERSECTIONS * INPUT_CHANNELS> input_features;
+    using PIECES_PAIR = std::array<std::vector<int>, 2>;
+
+
+    struct PositionPieces {
+        PIECES_PAIR pawns;
+        PIECES_PAIR horses;
+        PIECES_PAIR cannons;
+        PIECES_PAIR rooks;
+        PIECES_PAIR elephants;
+        PIECES_PAIR advisors;
+        PIECES_PAIR kings;
+    };
+
+    using PIECES_HISTORY = std::vector<PositionPieces>;
+    int version;
+    int movenum;
+    int gameply;
+    int repeat;
+    std::array<float, Board::INTERSECTIONS * INPUT_CHANNELS> input_features;
+
+    PIECES_HISTORY pieces_history;
 
     std::vector<MAPS_PAIR> probabilities;
     Types::Piece_t piece;
@@ -38,12 +58,14 @@ public:
     void save_data(std::string filename, bool append = true);
     void data_stream(std::ostream &out);
 
-private:
-    void push_buffer(DataCollection &data);
     void clear_buffer();
 
-    using Data = std::shared_ptr<DataCollection>;
-    std::list<Data> m_buffer;
+private:
+    int get_version() const;
+    void push_buffer(DataCollection &data);
+
+    using Step = std::shared_ptr<DataCollection>;
+    std::list<Step> m_buffer;
     int m_counter;
 
 };

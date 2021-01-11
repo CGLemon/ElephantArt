@@ -397,7 +397,6 @@ size_t CommandParser::get_count() const {
     return m_count;
 }
 
-
 std::shared_ptr<CommandParser::Reuslt> CommandParser::get_command(size_t id) const {
 
     if (!valid() || id > m_count) {
@@ -429,7 +428,6 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::get_slice(size_t b, size_t
      out << **stop;
      return std::make_shared<Reuslt>(Reuslt(out.str(), -1));
 }
-
 
 std::shared_ptr<CommandParser::Reuslt> CommandParser::find(const std::string input, int id) const {
 
@@ -523,6 +521,11 @@ float CommandParser::Reuslt::get<float>() const{
 }
 
 template<>
+char CommandParser::Reuslt::get<char>() const{
+    return str[0];
+}
+
+template<>
 const char* CommandParser::Reuslt::get<const char*>() const{
     return str.c_str();
 }
@@ -569,10 +572,10 @@ Option Option::setoption<char>(char val, int /*max*/, int /*min*/) {
     return Option{type::Char, std::string{val}, 0, 0};
 }
 
-#define OPTION_EXPASSION(T)    \
-template<>                     \
-T Option::get<T>() const {     \
-    return (T)*this;           \
+#define OPTION_EXPASSION(T) \
+template<>                  \
+T Option::get<T>() const {  \
+    return (T)*this;        \
 }
 
 OPTION_EXPASSION(std::string)

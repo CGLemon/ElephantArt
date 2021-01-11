@@ -133,6 +133,18 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
                 out << m_ascii_engine->uct_search();
             }
         }
+    } else if (const auto res = parser.find("dump-collection", 0)) {
+        lambda_syntax_not_understood(parser, 2);
+        const auto cnt = parser.get_count();
+        if (cnt == 1) { 
+            out << m_ascii_engine->dump_collection();
+        } else {
+            const auto filename = parser.get_command(1)->str;
+            out << m_ascii_engine->dump_collection(filename);
+        }
+    }  else if (const auto res = parser.find("self-play", 0)) {
+        lambda_syntax_not_understood(parser, 1);
+        out << m_ascii_engine->selfplay();
     } else if (const auto res = parser.find("position", 0)) {
 
     } else {
