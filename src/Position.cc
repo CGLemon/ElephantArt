@@ -23,7 +23,7 @@
 #include <sstream>
 
 
-void Position::init_game(int tag) {
+void Position::init_game(const int tag) {
     m_startboard = 0;
     position_hash = Zobrist::zobrist_positions[tag];
     m_history.clear();
@@ -82,7 +82,7 @@ bool Position::fen(std::string &fen) {
 }
 
 bool Position::is_legal(Move move) const {
-    return board.is_legal(move);
+    return board.is_pseudo_legal(move);
 }
 
 void Position::do_move_assume_legal(Move move) {
@@ -160,7 +160,7 @@ bool Position::position(std::string &fen, std::string& moves) {
             const auto move = Board::text2move(move_str);
             ++move_cnt;
             if (move.valid()) {
-                if (fork_board->is_legal(move)) {
+                if (fork_board->is_pseudo_legal(move)) {
                     fork_board->do_move(move);
                     chain_board.emplace_back(std::make_shared<Board>(*fork_board));
                 }
@@ -249,8 +249,68 @@ const std::shared_ptr<const Board> Position::get_past_board(const int p) const {
     return m_history[movenum - p];
 }
 
+int Position::get_repeat() const {
+
+    constexpr auto MIN_REPEAT_CNT = 4; 
+    const auto endboard = get_movenum();
+    const auto startboard = m_startboard;
+    const auto length = endboard - startboard + 1;
+
+    assert(length >= 1);
+    if (length <= 2 * MIN_REPEAT_CNT - 1) {
+        return 0;
+    }
+
+    const auto buffer_size = length/2;
+    auto boardhash = std::vector<std::uint64_t>(length);
+    auto buffer = std::vector<std::uint64_t>(buffer_size);
+    auto repeat = 0;
+    assert(buffer_size >= MIN_REPEAT_CNT);
+
+    for (int i = 0; i < length; ++i) {
+        boardhash[i] = m_history[endboard-i]->get_hash();
+    }
+    std::copy(std::begin(boardhash),
+                  std::begin(boardhash) + buffer_size,
+                  std::begin(buffer));
+
+    const auto repeat_proccess = [](std::vector<std::uint64_t> &bd_hash,
+                                    std::vector<std::uint64_t> &bf,
+                                    const int offset, const int cnt) -> bool {
+        for (int i = 0; i < cnt; ++i) {
+            if (bd_hash[i + offset] != bf[i]) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    for (int cnt = MIN_REPEAT_CNT; cnt <= buffer_size; ++cnt) {
+        for (int offset = cnt; offset + cnt < length; offset += cnt) {
+            const auto success = repeat_proccess(boardhash, buffer, offset, cnt);
+            if (success) {
+                repeat++;
+            } else {
+                break;
+            }
+        }
+        if (!repeat) {
+            break;
+        }
+    }
+
+    return repeat;
+}
+
 bool Position::is_eaten() const {
     return board.is_eaten();
+}
+
+bool Position::is_legal_board() const {
+    auto legal = true;
+    legal &= !board.is_king_face_king();
+
+    return legal;
 }
 
 std::string Position::history_board() const {

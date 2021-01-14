@@ -26,7 +26,7 @@
 #include "WinogradHelper.h"
 
 #ifdef USE_FAST_PARSER
-#include "fast_double_parser.h"
+#include "fast_float.h"
 #endif 
 
 template <typename container>
@@ -668,33 +668,63 @@ void Model::dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &ti
     Utils::printf<Utils::STATS>("Value Channels : %d\n", nn_weight->value_extract_channels);
 }
 
-std::vector<float> get_weights_from_file(std::istream &weights_file) {
-    auto weights = std::vector<float>{};
+void get_weights_from_file(std::istream &weights_file, std::vector<float> &weights) {
+    weights.clear();
     auto line = std::string{};
-#ifdef USE_FAST_PARSER
-    auto w_str = std::string{};
-#endif
+// #ifdef USE_FAST_PARSER
+//     auto w_str = std::string{};
+// #endif
     if (std::getline(weights_file, line)) {
         // On MacOS, if the numeric is too small, stringstream
         // can not parse the number to float, but double is ok.
         double weight;
-        std::stringstream line_buffer(line);
 
 #ifdef USE_FAST_PARSER
-        while(line_buffer >> w_str) {
-            bool is_ok = fast_double_parser::parse_number(w_str.c_str(), &weight);
-            if (!is_ok) {
+        auto start_ptr = line.data();
+        auto end_ptr = line.data();
+        auto line_size = line.size();
+        auto finish_ptr = line.data() + line_size;
+        weights.reserve(line_size / 12);
+
+        while (*end_ptr == ' ') {
+            end_ptr++;
+            if (end_ptr == finish_ptr) break;
+        }
+        start_ptr = end_ptr;
+
+        while (start_ptr != finish_ptr) {
+            while (*end_ptr != ' ') {
+                end_ptr++;
+                if (end_ptr == finish_ptr) break;
+            }
+            const auto is_ok = fast_float::from_chars<double>(start_ptr, end_ptr, weight);
+            if (is_ok.ec != std::errc()) {
                 throw "There is non-numeric in parameters";
             }
+
             weights.emplace_back(weight);
+
+            while (*end_ptr == ' ') {
+                end_ptr++;
+                if (end_ptr == finish_ptr) break;
+            }
+            start_ptr = end_ptr;
         }
+        // while(line_buffer >> w_str) {
+        //     const auto w_ptr = w_str.data();
+        //     const auto is_ok = fast_float::from_chars<double>(w_ptr, w_ptr+w_str.size(), weight);
+        //     if (is_ok.ec != std::errc()) {
+        //         throw "There is non-numeric in parameters";
+        //     }
+        //     weights.emplace_back(weight);
+        // }
 #else 
+        std::stringstream line_buffer(line);
         while(line_buffer >> weight) {
             weights.emplace_back(weight);
         }
 #endif
     }
-    return weights;
 }
 
 void Model::fill_fullyconnect_layer(Desc::LinearLayer &layer,
@@ -703,10 +733,10 @@ void Model::fill_fullyconnect_layer(Desc::LinearLayer &layer,
                                     const int out_size) {
     auto weights = std::vector<float>{};
     
-    weights = get_weights_from_file(weights_file);
+    get_weights_from_file(weights_file, weights);
     layer.load_weights(weights);
 
-    weights = get_weights_from_file(weights_file);
+    get_weights_from_file(weights_file, weights);
     layer.load_biases(weights);
     
     layer.load_size(in_size, out_size);
@@ -717,10 +747,10 @@ void Model::fill_batchnorm_layer(Desc::BatchNormLayer &layer,
                                  const int channels) {
     auto weights = std::vector<float>{};
     
-    weights = get_weights_from_file(weights_file);
+    get_weights_from_file(weights_file, weights);
     layer.load_means(weights);
 
-    weights = get_weights_from_file(weights_file);
+    get_weights_from_file(weights_file, weights);
     layer.load_stddevs(weights);
     
     layer.load_size(channels);
@@ -733,10 +763,10 @@ void Model::fill_convolution_layer(Desc::ConvLayer &layer,
                                    const int kernel_size) {
     auto weights = std::vector<float>{};
     
-    weights = get_weights_from_file(weights_file);
+    get_weights_from_file(weights_file, weights);
     layer.load_weights(weights);
     
-    weights = get_weights_from_file(weights_file);
+    get_weights_from_file(weights_file, weights);
     layer.load_biases(weights);
     
     layer.load_size(in_channels, out_channels, kernel_size);

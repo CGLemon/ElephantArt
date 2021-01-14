@@ -617,7 +617,7 @@ void Board::init_magics() {
     }
 
     auto t = timer.get_duration();
-    Utils::printf<Utils::STATS>("Generating Magic numbers to spent %.4f second(s)\n", t);
+    Utils::printf<Utils::STATS>("Generating Magic numbers spent %.4f second(s)\n", t);
 }
 
 void Board::dump_memory() {
@@ -1091,14 +1091,8 @@ int Board::generate_move<Types::CANNON>(Types::Color color, std::vector<Move> &M
     }
     return cnt;
 }
-#include "Decoder.h"
-void check(std::vector<Move> &MoveList) {
-    for (auto &move : MoveList) {
-        Decoder::move2maps(move);
-    }
-}
 
-// Generating the all legal moves to the list.
+// Generating the all pseudo legal moves to the list.
 int Board::generate_movelist(Types::Color color, std::vector<Move> &MoveList) const {
 
     const auto reserve = option<int>("reserve_movelist");
@@ -1200,26 +1194,20 @@ void Board::do_move(Move move) {
 bool Board::is_king_face_king() const {
 
     auto success = bool{false};
-    const auto rk = Utils::vertex2bitboard(m_king_vertex[Types::RED]);
-    const auto bk = Utils::vertex2bitboard(m_king_vertex[Types::BLACK]);
-    const auto ak = rk | bk;
-
-    for (auto f = Types::FILE_D; f <= Types::FILE_F; ++f) {
-        const auto fb = Utils::file2bitboard(f);
-        if (Utils::count_few(ak & fb) == 2) {
-             const auto r_cnt = Utils::count_few(m_bb_color[Types::RED] & fb);
-             const auto b_cnt = Utils::count_few(m_bb_color[Types::BLACK] & fb);
-             if (r_cnt + b_cnt > 2) {
-                 success = true;    
-             }
-             break;
+    const auto red_x = get_x(m_king_vertex[Types::RED]);
+    const auto black_x = get_x(m_king_vertex[Types::BLACK]);
+    if (red_x == black_x) {
+        const auto file = static_cast<Types::File>(red_x);
+        const auto file_bb = Utils::file2bitboard(file);
+        const auto cnt = Utils::count_few(file_bb);
+        if (cnt == 2) {
+            success = true;
         }
     }
-
     return success;
 }
 
-bool Board::is_legal(Move move) const {
+bool Board::is_pseudo_legal(Move move) const {
     
     auto movelist = std::vector<Move>{};
     generate_movelist(get_to_move(), movelist);

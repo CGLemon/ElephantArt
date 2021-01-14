@@ -6,8 +6,9 @@ if (USE_AVX)
 endif()
 
 if(USE_FAST_PARSER)
+    message(STATUS "Using fast parser.")
     add_definitions(-DUSE_FAST_PARSER)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/fast_double_parser/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/fast_float/include/fast_float)
 endif()
 
 if(GPU_BACKEND STREQUAL "CUDA")
@@ -26,7 +27,6 @@ if(GPU_BACKEND STREQUAL "CUDA")
         "-gencode arch=compute_53,code=sm_53 -gencode arch=compute_70,code=sm_70 -gencode  arch=compute_75,code=compute_75"
     )
     set(CMAKE_CUDA_FLAGS "-Xptxas -O3 -Xcompiler -fPIC ${CMAKE_CUDA_FLAGS}")
-  
 else()
     message(STATUS "Using CPU backend.")
     message(" The GPU backend is much faster than CPU backend.")

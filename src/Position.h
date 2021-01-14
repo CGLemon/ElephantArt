@@ -28,7 +28,7 @@
 
 class Position {
 public:
-    void init_game(int tag);
+    void init_game(const int tag);
 
     void display() const;
 
@@ -62,6 +62,9 @@ public:
     const std::shared_ptr<const Board> get_past_board(const int p) const;
     bool is_eaten() const;
     std::string history_board() const;
+
+    int get_repeat() const;
+    bool is_legal_board() const;
 
 private:
     Types::Color resigned{Types::INVALID_COLOR};

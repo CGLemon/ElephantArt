@@ -101,7 +101,7 @@ public:
     void decrement_movenum();
 
     void do_move(Move move);
-    bool is_legal(Move move) const;
+    bool is_pseudo_legal(Move move) const;
     bool is_king_face_king() const;
     bool is_eaten() const;
 
