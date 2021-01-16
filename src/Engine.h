@@ -38,10 +38,8 @@ public:
     void reset_game(const int g = DEFUALT_POSITION);
 
     void display(const int g = DEFUALT_POSITION) const;
-    
-    std::vector<Move> get_movelist(const int g = DEFUALT_POSITION) const;
 
-    Response gather_movelist(const int g = DEFUALT_POSITION) const;
+    Response gather_movelist(const int g = DEFUALT_POSITION);
     Response fen(std::string fen, const int g = DEFUALT_POSITION);
     Response do_textmove(std::string move, const int g = DEFUALT_POSITION);
     Response undo_move(const int g = DEFUALT_POSITION);

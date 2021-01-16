@@ -22,7 +22,6 @@
 #include <iterator>
 #include <sstream>
 
-
 void Position::init_game(const int tag) {
     m_startboard = 0;
     position_hash = Zobrist::zobrist_positions[tag];
@@ -81,8 +80,8 @@ bool Position::fen(std::string &fen) {
     return true;
 }
 
-bool Position::is_legal(Move move) const {
-    return board.is_pseudo_legal(move);
+bool Position::is_legal(Move move) {
+    return board.is_legal(move);
 }
 
 void Position::do_move_assume_legal(Move move) {
@@ -111,7 +110,7 @@ bool Position::do_textmove(std::string smove) {
     return false;
 }
 
-std::vector<Move> Position::get_movelist() const {
+std::vector<Move> Position::get_movelist() {
 
     auto movelist = std::vector<Move>{};
     const auto color = get_to_move();
@@ -160,7 +159,7 @@ bool Position::position(std::string &fen, std::string& moves) {
             const auto move = Board::text2move(move_str);
             ++move_cnt;
             if (move.valid()) {
-                if (fork_board->is_pseudo_legal(move)) {
+                if (fork_board->is_legal(move)) {
                     fork_board->do_move(move);
                     chain_board.emplace_back(std::make_shared<Board>(*fork_board));
                 }
@@ -304,13 +303,6 @@ int Position::get_repeat() const {
 
 bool Position::is_eaten() const {
     return board.is_eaten();
-}
-
-bool Position::is_legal_board() const {
-    auto legal = true;
-    legal &= !board.is_king_face_king();
-
-    return legal;
 }
 
 std::string Position::history_board() const {

@@ -74,7 +74,8 @@ public:
     Move get_last_move() const;
     std::array<Types::Vertices, 2> get_kings() const;
 
-    int generate_movelist(Types::Color color, std::vector<Move> &MoveList) const;
+    int generate_pseudo_movelist(Types::Color color, std::vector<Move> &movelist) const;
+    int generate_movelist(Types::Color color, std::vector<Move> &movelist);
 
     static bool is_on_board(const Types::Vertices vtx);
 
@@ -101,8 +102,7 @@ public:
     void decrement_movenum();
 
     void do_move(Move move);
-    bool is_pseudo_legal(Move move) const;
-    bool is_king_face_king() const;
+    bool is_legal(Move move);
     bool is_eaten() const;
 
 private:
@@ -215,6 +215,24 @@ private:
 
     Types::Color m_tomove;
 
+    struct PseudoMoveRecord {
+        std::array<BitBoard, 2> bb_color;
+        BitBoard bb_pawn;
+        BitBoard bb_horse;
+        BitBoard bb_rook;
+        BitBoard bb_elephant;
+        BitBoard bb_advisor;
+        BitBoard bb_cannon;
+        std::array<Types::Vertices, 2> king_vertex;
+        bool eaten;
+    };
+
+    PseudoMoveRecord do_pseudo_move(Move move);
+    void undo_from_pseudo(PseudoMoveRecord record);
+    bool is_king_face_king() const;
+    bool is_checkmate(const Types::Vertices vtx) const;
+    bool is_attack(const Types::Vertices vtx) const;
+
     int m_movenum;
     int m_gameply;
     bool m_eaten;
@@ -222,7 +240,8 @@ private:
 
     std::uint64_t m_hash;
 
-    template<Types::Piece_t> int generate_move(Types::Color color, std::vector<Move> &MoveList) const;
+    void clear_status();
+    template<Types::Piece_t> int generate_move(Types::Color color, std::vector<Move> &movelist) const;
     template<Types::Language> void piece_stream(std::ostream &out, const int x, const int y) const;
     template<Types::Language> void info_stream(std::ostream &out) const;
 
@@ -267,6 +286,8 @@ inline Types::Color Board::swap_color(const Types::Color color) {
 
 inline void Board::update_zobrist(Types::Piece p, Types::Vertices form, Types::Vertices to) {
     m_hash ^= Zobrist::zobrist[p][form];
+    m_hash ^= Zobrist::zobrist[Types::EMPTY_PIECE][form];
+    m_hash ^= Zobrist::zobrist[Types::EMPTY_PIECE][to];
     m_hash ^= Zobrist::zobrist[p][to];
 }
 

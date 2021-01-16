@@ -35,7 +35,7 @@ public:
     void do_resigned();
     void push_board();
     bool fen(std::string &fen);
-    bool is_legal(Move move) const;
+    bool is_legal(Move move);
     bool do_move(Move move);
     void do_move_assume_legal(Move move);
     bool do_textmove(std::string move);
@@ -44,7 +44,8 @@ public:
     bool gameover();
     bool position(std::string &fen, std::string &moves);
 
-    std::vector<Move> get_movelist() const;
+    std::vector<Move> get_movelist();
+
     Types::Color get_to_move() const;
     int get_movenum() const;
     int get_gameply() const;
@@ -64,7 +65,6 @@ public:
     std::string history_board() const;
 
     int get_repeat() const;
-    bool is_legal_board() const;
 
 private:
     Types::Color resigned{Types::INVALID_COLOR};

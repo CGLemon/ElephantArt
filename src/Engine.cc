@@ -93,14 +93,10 @@ void Engine::display(const int g) const {
      get_position(g)->display();
 }
 
-std::vector<Move> Engine::get_movelist(const int g) const {
-    return get_position(g)->get_movelist();
-}
-
-Engine::Response Engine::gather_movelist(const int g) const {
+Engine::Response Engine::gather_movelist(const int g) {
 
     auto rep = std::ostringstream{};
-    const auto movelist = get_movelist(g);
+    const auto movelist = get_position(g)->get_movelist();
 
     for (const auto &m: movelist) {
         rep << m.to_string() << " ";
