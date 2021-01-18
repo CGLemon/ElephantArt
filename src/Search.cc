@@ -67,11 +67,11 @@ void Search::play_simulation(Position &currposition, UCTNode *const node,
             search_result.from_gameover(currposition);
             node->apply_evals(search_result.nn_evals());
         } else {
-            const bool had_children = node->has_children();
+            const bool has_children = node->has_children();
             const bool success = node->expend_children(m_network,
                                                        currposition,
                                                        get_min_psa_ratio());
-            if (!had_children && success) {
+            if (!has_children && success) {
                 const auto nn_evals = node->get_node_evals();
                 search_result.from_nn_evals(nn_evals);
             }
@@ -110,6 +110,8 @@ SearchInfo Search::uct_search() {
     auto info = SearchInfo{};
     auto out = std::ostringstream{};
 
+    auto timer = Utils::Timer{};
+
     prepare_uct();
     m_threadGroup->fill_tasks(uct_worker);
 
@@ -117,6 +119,7 @@ SearchInfo Search::uct_search() {
     do {
         auto currposition = std::make_unique<Position>(m_rootposition);
         auto result = SearchResult{};
+
         play_simulation(*currposition, m_rootnode, m_rootnode, result);
         if (result.valid()) {
             increment_playouts();
@@ -131,6 +134,9 @@ SearchInfo Search::uct_search() {
     m_train.gather_probabilities(*m_rootnode, m_rootposition);
 
     info.move = uct_best_move();
+    const auto s =timer.get_duration();
+    Utils::printf<Utils::ANALYSIS>("Searching time %.4f second(s)\n", s);
+
     UCT_Information::dump_stats(m_rootnode, m_rootposition);
     clear_nodes();
 
@@ -153,29 +159,15 @@ void Search::prepare_uct() {
     set_running(true);
     m_rootnode->prepare_root_node(m_network, m_rootposition);
 
-    auto nn_eval = m_rootnode->get_node_evals();
-    auto out = std::ostringstream{};
-    auto pres = option<int>("float_precision");
-    out << "red stm eval : "
-        << std::fixed
-        << std::setprecision(pres)
-        << nn_eval.red_stmeval
-        << std::endl;
+    const auto color = m_rootposition.get_to_move();
+    const auto nn_eval = m_rootnode->get_node_evals();
+    const auto stm_eval = color == Types::RED ? nn_eval.red_stmeval : 1 - nn_eval.red_stmeval;
+    const auto winloss = color == Types::RED ? nn_eval.red_winloss : 1 - nn_eval.red_winloss;
 
-    out << "red winloss : "
-        << std::fixed
-        << std::setprecision(pres)
-        << nn_eval.red_winloss
-        << std::endl;
-
-    out << "draw probability : "
-        << std::fixed
-        << std::setprecision(pres)
-        << nn_eval.draw * 100.f
-        << "%"
-        << std::endl;
-
-    Utils::printf<Utils::ANALYSIS>(out);
+    Utils::printf<Utils::ANALYSIS>("Raw NN output\n");
+    Utils::printf<Utils::ANALYSIS>("  stm eval : %.2f\n", stm_eval * 100.f);
+    Utils::printf<Utils::ANALYSIS>("  winloss : %.2f\n", winloss * 100.f);
+    Utils::printf<Utils::ANALYSIS>("  draw probability : %.2f\n", nn_eval.draw * 100.f);
 }
 
 void Search::clear_nodes() {

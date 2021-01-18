@@ -9,9 +9,8 @@
 #include <iterator>
 #include <chrono>
 
-
 void CUDABackend::initialize(std::shared_ptr<Model::NNWeights> weights) {
-    Utils::auto_printf("Using CUDA network.\n");
+    Utils::printf<Utils::AUTO>("Using CUDA network.\n");
     CUDA::gpu_info();
     reload(weights);
     prepare_worker();
@@ -20,7 +19,7 @@ void CUDABackend::initialize(std::shared_ptr<Model::NNWeights> weights) {
 void CUDABackend::destroy() {
     release();
     quit_worker();
-    Utils::auto_printf("CUDA network was released.\n");
+    Utils::printf<Utils::AUTO>("CUDA network was released.\n");
 }
 
 void CUDABackend::reload(std::shared_ptr<Model::NNWeights> weights) {
@@ -60,15 +59,16 @@ void CUDABackend::forward(const std::vector<float> &planes,
     auto entry = std::make_shared<ForwawrdEntry>(planes,
                                                  output_pol,
                                                  output_val);
-
     std::unique_lock<std::mutex> lock(entry->mutex);
     {
         std::unique_lock<std::mutex> queue_lock(m_queue_mutex);
         m_forward_queue.emplace_back(entry);
     }
+
     if (m_forward_queue.size() >= (size_t)option<int>("batchsize")) {
         m_cv.notify_one();
     }
+
     entry->cv.wait(lock);
     entry->done.store(true);
 }
@@ -82,6 +82,7 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
     m_graph = std::make_unique<Graph>();
     m_gpu = gpu;
     auto d = CUDA::get_device(m_gpu);
+
     cudaSetDevice(d);
 
     m_weights = weights;
@@ -262,7 +263,7 @@ void CUDABackend::NNGraph::batch_forward(const int batch_size,
                                          std::vector<float> &output_pol,
                                          std::vector<float> &output_val) {
 
-    assert(m_maxbatch <= batch_size);
+    assert(m_maxbatch >= batch_size);
 
     const auto factor = batch_size * sizeof(float);
     const size_t planes_s = factor * INPUT_CHANNELS * Board::INTERSECTIONS;
@@ -360,24 +361,23 @@ CUDABackend::NNGraph::~NNGraph() {
 }
 
 void CUDABackend::worker(int gpu) {
-
     const auto gether_batches = [this](){
+        const size_t maxbatch = (size_t)option<int>("batchsize");
         std::list<std::shared_ptr<ForwawrdEntry>> inputs;
-    
         while(true) {
             if (!m_thread_running) {
                 return inputs;
             }
-            if (m_forward_queue.size() >= (size_t)option<int>("batchsize")) {
-                m_waittime.store(option<int>("waittime"));
+            if (m_forward_queue.size() >= maxbatch) {
+                m_waittime.store(option<int>("gpu_waittime"));
                 break;
             }
 
             std::unique_lock<std::mutex> lock(m_mutex);
             int waittime = m_waittime.load();
             bool timeout = m_cv.wait_for(lock, std::chrono::milliseconds(waittime),
-                                             [this](){ return m_forward_queue.size() < 
-                                                                   (size_t)option<int>("batchsize"); }
+                                             [maxbatch, this](){ return maxbatch == 1 ||
+                                                                            m_forward_queue.size() < maxbatch; }
                                          );
             if (!m_forward_queue.empty()) {
                 if (timeout && m_narrow_pipe.exchange(true) == false) {
@@ -392,8 +392,8 @@ void CUDABackend::worker(int gpu) {
 
         std::unique_lock<std::mutex> queue_lock(m_queue_mutex);
         auto count = m_forward_queue.size();
-        if (count > (size_t)option<int>("batchsize")) {
-            count = (size_t)option<int>("batchsize");
+        if (count > maxbatch) {
+            count = maxbatch;
         }
 
         auto end = std::begin(m_forward_queue);
@@ -450,6 +450,7 @@ void CUDABackend::worker(int gpu) {
             }
             index++;
         }
+
         if (batch_size <= (size_t)option<int>("batchsize")) {
             m_narrow_pipe.store(false);
         }
@@ -461,7 +462,7 @@ void CUDABackend::prepare_worker() {
     m_thread_running = true;
     if (m_threads.size() == 0) {
         for (int g = 0; g < (int)m_nngraphs.size(); ++g) {
-            m_threads.emplace_back([&, this](){ worker(g); });
+            m_threads.emplace_back([g, this](){ worker(g); });
         }
     }
 }

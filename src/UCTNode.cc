@@ -694,6 +694,24 @@ void UCTNode::wait_expanded() const {
     }
 }
 
+size_t UCT_Information::get_memory_used(UCTNode *node) {
+    const auto status = node->node_status();
+    const auto nodes = status->nodes.load();
+    const auto edges = status->edges.load();
+    const auto node_mem = sizeof(UCTNode) + sizeof(NodePointer<UCTNode, UCTNodeData>);
+    const auto edge_mem = sizeof(NodePointer<UCTNode, UCTNodeData>);
+    return nodes * node_mem + edges * edge_mem;
+}
+
+void UCT_Information::dump_tree_stats(UCTNode *node) {
+    const auto mem = static_cast<double>(get_memory_used(node)) / (1024.f * 1024.f);
+    const auto status = node->node_status();
+    const auto nodes = status->nodes.load();
+    const auto edges = status->edges.load();
+
+    Utils::printf<Utils::ANALYSIS>("Tree Status: \n");
+    Utils::printf<Utils::ANALYSIS>("  nodes : %d | edges : %d | tree memory used : %.2f MiB\n", nodes, edges, mem);
+}
 
 void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off) {
     const auto color = position.get_to_move();
@@ -702,9 +720,11 @@ void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off)
     assert(color == node->get_color());
 
     Utils::printf<Utils::ANALYSIS>("Search List :\n"); 
-    Utils::printf<Utils::ANALYSIS>("Root -> %7d (V: %5.2f%%)\n",
+    Utils::printf<Utils::ANALYSIS>("Root -> %7d (WL: %5.2f%%) (V: %5.2f%%) (D: %5.2f%%)\n",
                                    node->get_visits(),
-                                   node->get_meaneval(color, false) * 100.f);
+                                   node->get_winloss(color, false) * 100.f,
+                                   node->get_stmeval(color, false) * 100.f,
+                                   node->get_draw() * 100.f);
 
     int push = 0;
     for (auto &lcb : lcblist) {
@@ -713,28 +733,33 @@ void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off)
     
         auto child = node->get_child(maps);
         const auto visits = child->get_visits();
-        //const auto pobability = child->get_policy();
+        const auto pobability = child->get_policy();
         assert(visits != 0);
-    
-        const auto eval = child->get_meaneval(color, false);
+
+        const auto wl_eval = child->get_winloss(color, false);
+        const auto stm_eval = child->get_stmeval(color, false);
+        const auto draw = child->get_draw();
         const auto move = Decoder::maps2move(maps);
         const auto pv_string = move.to_string() + " " + pv_to_srting(child);
         const auto visit_ratio = static_cast<float>(visits) / parentvisits;
-        Utils::printf<Utils::ANALYSIS>("%4s -> %7d (V: %5.2f%%) (LCB: %5.2f%%) (N: %5.2f%%) PV: %s\n", 
+        Utils::printf<Utils::ANALYSIS>("  %4s -> %7d (WL: %5.2f%%) (V: %5.2f%%) (LCB: %5.2f%%) (D: %5.2f%%) (P: %5.2f%%) (N: %5.2f%%) ", 
                                        move.to_string().c_str(),
                                        visits,
-                                       eval * 100.f, 
-                                       lcb_value * 100.f,
-                                       visit_ratio * 100.f,
-                                       pv_string.c_str());
+                                       wl_eval * 100.f,    // side to move eval
+                                       stm_eval * 100.f,   // win loss eval
+                                       lcb_value * 100.f,  // LCB eval
+                                       draw * 100.f,       // draw probability
+                                       pobability * 100.f, // move probability
+                                       visit_ratio * 100.f);
+        Utils::printf<Utils::ANALYSIS>("PV: %s\n", pv_string.c_str());
 
         push++;
         if (push == cut_off) {
-            Utils::printf<Utils::ANALYSIS>("     ...remain %d nodes\n", (int)lcblist.size() - cut_off);
+            Utils::printf<Utils::ANALYSIS>("     ...remain %d selections\n", (int)lcblist.size() - cut_off);
             break;
         }
-    
     }
+    dump_tree_stats(node);
 }
 
 std::string UCT_Information::pv_to_srting(UCTNode *node) {

@@ -228,7 +228,7 @@ private:
     };
 
     PseudoMoveRecord do_pseudo_move(Move move);
-    void undo_from_pseudo(PseudoMoveRecord record);
+    void undo_from_pseudo_move(PseudoMoveRecord record);
     bool is_king_face_king() const;
     bool is_checkmate(const Types::Vertices vtx) const;
     bool is_attack(const Types::Vertices vtx) const;

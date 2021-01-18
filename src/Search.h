@@ -25,9 +25,9 @@ public:
     }
 
     void from_gameover(Position &position) {
-        if (m_nn_evals == nullptr) return;
-        m_nn_evals = std::make_shared<UCTNodeEvals>();
-
+        if (m_nn_evals == nullptr) {
+            m_nn_evals = std::make_shared<UCTNodeEvals>();
+        }
         const auto winner = position.get_winner();
         assert(winner != Types::INVALID_COLOR);
         if (winner == Types::RED) {

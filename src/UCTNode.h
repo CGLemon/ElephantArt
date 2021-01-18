@@ -92,6 +92,8 @@ public:
     bool is_active() const;
     bool is_valid() const;
 
+    std::shared_ptr<UCTNodeStats> node_status() const;
+
 private:
     float m_red_stmeval{0.0f};
     float m_red_winloss{0.0f};
@@ -111,7 +113,6 @@ private:
 
     std::vector<std::shared_ptr<UCTNodePointer>> m_children;
     std::shared_ptr<SearchParameters> parameters() const;
-    std::shared_ptr<UCTNodeStats> node_status() const;
     
     void link_nodelist(std::vector<Network::PolicyMapsPair> &nodelist, float min_psa_ratio);
     void link_nn_output(const Network::Netresult &raw_netlist,
@@ -170,16 +171,11 @@ private:
 
 class UCT_Information {
 public:
-  static size_t get_memory_used();
-  
-  static void tree_stats();
+  static size_t get_memory_used(UCTNode *node);
+  static void dump_tree_stats(UCTNode *node);
 
   static void dump_stats(UCTNode *node, Position &position, int cut_off = -1);
-
   static std::string pv_to_srting(UCTNode *node);
-
-  static void collect_nodes();
-
 };
 
 #endif

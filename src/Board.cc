@@ -1116,6 +1116,7 @@ int Board::generate_pseudo_movelist(Types::Color color, std::vector<Move> &movel
     return cnt;
 }
 
+// Generating the all legal moves to the list.
 int Board::generate_movelist(Types::Color color, std::vector<Move> &movelist) {
     auto cnt = generate_pseudo_movelist(color, movelist);
     movelist.erase(
@@ -1124,7 +1125,7 @@ int Board::generate_movelist(Types::Color color, std::vector<Move> &movelist) {
                            auto record = do_pseudo_move(move);
                            auto legal = true;
                            legal &= !is_king_face_king();
-                           undo_from_pseudo(record);
+                           undo_from_pseudo_move(record);
                            return !legal;
                        }),
         std::end(movelist)
@@ -1271,7 +1272,7 @@ Board::PseudoMoveRecord Board::do_pseudo_move(Move move) {
     return record;
 }
 
-void Board::undo_from_pseudo(Board::PseudoMoveRecord record) {
+void Board::undo_from_pseudo_move(Board::PseudoMoveRecord record) {
     m_eaten = record.eaten;
     m_bb_pawn = record.bb_pawn;
     m_bb_horse = record.bb_horse;
@@ -1372,7 +1373,6 @@ bool Board::is_attack(const Types::Vertices vtx) const {
 }
 
 bool Board::is_legal(Move move) {
-    
     auto movelist = std::vector<Move>{};
     generate_movelist(get_to_move(), movelist);
     auto success = bool{false};
@@ -1388,7 +1388,6 @@ bool Board::is_legal(Move move) {
 }
 
 Move Board::text2move(std::string text) {
-    
     if (text.size() != 4) {
         return Move{};
     }
@@ -1410,11 +1409,11 @@ Move Board::text2move(std::string text) {
             return Types::NO_VERTEX;
         }
         
-        return  static_cast<Types::Vertices>(get_vertex(x, y));
+        return static_cast<Types::Vertices>(get_vertex(x, y));
     };
     
-    Types::Vertices from = str2vertex(text.data());
-    Types::Vertices to = str2vertex(text.data() + 2);
+    const auto from = str2vertex(text.data());
+    const auto to = str2vertex(text.data() + 2);
     
     if (from == Types::NO_VERTEX || to == Types::NO_VERTEX) {
         return Move{};

@@ -109,7 +109,7 @@ void init_options_map() {
     options_map["dirichlet_init"] << Utils::Option::setoption(0.3f);
     options_map["dirichlet_factor"] << Utils::Option::setoption(60.f);
 
-    options_map["waittime"] << Utils::Option::setoption(10);
+    options_map["gpu_waittime"] << Utils::Option::setoption(10);
 
     options_map["black_pawn_en"] << Utils::Option::setoption('p');
     options_map["black_horse_en"] << Utils::Option::setoption('n');
