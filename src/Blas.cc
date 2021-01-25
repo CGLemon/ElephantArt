@@ -387,8 +387,8 @@ void Batchnorm::Forward(const size_t channels,
     };
 
     float *input_ptr = input.data();
-    const float *res = eltwise;
     if (eltwise) {
+        const float *res = eltwise;
         for (auto c = size_t{0}; c < channels; ++c) {
             const auto mean = means[c];
             const auto scale_stddev = stddevs[c];
@@ -444,11 +444,10 @@ void SEUnit::Forward(const size_t channels,
                      const std::vector<float> &weights_w2,
                      const std::vector<float> &weights_b2) {
 
-    using pooling = GlobalAvgPool;
     auto pool = std::vector<float>(2 * channels);
     auto fc_out = std::vector<float>(se_size);
 
-    pooling::Forward(channels, input, pool);
+    GlobalAvgPool::Forward(channels, input, pool);
     FullyConnect::Forward(channels, se_size, pool, weights_w1, weights_b1, fc_out, true);
     FullyConnect::Forward(se_size, 2*channels, fc_out, weights_w2, weights_b2, pool, false);
 
@@ -521,6 +520,7 @@ std::vector<float> Activation::Tanh (const std::vector<float> &input) {
     for (const auto &v : input) {
         output.emplace_back(std::tanh(v));
     }
+
     return output;
 }
 
@@ -538,4 +538,34 @@ std::vector<float> Activation::Sigmoid(const std::vector<float> &input) {
     }
 
     return output;
+}
+
+
+void InputPool::Forward(const size_t input_size,
+                        const size_t squeeze,
+                        const size_t channels,
+                        const std::vector<float> &input,
+                        const std::vector<float> &weights_w1,
+                        const std::vector<float> &weights_b1,
+                        const std::vector<float> &weights_w2,
+                        const std::vector<float> &weights_b2,
+                        std::vector<float> &output) {
+
+    auto fc_out1 = FullyConnect::innerproduct(input_size, squeeze, input, weights_w1, weights_b1, true);
+    auto fc_out2 = FullyConnect::innerproduct(squeeze, channels, fc_out1, weights_w2, weights_b2, false);
+
+    const auto lambda_ReLU = [](const auto val) {
+        return (val > 0.0f) ? val : 0;
+    };
+
+    auto output_ptr = output.data();
+
+    for (auto c = size_t{0}; c < channels; ++c) {
+        auto bais = fc_out2[c];
+        for (auto i = size_t{0}; i < spatial_size; ++i) {
+            auto value = *output_ptr;
+            *output_ptr = lambda_ReLU(value + bais);
+            output_ptr++;
+        }
+    }
 }

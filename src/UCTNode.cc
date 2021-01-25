@@ -451,12 +451,15 @@ void UCTNode::update(std::shared_ptr<UCTNodeEvals> evals) {
 void UCTNode::dirichlet_noise(const float epsilon, const float alpha) {
 
     auto child_cnt = m_children.size();
-    auto dirichlet_buffer = std::vector<float>{};
-    std::gamma_distribution<float> gamma(alpha, 1.0f);
-    for (auto i = size_t{0}; i < child_cnt; i++) {
-        float gen = gamma(Random<random_t::XoroShiro128Plus>::get_Rng());
-        dirichlet_buffer.emplace_back(gen);
-    }
+    auto dirichlet_buffer = std::vector<float>(child_cnt);
+    auto gamma = std::gamma_distribution<float>(alpha, 1.0f);
+    // for (auto i = size_t{0}; i < child_cnt; i++) {
+    //     const auto gen = gamma(Random<random_t::XoroShiro128Plus>::get_Rng());
+    //     dirichlet_buffer.emplace_back(gen);
+    // }
+
+    std::generate(std::begin(dirichlet_buffer), std::end(dirichlet_buffer),
+                      [&gamma] () { return gamma(Random<random_t::XoroShiro128Plus>::get_Rng()); });
 
     auto sample_sum =
         std::accumulate(std::begin(dirichlet_buffer), std::end(dirichlet_buffer), 0.0f);

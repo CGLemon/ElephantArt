@@ -20,6 +20,7 @@ class CUDABackend : public Model::NNPipe {
 public:
     virtual void initialize(std::shared_ptr<Model::NNWeights> weights);
     virtual void forward(const std::vector<float> &planes,
+                         const std::vector<float> &features,
                          std::vector<float> &output_pol,
                          std::vector<float> &output_val);
 
@@ -33,6 +34,7 @@ private:
         // intput
         CUDA::Convolve input_conv;
         CUDA::Batchnorm input_bnorm;
+        CUDA::InputPool input_pool;
 
         // residual towers
         std::vector<CUDA::Convolve> tower_conv;
@@ -57,6 +59,7 @@ private:
         void build_graph(const int gpu, std::shared_ptr<Model::NNWeights> weights);
         void batch_forward(const int batch_size,
                            std::vector<float> &planes,
+                           std::vector<float> &features,
                            std::vector<float> &output_pol,
                            std::vector<float> &output_val);
         void destroy_graph();
@@ -68,7 +71,7 @@ private:
         int m_maxbatch;
         std::unique_ptr<Graph> m_graph{nullptr};
         float *cuda_scratch;
-
+        float *cuda_input_features;
         float *cuda_input_planes;
         float *cuda_output_pol;
         float *cuda_output_val;
@@ -83,6 +86,7 @@ private:
 
     struct ForwawrdEntry {
 	    const std::vector<float> &in_p;
+	    const std::vector<float> &in_f;
         std::vector<float> &out_pol;
         std::vector<float> &out_val;
 
@@ -91,9 +95,10 @@ private:
         std::atomic<bool> done{false};
 
         ForwawrdEntry(const std::vector<float> &planes,
+                      const std::vector<float> &features,
                       std::vector<float> &output_pol,
                       std::vector<float> &output_val) :
-                      in_p(planes), out_pol(output_pol), out_val(output_val) {}
+                      in_p(planes), in_f(features), out_pol(output_pol), out_val(output_val) {}
     };
 
     std::list<std::shared_ptr<ForwawrdEntry>> m_forward_queue;

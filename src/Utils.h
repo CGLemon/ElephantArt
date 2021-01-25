@@ -93,6 +93,8 @@ public:
         template<typename T> T get() const;
     };
 
+    static constexpr size_t MAX_BUFFER_SIZE = 1024 * 1024 * 1024;
+
     CommandParser() = delete;
     CommandParser(std::string &input);
     CommandParser(std::string &input, const size_t max);
@@ -110,6 +112,7 @@ public:
     std::shared_ptr<Reuslt> find_next(const std::initializer_list<std::string> inputs) const;
     std::shared_ptr<Reuslt> remove_command(size_t id);
     std::shared_ptr<Reuslt> remove_slice(size_t begin, size_t end);
+
 private:
     std::vector<std::shared_ptr<const std::string>> m_commands;
     size_t m_count;

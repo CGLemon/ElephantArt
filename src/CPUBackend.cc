@@ -33,6 +33,7 @@ void CPUBackend::reload(std::shared_ptr<Model::NNWeights> weights) {
 }
 
 void CPUBackend::forward(const std::vector<float> &planes,
+                         const std::vector<float> &features,
                          std::vector<float> &output_pol,
                          std::vector<float> &output_val) {
 
@@ -60,8 +61,16 @@ void CPUBackend::forward(const std::vector<float> &planes,
     Batchnorm::Forward(output_channels, conv_out,
                        m_weights->input_bn.means,
                        m_weights->input_bn.stddevs,
-                       nullptr, true);
-    
+                       nullptr, false);
+
+    InputPool::Forward(INPUT_FEATURES, 2 * output_channels, output_channels,
+                       features,
+                       m_weights->input_fc1.weights,
+                       m_weights->input_fc1.biases,
+                       m_weights->input_fc2.weights,
+                       m_weights->input_fc2.biases,
+                       conv_out);
+
     // residual tower
     const auto residuals =  m_weights->residual_blocks;
     for (int i = 0; i < residuals; ++i) {

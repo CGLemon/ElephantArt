@@ -174,36 +174,40 @@ private:
     float *cuda_weights_b2;
 };
 
-// class InputPool {
-// public:
-//     InputPool() = default;
-//     InputPool(const size_t conv_size, const size_t batch,
-//                   const size_t input_size, const size_t channels);
-//     ~InputPool();
-//
-//     void LoadingWeight(const std::vector<float> &weights_w,
-//                       const std::vector<float> &weights_b); 
-//
-//     void Forward(const int batch, float *input, float *output, CudaHandel *handel);
-//
-//     void set_convsize(const size_t conv_size);
-//  
-// private:
-//     int width;
-//     int height;
-//     int spatial_size;
-//
-//     int m_maxbatch;
-//     int m_input_size;
-//     int m_channels;
-//
-//     bool is_loaded{false};
-//
-//     float *cuda_op;
-//     float *cuda_weights_w;
-//     float *cuda_weights_b;
-//
-// };
+class InputPool {
+public:
+    InputPool() = default;
+    InputPool(const int batch, const size_t input_size,
+              const size_t squeeze, const size_t channels);
+    ~InputPool();
+
+     void LoadingWeight(const std::vector<float> &weights_w1,
+                        const std::vector<float> &weights_b1,
+                        const std::vector<float> &weights_w2,
+                        const std::vector<float> &weights_b2); 
+
+    void Forward(const int batch, float *input, float *output, CudaHandel *handel);
+    void set_convsize(const size_t conv_size);
+  
+private:
+    static constexpr auto width = CONV_WIDTH;
+    static constexpr auto height = CONV_HEIGHT;
+    static constexpr auto spatial_size = width * height;
+
+    int m_maxbatch;
+    int m_input_size;
+    int m_channels;
+    int m_squeeze;
+
+    bool is_loaded{false};
+
+    std::array<float *, 2> cuda_op;
+    float *cuda_weights_w1;
+    float *cuda_weights_b1;
+    float *cuda_weights_w2;
+    float *cuda_weights_b2;
+
+};
 } // namespace CUDA
 
 #endif

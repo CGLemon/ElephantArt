@@ -350,11 +350,11 @@ void strip_stream(std::ostream &out, const size_t times) {
 }
 
 CommandParser::CommandParser(std::string &input) {
-    parser(std::forward<std::string>(input), 1024 * 1024 * 1024);
+    parser(std::forward<std::string>(input), MAX_BUFFER_SIZE);
 }
 
 CommandParser::CommandParser(std::string &input, const size_t max) {
-    parser(std::forward<std::string>(input), max);
+    parser(std::forward<std::string>(input), std::min(max, MAX_BUFFER_SIZE));
 }
 
 CommandParser::CommandParser(int argc, char** argv) {
@@ -362,7 +362,7 @@ CommandParser::CommandParser(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
         out << argv[i] << " ";
     }
-    parser(std::move(out.str()), 1024 * 1024 * 1024);
+    parser(std::move(out.str()), MAX_BUFFER_SIZE);
 }
 
 bool CommandParser::valid() const {

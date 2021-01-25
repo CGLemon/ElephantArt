@@ -203,7 +203,6 @@ private:
     static constexpr auto width = CONV_WIDTH;
     static constexpr auto height = CONV_HEIGHT;
     static constexpr auto spatial_size = width * height;
-
 };
 
 class Activation {
@@ -291,4 +290,25 @@ size_t Convolve<FILTER_SIZE>::get_workspace_size(const size_t input_channels) {
     const auto filter_dim = filter_len * input_channels;
     return filter_dim * width * height;
 }
+
+class InputPool {
+public:
+    InputPool() = delete;
+    static void Forward(const size_t input_size,
+                        const size_t squeeze,
+                        const size_t channels,
+                        const std::vector<float> &input,
+                        const std::vector<float> &weights_w1,
+                        const std::vector<float> &weights_b1,
+                        const std::vector<float> &weights_w2,
+                        const std::vector<float> &weights_b2,
+                        std::vector<float> &output);
+
+private:
+    static constexpr auto width = CONV_WIDTH;
+    static constexpr auto height = CONV_HEIGHT;
+    static constexpr auto spatial_size = width * height;
+};
+
+
 #endif

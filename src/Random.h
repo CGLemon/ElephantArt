@@ -64,10 +64,10 @@ public:
         return static_cast<std::uint32_t>(randuint64()) % Range;
     }
 
-    template<int precision>
+    template<int Precision>
     bool roulette(float threshold) {
-        const int res = randfix<precision>();
-        const int thres = (float)precision * threshold;
+        const int res = randfix<Precision>();
+        const int thres = (float)Precision * threshold;
         if (thres < res) {
             return true;
         }

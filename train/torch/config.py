@@ -20,6 +20,7 @@ CONFIG_KEYWOED = [
     "NeuralNetwork",
     "NNType",
     "InputChannels",
+    "InputFeatures",
     "PolicyExtract",
     "ValueExtract",
     "Stack",
@@ -33,6 +34,7 @@ class NetworkConfig:
         self.stack = []
         self.nntype = None
         self.input_channels = None
+        self.input_features = None
         self.residual_channels = None
         self.policy_extract = None
         self.value_extract = None
@@ -56,6 +58,7 @@ def NN_parser(json_data):
     nn_config.residual_channels = resnet["ResidualChannels"]
     nn_config.policy_extract = resnet["PolicyExtract"]
     nn_config.value_extract = resnet["ValueExtract"]
+    nn_config.input_features = resnet["InputFeatures"]
 
     stack = resnet["Stack"]
     for s in stack:

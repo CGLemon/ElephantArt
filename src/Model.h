@@ -28,6 +28,7 @@
 #include "Position.h"
 #include "Utils.h"
 
+static constexpr auto INPUT_FEATURES = 4;
 static constexpr auto INPUT_STATUS = 4;
 static constexpr auto INPUT_MOVES = 1;
 static constexpr auto INPUT_CHANNELS = INPUT_MOVES * 14 + INPUT_STATUS;
@@ -96,6 +97,7 @@ struct Model {
         bool loaded{false};
         bool winograd{false};
         int input_channels{0};
+        int input_features{0};
         int residual_blocks{0};
         int residual_channels{0};
         int policy_extract_channels{0};
@@ -105,6 +107,8 @@ struct Model {
         // input layer
         Desc::ConvLayer input_conv;
         Desc::BatchNormLayer input_bn;
+        Desc::LinearLayer input_fc1;
+        Desc::LinearLayer input_fc2;
 
         // residual tower
         std::vector<ResidualBlock> residual_tower;
@@ -126,6 +130,7 @@ struct Model {
     public:
         virtual void initialize(std::shared_ptr<NNWeights> weights) = 0;
         virtual void forward(const std::vector<float> &planes,
+                             const std::vector<float> &features,
                              std::vector<float> &output_pol,
                              std::vector<float> &output_val) = 0;
 
@@ -138,7 +143,8 @@ struct Model {
     
     static std::vector<float> gather_planes(const Position *const position,
                                             const int symmetry);
-    
+    static std::vector<float> gather_features(const Position *const position);
+
     static void load_weights(const std::string &filename,
                              std::shared_ptr<NNWeights> &nn_weight);
     

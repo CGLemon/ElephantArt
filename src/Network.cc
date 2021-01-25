@@ -137,22 +137,23 @@ void dummy_forward(std::vector<float> &policy,
                    std::vector<float> &value) {
 
     auto rng = Random<random_t::XoroShiro128Plus>::get_Rng();
-    auto dis = std::uniform_real_distribution<float>(0.0, 1.0);
+    auto dist = std::uniform_real_distribution<float>(0.0, 1.0);
+
     for (auto &p : policy) {
-        p = dis(rng);
+        p = dist(rng);
     }
     const auto p_acc = std::accumulate(std::begin(policy),
-                                       std::end(policy), 0.0f);
+                                           std::end(policy), 0.0f);
     for (auto &p : policy) {
         p /= p_acc;
     }
 
     for (auto &v : value) {
-        v = dis(rng);
+        v = dist(rng);
     }
     const auto v_acc = std::accumulate(std::begin(value),
-                                       std::begin(value)+ 3,
-                                       0.0f);
+                                           std::begin(value)+ 3,
+                                           0.0f);
 
     for (int idx = 0; idx < 3; ++idx) {
         value[idx] = value[idx] / v_acc;
@@ -166,21 +167,22 @@ Network::Netresult Network::get_output_internal(const Position *const position,
     auto policy_out = std::vector<float>(POLICYMAP * INTERSECTIONS);
     auto winrate_out = std::vector<float>(WINRATELAYER);
 
-    const auto input_planes = Model::gather_planes(position, symmetry);
+    auto input_planes = Model::gather_planes(position, symmetry);
+    auto input_features = Model::gather_features(position) ;
 
     if (m_forward->valid()) {
-        m_forward->forward(input_planes, policy_out, winrate_out);
+        m_forward->forward(input_planes, input_features, policy_out, winrate_out);
     } else {
-        // If we don't load the network yet, output the random result.
+        // If we didn't load the network yet, output the random result.
         dummy_forward(policy_out, winrate_out);
     }
 
 
     const auto result = Model::get_result(policy_out,
-                                          winrate_out,
-                                          option<float>("softmax_temp"),
-                                          option<float>("softmax_temp"),
-                                          symmetry);
+                                              winrate_out,
+                                              option<float>("softmax_temp"),
+                                              option<float>("softmax_temp"),
+                                              symmetry);
 
     return result;
 }

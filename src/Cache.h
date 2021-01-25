@@ -22,7 +22,6 @@
 #include <array>
 #include <deque>
 #include <memory>
-// #include <mutex>
 #include <unordered_map>
 #include <atomic>
 #include <cassert>
@@ -40,10 +39,10 @@ public:
     void resize(size_t size);
 
     void dump_stats();
-
     size_t get_estimated_size();
 
     void clear();
+    void clear_stats();
 
 private:
     static constexpr size_t MAX_CACHE_COUNT = 150000;
@@ -51,8 +50,8 @@ private:
     static constexpr size_t MIN_CACHE_COUNT = 6000;
 
     static constexpr size_t ENTRY_SIZE = sizeof(EntryType) +
-                                         sizeof(std::uint64_t) +
-                                         sizeof(std::unique_ptr<EntryType>);
+                                             sizeof(std::uint64_t) +
+                                             sizeof(std::unique_ptr<EntryType>);
 
     SharedMutex m_sm;
     size_t m_size;
@@ -71,10 +70,8 @@ private:
 };
 
 template <typename EntryType>
-bool Cache<EntryType>::lookup(std::uint64_t hash,
-                                    EntryType &result) {
+bool Cache<EntryType>::lookup(std::uint64_t hash, EntryType &result) {
 
-    // std::lock_guard<std::mutex> lock(m_mutex);
     LockGuard<lock_t::S_LOCK> lock(m_sm);
     
     bool success = true;
@@ -92,10 +89,8 @@ bool Cache<EntryType>::lookup(std::uint64_t hash,
 }
 
 template <typename EntryType>
-void Cache<EntryType>::insert(std::uint64_t hash,
-                                    const EntryType &result) {
+void Cache<EntryType>::insert(std::uint64_t hash, const EntryType &result) {
 
-    // std::lock_guard<std::mutex> lock(m_mutex);
     LockGuard<lock_t::X_LOCK> lock(m_sm);
     
     if (m_cache.find(hash) == m_cache.end()) {
@@ -113,12 +108,11 @@ void Cache<EntryType>::insert(std::uint64_t hash,
 template <typename EntryType>
 void Cache<EntryType>::resize(size_t size) {
 
-    m_size = (size > Cache::MAX_CACHE_COUNT ? Cache::MAX_CACHE_COUNT : 
-              size < Cache::MIN_CACHE_COUNT ? Cache::MIN_CACHE_COUNT : size);
-
-    // std::lock_guard<std::mutex> lock(m_mutex);
     LockGuard<lock_t::X_LOCK> lock(m_sm);
-    
+
+    m_size = size > Cache::MAX_CACHE_COUNT ? Cache::MAX_CACHE_COUNT : 
+                 size < Cache::MIN_CACHE_COUNT ? Cache::MIN_CACHE_COUNT : size;
+
     while (m_order.size() > m_size) {
         m_cache.erase(m_order.front());
         m_order.pop_front();
@@ -128,7 +122,6 @@ void Cache<EntryType>::resize(size_t size) {
 template <typename EntryType> 
 void Cache<EntryType>::clear() {
 
-    // std::lock_guard<std::mutex> lock(m_mutex);
     LockGuard<lock_t::X_LOCK> lock(m_sm);
     
     if (!m_order.empty()) {
@@ -142,10 +135,22 @@ size_t Cache<EntryType>::get_estimated_size() {
     return m_order.size() * Cache::ENTRY_SIZE;
 }
 
+template <typename EntryType>
+void Cache<EntryType>::clear_stats() {
+    LockGuard<lock_t::X_LOCK> lock(m_sm);
+    m_hits = 0;
+    m_lookups = 0;
+    m_inserts = 0;
+}
+
 template <typename EntryType> 
 void Cache<EntryType>::dump_stats() {
-    Utils::printf<Utils::STATS>("NNCache: %d/%d hits/lookups = %.1f%% hitrate, %d inserts, %lu size\n",
-                                m_hits, m_lookups, 100. * m_hits / (m_lookups + 1), m_inserts,
-                                m_cache.size());
+    LockGuard<lock_t::X_LOCK> lock(m_sm);
+    Utils::printf<Utils::STATS>("Cache: %d/%d hits/lookups = %.2f, hitrate, %d inserts, %lu size, memory used : %lu\n",
+                                    m_hits, m_lookups,
+                                    100.f * m_hits / (m_lookups + 1),
+                                    m_inserts,
+                                    m_cache.size(),
+                                    get_estimated_size());
 }
 #endif

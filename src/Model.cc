@@ -171,6 +171,11 @@ std::vector<float> Model::gather_planes(const Position *const position,
     return input_data;
 }
 
+std::vector<float> Model::gather_features(const Position *const position) {
+    auto input_features = std::vector<float>(INPUT_FEATURES, 0.0f);
+    return input_features;
+}
+
 void Model::load_weights(const std::string &filename,
                          std::shared_ptr<NNWeights> &nn_weight) {
     auto file = std::ifstream{};
@@ -289,19 +294,23 @@ void Model::fill_weights(std::istream &weights_file,
         nn_weight->residual_channels = std::stoi(netinfo["ResidualChannels"]);
         nn_weight->policy_extract_channels = std::stoi(netinfo["PolicyExtract"]);
         nn_weight->value_extract_channels = std::stoi(netinfo["ValueExtract"]);
-        
+
         nn_weight->input_channels = std::stoi(netinfo["InputChannels"]);
+        nn_weight->input_features = std::stoi(netinfo["InputFeatures"]);
         nn_weight->policy_map = std::stoi(netinfo["PolicyMap"]);
         
         if (nn_weight->input_channels != INPUT_CHANNELS) {
             throw "The number of input channels is wrong.";
         }
+        if  (nn_weight->input_features != INPUT_FEATURES) {
+            throw "The number of features is wrong.";
+        }
         if  (nn_weight->policy_map != POLICYMAP) {
             throw "The number of policy map channels is wrong.";
         }
-        
-        auto se_cnt = 0;
+
         // input layer
+        const auto inputs_cnt = 4;
         const auto input_conv_shape = netmodel[0];
         fill_convolution_layer(nn_weight->input_conv,
                                weights_file,
@@ -313,24 +322,40 @@ void Model::fill_weights(std::istream &weights_file,
         fill_batchnorm_layer(nn_weight->input_bn,
                              weights_file,
                              input_bn_shape[0]);
+
+        const auto input_fc1_shape = netmodel[2];
+        fill_fullyconnect_layer(nn_weight->input_fc1,
+                                weights_file,
+                                input_fc1_shape[0],
+                                input_fc1_shape[1]);
+        
+        const auto input_fc2_shape = netmodel[3];
+        fill_fullyconnect_layer(nn_weight->input_fc2,
+                                weights_file,
+                                input_fc2_shape[0],
+                                input_fc2_shape[1]);
         
         const auto residuals = nn_weight->residual_blocks;
 
         if (nn_weight->residual_channels != input_conv_shape[1] ||
-            nn_weight->residual_channels != input_bn_shape[0] || 
-            input_conv_shape[2] != 3) {
-            throw "The input layer is wrong";
+                nn_weight->residual_channels != input_bn_shape[0] ||
+                nn_weight->residual_channels != input_fc2_shape[1] ||
+                input_fc1_shape[1] != input_fc2_shape[0] ||
+                input_fc2_shape[0] != 2 * input_fc2_shape[1] ||
+                input_conv_shape[2] != 3) {
+            throw "The input layers are wrong";
         }
+
         timer.record();
         // residual tower
+        auto se_cnt = 0;
         for (int b = 0; b < residuals; ++b) {
-
-            const auto t_offset = b * 4 + 2 + 2 * se_cnt;
+            const auto t_offset = 4 * b + 2 * se_cnt + inputs_cnt;
             const auto res_conv1_shape = netmodel[t_offset];
             const auto res_bn1_shape = netmodel[t_offset+1];
             const auto res_conv2_shape = netmodel[t_offset+2];
             const auto res_bn2_shape = netmodel[t_offset+3];
-            
+
             nn_weight->residual_tower.emplace_back(NNWeights::ResidualBlock{});
             auto tower_ptr = nn_weight->residual_tower.data() + b;
         
@@ -345,8 +370,8 @@ void Model::fill_weights(std::istream &weights_file,
                                  res_bn1_shape[0]);
 
             if (nn_weight->residual_channels != res_conv1_shape[0] ||
-                nn_weight->residual_channels != res_conv1_shape[1] ||
-                nn_weight->residual_channels != res_bn1_shape[0] || 
+                    nn_weight->residual_channels != res_conv1_shape[1] ||
+                    nn_weight->residual_channels != res_bn1_shape[0] || 
                 res_conv1_shape[2] != 3) {
                 throw "The Residual Block (1) is wrong";
             }
@@ -362,9 +387,9 @@ void Model::fill_weights(std::istream &weights_file,
                                  res_bn2_shape[0]);
 
             if (nn_weight->residual_channels != res_conv2_shape[0] ||
-                nn_weight->residual_channels != res_conv2_shape[1] ||
-                nn_weight->residual_channels != res_bn2_shape[0] ||
-                res_conv2_shape[2] != 3) {
+                    nn_weight->residual_channels != res_conv2_shape[1] ||
+                    nn_weight->residual_channels != res_bn2_shape[0] ||
+                    res_conv2_shape[2] != 3) {
                 throw "The Residual Block (2) is wrong";
             }
             
@@ -400,7 +425,7 @@ void Model::fill_weights(std::istream &weights_file,
         }
 
         timer.record();
-        const auto h_offset = residuals * 4 + 2 + 2 * se_cnt;
+        const auto h_offset = 4 * residuals + 2 * se_cnt + inputs_cnt;
 
         // policy head
         const auto p_ex_conv_shape = netmodel[h_offset];
@@ -594,12 +619,14 @@ void Model::process_weights(std::shared_ptr<NNWeights> &nn_weight) {
     } else {
         return;
     }
+
     auto channels = nn_weight->residual_channels;
     if (nn_weight->input_conv.kernel_size == 3) {
         nn_weight->input_conv.weights = Winograd::transform_f(
                                             nn_weight->input_conv.weights,
                                             channels, INPUT_CHANNELS);
     }
+
     for (auto &residual : nn_weight->residual_tower) {
         if (residual.conv_1.kernel_size == 3) {
             residual.conv_1.weights = Winograd::transform_f(
@@ -650,10 +677,10 @@ void Model::dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &ti
 
     Utils::printf<Utils::STATS>("Neural Network Information :\n");
     Utils::printf<Utils::STATS>("Time :\n");
-    Utils::printf<Utils::STATS>("  initialization proccess : %.4f second(s)\n", duration(timer, 1));
-    Utils::printf<Utils::STATS>("  input layer proccess : %.4f second(s)\n", duration(timer, 2));
-    Utils::printf<Utils::STATS>("  tower layers proccess: %.4f second(s)\n", duration(timer, 3));
-    Utils::printf<Utils::STATS>("  output layers proccess: %.4f second(s)\n", duration(timer, 4));
+    Utils::printf<Utils::STATS>("  initialization process : %.4f second(s)\n", duration(timer, 1));
+    Utils::printf<Utils::STATS>("  input layer process : %.4f second(s)\n", duration(timer, 2));
+    Utils::printf<Utils::STATS>("  tower layers process: %.4f second(s)\n", duration(timer, 3));
+    Utils::printf<Utils::STATS>("  output layers process: %.4f second(s)\n", duration(timer, 4));
     Utils::printf<Utils::STATS>("Channels / Blocks :  %d / %d\n", nn_weight->residual_channels, nn_weight->residual_blocks);
     Utils::printf<Utils::STATS>("Tower Struct :\n");
     for (auto i = 0; i < nn_weight->residual_blocks; ++i) {
@@ -671,9 +698,7 @@ void Model::dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &ti
 void get_weights_from_file(std::istream &weights_file, std::vector<float> &weights) {
     weights.clear();
     auto line = std::string{};
-// #ifdef USE_FAST_PARSER
-//     auto w_str = std::string{};
-// #endif
+
     if (std::getline(weights_file, line)) {
         // On MacOS, if the numeric is too small, stringstream
         // can not parse the number to float, but double is ok.
@@ -710,14 +735,6 @@ void get_weights_from_file(std::istream &weights_file, std::vector<float> &weigh
             }
             start_ptr = end_ptr;
         }
-        // while(line_buffer >> w_str) {
-        //     const auto w_ptr = w_str.data();
-        //     const auto is_ok = fast_float::from_chars<double>(w_ptr, w_ptr+w_str.size(), weight);
-        //     if (is_ok.ec != std::errc()) {
-        //         throw "There is non-numeric in parameters";
-        //     }
-        //     weights.emplace_back(weight);
-        // }
 #else 
         std::stringstream line_buffer(line);
         while(line_buffer >> weight) {

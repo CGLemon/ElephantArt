@@ -26,6 +26,7 @@ class CPUBackend : public Model::NNPipe {
 public:
     virtual void initialize(std::shared_ptr<Model::NNWeights> weights);
     virtual void forward(const std::vector<float> &planes,
+                         const std::vector<float> &features,
                          std::vector<float> &output_pol,
                          std::vector<float> &output_val);
 

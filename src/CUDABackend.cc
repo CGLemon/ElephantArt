@@ -25,17 +25,16 @@ void CUDABackend::destroy() {
 void CUDABackend::reload(std::shared_ptr<Model::NNWeights> weights) {
     release();
     m_weights = weights;
-    const auto cnt = CUDA::get_devicecount();
+    const auto d_cnt = CUDA::get_devicecount();
     if (option<int>("gpu") >= 0) {
         m_nngraphs.emplace_back(std::make_unique<NNGraph>());
-        const auto gpu = option<int>("gpu") >= cnt ? 0 : option<int>("gpu");
+        const auto gpu = option<int>("gpu") >= d_cnt ? 0 : option<int>("gpu");
         m_nngraphs[0]->build_graph(gpu, weights);
     } else {
-        const auto cnt = CUDA::get_devicecount();
-        for (int i = 0; i < cnt; ++i) {
+        for (int i = 0; i < d_cnt; ++i) {
             m_nngraphs.emplace_back(std::make_unique<NNGraph>());
         }
-        for (int i = 0; i < cnt; ++i) {
+        for (int i = 0; i < d_cnt; ++i) {
             m_nngraphs[i]->build_graph(i, weights);
         }
     }
@@ -53,10 +52,12 @@ bool CUDABackend::valid() {
 }
 
 void CUDABackend::forward(const std::vector<float> &planes,
+                          const std::vector<float> &features,
                           std::vector<float> &output_pol,
                           std::vector<float> &output_val) {
 
     auto entry = std::make_shared<ForwawrdEntry>(planes,
+                                                 features,
                                                  output_pol,
                                                  output_val);
     std::unique_lock<std::mutex> lock(entry->mutex);
@@ -93,7 +94,6 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
     const auto output_channels = m_weights->residual_channels;
 
     // build graph
-
     // input layer
     m_graph->input_conv = CUDA::Convolve(
         m_maxbatch,          // max batch size
@@ -103,6 +103,13 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
     );
     m_graph->input_bnorm = CUDA::Batchnorm(
         m_maxbatch,          // max batch size
+        output_channels,     // channels
+        false                // relu
+    );
+    m_graph->input_pool = CUDA::InputPool(
+        m_maxbatch,          // max batch size
+        INPUT_FEATURES,      // input size
+        2 * output_channels, // squeeze size
         output_channels      // channels
     );
 
@@ -202,7 +209,8 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
     // input layer
     m_graph->input_conv.LoadingWeight(m_weights->input_conv.weights, m_scratch_size, &m_handel);
     m_graph->input_bnorm.LoadingWeight(m_weights->input_bn.means, m_weights->input_bn.stddevs);
-
+    m_graph->input_pool.LoadingWeight(m_weights->input_fc1.weights, m_weights->input_fc1.biases,
+                                      m_weights->input_fc2.weights, m_weights->input_fc2.biases);
     // residual tower
     for (int i = 0; i < residuals; ++i) {
         const auto t_offset = 2 * i;
@@ -232,19 +240,21 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
     m_graph->v_fc1.LoadingWeight(weights->v_fc1.weights, m_weights->v_fc1.biases);
     m_graph->v_fc2.LoadingWeight(weights->v_fc2.weights, m_weights->v_fc2.biases);
 
-    const auto factor = m_maxbatch * sizeof(float);
-    const auto inputs_size = static_cast<size_t>(factor * INPUT_CHANNELS * Board::INTERSECTIONS);
-    const auto pol_size = static_cast<size_t>(factor * POLICYMAP * Board::INTERSECTIONS);
-    const auto val_size = static_cast<size_t>(factor * WINRATELAYER);
+    const size_t factor = m_maxbatch * sizeof(float);
+    const size_t planes_size = factor * INPUT_CHANNELS * Board::INTERSECTIONS;
+    const size_t features_size = factor * INPUT_FEATURES;
+    const size_t pol_size = factor * POLICYMAP * Board::INTERSECTIONS;
+    const size_t val_size = factor * WINRATELAYER;
 
-    const auto conv_op_size = static_cast<size_t>(factor * m_weights->residual_channels * Board::INTERSECTIONS);
+    const size_t conv_op_size = factor * m_weights->residual_channels * Board::INTERSECTIONS;
 
-    const auto pol_op1_size = static_cast<size_t>(factor * policy_extract_channels * Board::INTERSECTIONS);
-    const auto val_op1_size = static_cast<size_t>(factor * value_extract_channels * Board::INTERSECTIONS);
-    const auto val_op2_size = static_cast<size_t>(factor * VALUELAYER);
+    const size_t pol_op1_size = factor * policy_extract_channels * Board::INTERSECTIONS;
+    const size_t val_op1_size = factor * value_extract_channels * Board::INTERSECTIONS;
+    const size_t val_op2_size = factor * VALUELAYER;
 
     CUDA::ReportCUDAErrors(cudaMalloc(&cuda_scratch, m_scratch_size));
-    CUDA::ReportCUDAErrors(cudaMalloc(&cuda_input_planes, inputs_size));
+    CUDA::ReportCUDAErrors(cudaMalloc(&cuda_input_planes, planes_size));
+    CUDA::ReportCUDAErrors(cudaMalloc(&cuda_input_features, features_size));
     CUDA::ReportCUDAErrors(cudaMalloc(&cuda_output_pol, pol_size));
     CUDA::ReportCUDAErrors(cudaMalloc(&cuda_output_val, val_size));
 
@@ -260,22 +270,28 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
 
 void CUDABackend::NNGraph::batch_forward(const int batch_size,
                                          std::vector<float> &planes,
+                                         std::vector<float> &features,
                                          std::vector<float> &output_pol,
                                          std::vector<float> &output_val) {
 
     assert(m_maxbatch >= batch_size);
 
-    const auto factor = batch_size * sizeof(float);
+    const size_t factor = batch_size * sizeof(float);
     const size_t planes_s = factor * INPUT_CHANNELS * Board::INTERSECTIONS;
+    const size_t features_s = factor * INPUT_FEATURES;
 
     CUDA::ReportCUDAErrors(cudaMemcpy(cuda_input_planes, planes.data(),
                                       planes_s, cudaMemcpyHostToDevice));
+    CUDA::ReportCUDAErrors(cudaMemcpy(cuda_input_features, features.data(),
+                                      features_s, cudaMemcpyHostToDevice));
 
     m_graph->input_conv.Forward(batch_size,
                                 cuda_input_planes, cuda_conv_op[0],
                                 cuda_scratch, m_scratch_size, &m_handel);
     m_graph->input_bnorm.Forward(batch_size,
                                  cuda_conv_op[0]);
+    m_graph->input_pool.Forward(batch_size, cuda_input_features,
+                                cuda_conv_op[0], &m_handel);
 
     // Residual tower
     const auto residuals = m_weights->residual_blocks;
@@ -363,21 +379,27 @@ CUDABackend::NNGraph::~NNGraph() {
 void CUDABackend::worker(int gpu) {
     const auto gether_batches = [this](){
         const size_t maxbatch = (size_t)option<int>("batchsize");
+        const auto gpu_waittime = option<int>("gpu_waittime");
         std::list<std::shared_ptr<ForwawrdEntry>> inputs;
         while(true) {
             if (!m_thread_running) {
                 return inputs;
             }
+
+            int waittime = m_waittime.load();
             if (m_forward_queue.size() >= maxbatch) {
-                m_waittime.store(option<int>("gpu_waittime"));
+                if (waittime > gpu_waittime) {
+                    m_waittime.store(gpu_waittime);
+                } else if (waittime > 1) {
+                    waittime--;
+                    m_waittime.store(waittime);
+                }
                 break;
             }
 
             std::unique_lock<std::mutex> lock(m_mutex);
-            int waittime = m_waittime.load();
-            bool timeout = m_cv.wait_for(lock, std::chrono::milliseconds(waittime),
-                                             [maxbatch, this](){ return maxbatch == 1 ||
-                                                                            m_forward_queue.size() < maxbatch; }
+            bool timeout = !m_cv.wait_for(lock, std::chrono::milliseconds(waittime),
+                                              [maxbatch, this](){ return !(m_forward_queue.size() < maxbatch); }
                                          );
             if (!m_forward_queue.empty()) {
                 if (timeout && m_narrow_pipe.exchange(true) == false) {
@@ -387,6 +409,11 @@ void CUDABackend::worker(int gpu) {
                     }
                     break;
                 }
+            } else {
+                if (waittime < 20 * gpu_waittime) {
+                   waittime += 2;
+                }
+                m_waittime.store(waittime);
             }
         }
 
@@ -417,10 +444,12 @@ void CUDABackend::worker(int gpu) {
         const auto first = *std::begin(gather_entry);
 
         const auto in_p_size = first->in_p.size();
+        const auto in_f_size = first->in_f.size();
         const auto out_pol_size = first->out_pol.size();
         const auto out_val_size = first->out_val.size();
 
         auto batch_input_planes = std::vector<float>(batch_size * in_p_size);
+        auto batch_input_features = std::vector<float>(batch_size * in_f_size);
         auto batch_out_pol = std::vector<float>(batch_size * out_pol_size);
         auto batch_out_val = std::vector<float>(batch_size * out_val_size);
 
@@ -429,11 +458,15 @@ void CUDABackend::worker(int gpu) {
             std::copy(std::begin(x->in_p),
                       std::end(x->in_p),
                       std::begin(batch_input_planes) + index * in_p_size);
+            std::copy(std::begin(x->in_f),
+                      std::end(x->in_f),
+                      std::begin(batch_input_features) + index * in_f_size);
             index++;
         }
 
         m_nngraphs[gpu]->batch_forward(batch_size,
                                        batch_input_planes,
+                                       batch_input_features,
                                        batch_out_pol,
                                        batch_out_val);
 
