@@ -64,7 +64,7 @@ public:
     bool is_eaten() const;
     std::string history_board() const;
 
-    int get_repeat() const;
+    std::pair<int, int> get_repeat() const;
 
 private:
     Types::Color resigned{Types::INVALID_COLOR};

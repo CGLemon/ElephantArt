@@ -98,8 +98,8 @@ public:
     
     void set_to_move(Types::Color color);
     void swap_to_move();
-    void increment_movenum();
-    void decrement_movenum();
+    void increment_gameply();
+    void decrement_gameply();
 
     void do_move(Move move);
     bool is_legal(Move move);

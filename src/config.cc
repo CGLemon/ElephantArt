@@ -204,7 +204,7 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         parser.remove_command(res->idx);
     }
 
-    if (const auto res = parser.find("--quiet_verbose")) {
+    if (const auto res = parser.find("--quiet_analysis")) {
         set_option("quiet_search_verbose", true);
         parser.remove_command(res->idx);
     }

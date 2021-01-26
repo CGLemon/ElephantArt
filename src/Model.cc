@@ -134,7 +134,7 @@ std::vector<float> Model::gather_planes(const Position *const position,
     // planes |  8      | current player is red or not.
     // planes |  9 - 15 | next player picee position.
     // planes | 16      | next player is red or not.
-    // planes | 17 - 18 | repeat conut
+    // planes | 17 - 18 | others.
 
     auto input_data = std::vector<float>(INPUT_CHANNELS * Board::INTERSECTIONS, 0.0f);
     auto color = position->get_to_move();
@@ -146,8 +146,8 @@ std::vector<float> Model::gather_planes(const Position *const position,
         std::advance(blk_iterator, (1 + INPUT_MOVES * 7) * Board::INTERSECTIONS);
     }
 
-    const auto movenum = position->get_movenum()+1;
-    const auto past_moves = std::min(INPUT_MOVES, movenum);
+    const auto ply = position->get_gameply()+1;
+    const auto past_moves = std::min(INPUT_MOVES, ply);
     
     // plane 1-7 and 9-15
     for (auto p = 0; p < INPUT_MOVES; ++p) {
@@ -173,6 +173,9 @@ std::vector<float> Model::gather_planes(const Position *const position,
 
 std::vector<float> Model::gather_features(const Position *const position) {
     auto input_features = std::vector<float>(INPUT_FEATURES, 0.0f);
+    const auto ply = position->get_gameply();
+    input_features[0] = static_cast<float>(ply)/30.f;
+
     return input_features;
 }
 

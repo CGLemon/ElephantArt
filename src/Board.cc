@@ -53,8 +53,8 @@ void Board::reset_board() {
 
 void Board::clear_status() {
     m_tomove = Types::RED;
-    m_gameply = 1;
-    m_movenum = 0;
+    m_gameply = 0;
+    m_movenum = 1;
     m_eaten = false;
     m_lastmove = Move{};
 }
@@ -219,10 +219,10 @@ bool Board::fen2board(std::string &fen) {
         fen_format >> fen_stream;
     }
 
-    // part 6 : turn number
-    int ply;
-    fen_format >> ply;
-    if (ply <= 0) {
+    // part 6 : move number
+    int movenum;
+    fen_format >> movenum;
+    if (movenum <= 0) {
         success = false;
     }
 
@@ -240,8 +240,8 @@ bool Board::fen2board(std::string &fen) {
         m_bb_elephant = bb_elephant;
         m_bb_advisor = bb_advisor;
         m_bb_cannon = bb_cannon;
-        m_gameply = ply;
-        m_movenum = (ply-1) * 2 + static_cast<int>(tomove);
+        m_gameply = (movenum-1) * 2 + static_cast<int>(tomove);
+        m_movenum = movenum;
         m_tomove = tomove;
 
         // Calculate the new hash value. 
@@ -599,7 +599,7 @@ void Board::init_magics() {
         return reference;
     };
 
-    Utils::Timer timer;
+    auto timer = Utils::Timer{};
     set_valid(m_elephant_magics);
     set_valid(m_horse_magics);
     set_valid(m_rookrank_magics);
@@ -616,7 +616,7 @@ void Board::init_magics() {
         generate_magics(4, v, m_cannonfile_magics, cannonfile_reference);
     }
 
-    auto t = timer.get_duration();
+    const auto t = timer.get_duration();
     Utils::printf<Utils::STATS>("Generating Magic numbers spent %.4f second(s)\n", t);
 }
 
@@ -692,8 +692,8 @@ void Board::info_stream<Types::ASCII>(std::ostream &out) const {
     out << ", Last move : ";
     out << get_last_move().to_string(); 
 
-    out << ", Move number : ";
-    out << get_movenum(); 
+    out << ", Ply number : ";
+    out << get_gameply(); 
 
     out << ", Hash : ";
     out << std::hex;
@@ -722,7 +722,7 @@ void Board::info_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out) const {
     out << get_last_move().to_string(); 
 
     out << "，第 ";
-    out << get_movenum(); 
+    out << get_gameply(); 
     out << " 手棋";
 
     out << "，哈希 ：";
@@ -766,7 +766,7 @@ void Board::fen_stream(std::ostream &out) const {
     out << " ";
     m_tomove == Types::RED ? out << "w" : out << "b";
 
-    out << " - - 0 " << m_gameply;
+    out << " - - 0 " << get_movenum();
 }
 
 template<>
@@ -1096,6 +1096,7 @@ int Board::generate_move<Types::CANNON>(Types::Color color, std::vector<Move> &m
 int Board::generate_pseudo_movelist(Types::Color color, std::vector<Move> &movelist) const {
 
     const auto reserve = option<int>("reserve_movelist");
+
     movelist.clear();
     movelist.reserve(reserve);
 
@@ -1108,10 +1109,6 @@ int Board::generate_pseudo_movelist(Types::Color color, std::vector<Move> &movel
     cnt += generate_move<Types::CANNON>  (color, movelist);
     cnt += generate_move<Types::ADVISOR> (color, movelist);
     cnt += generate_move<Types::ELEPHANT>(color, movelist);
-
-    if (cnt > reserve) {
-        movelist.shrink_to_fit();
-    }
 
     return cnt;
 }
@@ -1126,6 +1123,9 @@ int Board::generate_movelist(Types::Color color, std::vector<Move> &movelist) {
                            auto legal = true;
                            legal &= !is_king_face_king();
                            undo_from_pseudo_move(record);
+                           if (!legal) {
+                               --cnt;
+                           }
                            return !legal;
                        }),
         std::end(movelist)
@@ -1207,7 +1207,7 @@ void Board::do_move(Move move) {
     swap_to_move();
 
     // Increment move number
-    increment_movenum();
+    increment_gameply();
 }
 
 Board::PseudoMoveRecord Board::do_pseudo_move(Move move) {
@@ -1422,14 +1422,12 @@ Move Board::text2move(std::string text) {
     return Move(from, to);
 }
 
-void Board::increment_movenum() {
-    m_movenum++;
-    m_gameply = (m_movenum / 2) + 1;
+void Board::increment_gameply() {
+    m_movenum = ((++m_gameply)/2) + 1;
 }
 
-void Board::decrement_movenum() {
-    m_movenum--;
-    m_gameply = (m_movenum / 2) + 1;
+void Board::decrement_gameply() {
+    m_movenum = ((--m_gameply)/2) + 1;
 }
 
 bool Board::is_eaten() const {

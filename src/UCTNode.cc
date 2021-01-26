@@ -194,7 +194,7 @@ UCTNode *UCTNode::get() {
 }
 
 float UCTNode::get_eval_variance(const float default_var, const int visits) const {
-    return visits > 1 ? m_squared_eval_diff / (visits - 1) : default_var;
+    return visits > 1 ? m_squared_eval_diff.load() / (visits - 1) : default_var;
 }
 
 float UCTNode::get_eval_lcb(const Types::Color color) const {
@@ -207,9 +207,10 @@ float UCTNode::get_eval_lcb(const Types::Color color) const {
     }
 
     const auto mean = get_meaneval(color, false);
-    const auto stddev = std::sqrt(get_eval_variance(1.0f, visits) / float(visits));
+    const auto variance = get_eval_variance(1.0f, visits);
+    const auto stddev = std::sqrt(variance / float(visits));
     const auto z = Utils::cached_t_quantile(visits - 1);
-
+    
     return mean - z * stddev;
 }
 
@@ -434,8 +435,8 @@ void UCTNode::update(std::shared_ptr<UCTNodeEvals> evals) {
     const float old_stmeval = m_accumulated_red_stmevals.load();
     const float old_winloss = m_accumulated_red_wls.load();
     const float old_visits = m_visits.load();
-    const float old_eval = 0.5f * (old_stmeval + old_winloss) / old_visits;
-    const float old_delta = old_visits > 0 ? eval - old_eval : 0.0f;
+    const float old_eval = 0.5f * (old_stmeval + old_winloss);
+    const float old_delta = old_visits > 0 ? eval - old_eval / old_visits : 0.0f;
     const float new_delta = eval - (old_eval + eval) / (old_visits + 1);
 
     // Welford's online algorithm for calculating variance.
@@ -748,8 +749,8 @@ void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off)
         Utils::printf<Utils::ANALYSIS>("  %4s -> %7d (WL: %5.2f%%) (V: %5.2f%%) (LCB: %5.2f%%) (D: %5.2f%%) (P: %5.2f%%) (N: %5.2f%%) ", 
                                        move.to_string().c_str(),
                                        visits,
-                                       wl_eval * 100.f,    // side to move eval
-                                       stm_eval * 100.f,   // win loss eval
+                                       wl_eval * 100.f,    // win loss eval
+                                       stm_eval * 100.f,   // side to move eval
                                        lcb_value * 100.f,  // LCB eval
                                        draw * 100.f,       // draw probability
                                        pobability * 100.f, // move probability

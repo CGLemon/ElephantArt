@@ -16,7 +16,7 @@ Search::Search(Position &position, Network &network, Train &train) :
 
     m_parameters = std::make_shared<SearchParameters>();
 
-    const auto t = m_parameters->threads - 1;
+    const auto t = m_parameters->threads-1;
     m_searchpool.initialize(t);
     m_threadGroup = std::make_unique<ThreadGroup<void>>(m_searchpool);
 
@@ -165,9 +165,9 @@ void Search::prepare_uct() {
     const auto winloss = color == Types::RED ? nn_eval.red_winloss : 1 - nn_eval.red_winloss;
 
     Utils::printf<Utils::ANALYSIS>("Raw NN output\n");
-    Utils::printf<Utils::ANALYSIS>("  stm eval : %.2f\n", stm_eval * 100.f);
-    Utils::printf<Utils::ANALYSIS>("  winloss : %.2f\n", winloss * 100.f);
-    Utils::printf<Utils::ANALYSIS>("  draw probability : %.2f\n", nn_eval.draw * 100.f);
+    Utils::printf<Utils::ANALYSIS>("  stm eval : %.2f%\n", stm_eval * 100.f);
+    Utils::printf<Utils::ANALYSIS>("  winloss : %.2f%\n", winloss * 100.f);
+    Utils::printf<Utils::ANALYSIS>("  draw probability : %.2f%\n", nn_eval.draw * 100.f);
 }
 
 void Search::clear_nodes() {
@@ -206,7 +206,7 @@ SearchInfo Search::nn_direct() {
     info.move = Decoder::maps2move(std::begin(analysis)->second);
 
     auto out = std::ostringstream{};
-    auto pres = option<int>("float_precision");
+    auto prec = option<int>("float_precision");
     for (int i = 0; i < 10; ++i) {
         const auto policy = analysis[i].first;
         const auto maps = analysis[i].second;
@@ -215,11 +215,11 @@ SearchInfo Search::nn_direct() {
             << move.to_string()
             << " -> Policy : raw "
             << std::fixed
-            << std::setprecision(pres)
+            << std::setprecision(prec)
             << policy
             << " | normalize "
             << std::fixed
-            << std::setprecision(pres)
+            << std::setprecision(prec)
             << policy / acc
             << std::endl;
     }

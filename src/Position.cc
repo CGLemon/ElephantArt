@@ -47,35 +47,35 @@ void Position::do_resigned() {
 
 void Position::push_board() {
     m_history.emplace_back(std::make_shared<const Board>(board));
-    assert(get_movenum() == (int)m_history.size()-1);
+    assert(get_gameply() == (int)m_history.size()-1);
 }
 
 bool Position::fen(std::string &fen) {
 
     auto fork_board = std::make_shared<Board>(board);
     auto success = fork_board->fen2board(fen);
-    auto current_movenum = fork_board->get_movenum();
+    auto current_ply = fork_board->get_gameply();
 
     if (!success) {
         return false;
     } 
 
-    if (current_movenum > get_movenum()) {
+    if (current_ply > get_gameply()) {
         auto fill_board = std::make_shared<Board>(board);
-        while ((int)m_history.size() <= current_movenum) {
-            fill_board->increment_movenum();
+        while ((int)m_history.size() <= current_ply) {
+            fill_board->increment_gameply();
             fill_board->swap_to_move();
             m_history.emplace_back(std::make_shared<const Board>(*fill_board));
         }
-        assert(fill_board->get_movenum() == (int)m_history.size()-1);
+        assert(fill_board->get_gameply() == (int)m_history.size()-1);
     } else {
-        m_history.resize(current_movenum+1);
+        m_history.resize(current_ply+1);
     }
 
-    m_history[current_movenum] = fork_board;
-    m_startboard = current_movenum;
-    if (board.get_hash() != m_history[current_movenum]->get_hash()) {
-        board = *m_history[current_movenum];
+    m_history[current_ply] = fork_board;
+    m_startboard = current_ply;
+    if (board.get_hash() != m_history[current_ply]->get_hash()) {
+        board = *m_history[current_ply];
     }
     return true;
 }
@@ -88,7 +88,7 @@ void Position::do_move_assume_legal(Move move) {
     board.do_move(move);
     push_board();
     if (is_eaten()) {
-        m_startboard = get_movenum();
+        m_startboard = get_gameply();
     }
 }
 
@@ -121,16 +121,16 @@ std::vector<Move> Position::get_movelist() {
 
 bool Position::undo() {
 
-    const auto movenum = get_movenum();
-    if (movenum == 0) {
+    const auto ply = get_gameply();
+    if (ply == 0) {
         return false;
     }
 
-    m_history.resize(movenum);
-    board = *m_history[movenum - 1];
+    m_history.resize(ply);
+    board = *m_history[ply - 1];
 
-    assert(get_movenum() == movenum);
-    assert(get_movenum() == (int)m_history.size()-1);
+    assert(get_gameply() == ply);
+    assert(get_gameply() == (int)m_history.size()-1);
 
     return true;
 }
@@ -140,7 +140,7 @@ bool Position::position(std::string &fen, std::string& moves) {
     // first : Set the fen.
     auto fork_board = std::make_shared<Board>(board);
     auto success = fork_board->fen2board(fen);
-    auto current_movenum = fork_board->get_movenum();
+    auto current_ply = fork_board->get_gameply();
 
     if (!success) {
         return false;
@@ -176,14 +176,14 @@ bool Position::position(std::string &fen, std::string& moves) {
         Position::fen(fen);
         for (auto i = size_t{0}; i < move_cnt; ++i) {
             m_history.emplace_back(chain_board[i]);
-            assert(chain_board[i]->get_movenum() == (int)m_history.size()-1);
+            assert(chain_board[i]->get_gameply() == (int)m_history.size()-1);
         }
 
-        current_movenum += move_cnt;
-        m_startboard = current_movenum;
-        board = *m_history[current_movenum];
-        assert(get_movenum() == current_movenum);
-        assert(get_movenum() == (int)m_history.size()-1);
+        current_ply += move_cnt;
+        m_startboard = current_ply;
+        board = *m_history[current_ply];
+        assert(get_gameply() == current_ply);
+        assert(get_gameply() == (int)m_history.size()-1);
     }
 
     return moves_success;
@@ -243,21 +243,21 @@ Types::Piece Position::get_piece(const Types::Vertices vtx) const {
 }
 
 const std::shared_ptr<const Board> Position::get_past_board(const int p) const {
-    const auto movenum = get_movenum();
-    assert(0 <= p && p <= movenum);
-    return m_history[movenum - p];
+    const auto ply = get_gameply();
+    assert(0 <= p && p <= ply);
+    return m_history[ply - p];
 }
 
-int Position::get_repeat() const {
+std::pair<int, int> Position::get_repeat() const {
 
     constexpr auto MIN_REPEAT_CNT = 4; 
-    const auto endboard = get_movenum();
+    const auto endboard = get_gameply();
     const auto startboard = m_startboard;
     const auto length = endboard - startboard + 1;
 
     assert(length >= 1);
     if (length <= 2 * MIN_REPEAT_CNT - 1) {
-        return 0;
+        return std::make_pair(0, MIN_REPEAT_CNT);
     }
 
     const auto buffer_size = length/2;
@@ -284,21 +284,22 @@ int Position::get_repeat() const {
         return true;
     };
 
-    for (int cnt = MIN_REPEAT_CNT; cnt <= buffer_size; ++cnt) {
-        for (int offset = cnt; offset + cnt < length; offset += cnt) {
-            const auto success = repeat_proccess(boardhash, buffer, offset, cnt);
+    int repeat_cnt = MIN_REPEAT_CNT;
+    for (;repeat_cnt <= buffer_size; ++repeat_cnt) {
+        for (int offset = repeat_cnt; offset + repeat_cnt < length; offset += repeat_cnt) {
+            const auto success = repeat_proccess(boardhash, buffer, offset, repeat_cnt);
             if (success) {
                 repeat++;
             } else {
                 break;
             }
         }
-        if (!repeat) {
+        if (repeat > 0) {
             break;
         }
     }
 
-    return repeat;
+    return std::make_pair(repeat, repeat_cnt);
 }
 
 bool Position::is_eaten() const {

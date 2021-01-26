@@ -196,7 +196,10 @@ std::string Decoder::get_mapstring() {
         for (int y = 0; y < Board::HEIGHT; ++y) {
             for (int x = 0; x < Board::WIDTH; ++x) {
                 const auto idx = Board::get_index(x, y);
-                out << policymaps_moves[p * Board::INTERSECTIONS + idx].to_string() << " ";
+                out << policymaps_moves[p * Board::INTERSECTIONS + idx].to_string();
+                if (x != Board::WIDTH-1) {
+                    out << " ";
+                }
             }
             out << std::endl;
         }
