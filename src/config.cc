@@ -72,8 +72,8 @@ void init_options_map() {
     options_map["batchsize"] << Utils::Option::setoption(1, 256, 1);
     options_map["threads"] << Utils::Option::setoption(1, 256, 1);
 
-    options_map["quiet"] << Utils::Option::setoption(false);
-    options_map["quiet_stats"] << Utils::Option::setoption(false);
+    options_map["quiet_verbose"] << Utils::Option::setoption(false);
+    options_map["quiet_stats_verbose"] << Utils::Option::setoption(false);
     options_map["quiet_search_verbose"] << Utils::Option::setoption(false);
     options_map["log_file"] << Utils::Option::setoption(NO_LOG_FILE_NAME);
 

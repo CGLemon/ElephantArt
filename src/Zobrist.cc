@@ -28,7 +28,6 @@ constexpr Zobrist::KEY Zobrist::zobrist_empty;
 constexpr Zobrist::KEY Zobrist::zobrist_redtomove;
 
 std::array<std::array<Zobrist::KEY, Zobrist::ZOBRIST_SIZE>, 18> Zobrist::zobrist;
-std::array<Zobrist::KEY, 5> Zobrist::zobrist_repeat;
 std::array<Zobrist::KEY, 200> Zobrist::zobrist_positions;
 
 template<typename T>
@@ -64,17 +63,12 @@ void Zobrist::init_zobrist() {
             }
         }
 
-        for (int i = 0; i < 5; ++i) {
-            zobrist_repeat[i] = rng.randuint64();
-            buf.emplace_back(zobrist_repeat[i]);
-        }
-
         for (int i = 0; i < 200; ++i) {
             zobrist_positions[i] = rng.randuint64();
             buf.emplace_back(zobrist_positions[i]);
         }
 
-        assert(buf.size() == 100 * 18 + 5 + 200);
+        assert(buf.size() == 100 * 18 + 200);
         if (!collision(buf)) {
             break;
         }

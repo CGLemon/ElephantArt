@@ -5,6 +5,7 @@ import json
 #     "NeuralNetwork" : {
 #         "NNType" : "Residual",
 #         "InputChannels" : 18,
+#         "InputFeatures" : 4
 #         "ResidualChannels" : 64,
 #         "PolicyExtract" : 256,
 #         "ValueExtract" : 8,

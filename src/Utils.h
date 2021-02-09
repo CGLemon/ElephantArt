@@ -43,8 +43,13 @@ enum Printf_t {
 template <Printf_t>
 void printf_base(const char *fmt, va_list va);
 
-template <Printf_t>
-void printf(const char *fmt, ...);
+template <Printf_t T>
+void printf(const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    printf_base<T>(fmt, va);
+    va_end(va);
+}
 
 template <Printf_t>
 void printf(std::ostringstream &out);

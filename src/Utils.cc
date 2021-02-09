@@ -148,36 +148,34 @@ float cached_t_quantile(int v) {
 
 static std::mutex IOMutex;
 
-template <>
-void printf_base<EXTERN>(const char *fmt, va_list va) {
-    if (option<std::string>("log_file") != NO_LOG_FILE_NAME) {
-        std::lock_guard<std::mutex> lock(IOMutex);
-        auto fp = fopen(option<const char*>("log_file"), "a");
-        if (fp) {
-            vfprintf(fp, fmt, va);
-            fclose(fp);
-        }
-    }
+#define PRINTF_LOG_FILE_HANDEL                         \
+std::lock_guard<std::mutex> lock(IOMutex);             \
+auto fp = fopen(option<const char*>("log_file"), "a"); \
+if (fp) {                                              \
+    vfprintf(fp, fmt, va);                             \
+    fclose(fp);                                        \
+}
+
+#define STREAM_LOG_FILE_HANDEL                                           \
+std::lock_guard<std::mutex> lock(IOMutex);                               \
+auto fp = std::fstream{};                                                \
+fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out); \
+if (fp.is_open()) {                                                      \
+    fp << out.str();                                                     \
+    fp.close();                                                          \
 }
 
 template <>
-void printf<EXTERN>(const char *fmt, ...) {
-    va_list va;
-    va_start(va, fmt);
-    printf_base<EXTERN>(fmt, va);
-    va_end(va);
+void printf_base<EXTERN>(const char *fmt, va_list va) {
+    if (option<std::string>("log_file") != NO_LOG_FILE_NAME) {
+        PRINTF_LOG_FILE_HANDEL
+    }
 }
 
 template <>
 void printf<EXTERN>(std::ostringstream &out) {
     if (option<std::string>("log_file") != NO_LOG_FILE_NAME) {
-        std::lock_guard<std::mutex> lock(IOMutex);
-        auto fp = std::fstream{};
-        fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out);
-        if (fp.is_open()) {
-            fp << out.str();
-            fp.close();
-        }
+        STREAM_LOG_FILE_HANDEL
     }
 }
 
@@ -185,18 +183,10 @@ template <>
 void printf_base<SYNC>(const char *fmt, va_list va) {
     va_list va2;
     va_copy(va2, va);
-    vfprintf(stdout, fmt, va);
 
+    vfprintf(stdout, fmt, va);
     printf_base<EXTERN>(fmt, va2);
 
-    va_end(va);
-}
-
-template <>
-void printf<SYNC>(const char *fmt, ...) {
-    va_list va;
-    va_start(va, fmt);
-    printf_base<SYNC>(fmt, va);
     va_end(va);
 }
 
@@ -211,21 +201,8 @@ void printf_base<STATIC>(const char *fmt, va_list va) {
     if (option<std::string>("log_file") == NO_LOG_FILE_NAME) {
         vfprintf(stdout, fmt, va);
     } else {
-        std::lock_guard<std::mutex> lock(IOMutex);
-        auto fp = fopen(option<const char*>("log_file"), "a");
-        if (fp) {
-            vfprintf(fp, fmt, va);
-            fclose(fp);
-        }
+        PRINTF_LOG_FILE_HANDEL
     }
-}
-
-template <>
-void printf<STATIC>(const char *fmt, ...) {
-    va_list va;
-    va_start(va, fmt);
-    printf_base<STATIC>(fmt, va);
-    va_end(va);
 }
 
 template <>
@@ -233,60 +210,37 @@ void printf<STATIC>(std::ostringstream &out) {
     if (option<std::string>("log_file") == NO_LOG_FILE_NAME) {
         std::cout << out.str();
     } else {
-        std::lock_guard<std::mutex> lock(IOMutex);
-        auto fp = std::fstream{};
-        fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out);
-        if (fp.is_open()) {
-            fp << out.str();
-            fp.close();
-        }
+        STREAM_LOG_FILE_HANDEL
     }
 }
 
 template <>
 void printf_base<AUTO>(const char *fmt, va_list va) {
-    if (option<bool>("quiet")) {
+    if (option<bool>("quiet_verbose")) {
         return;
     }
     printf_base<STATIC>(fmt, va);
 }
 
 template <>
-void printf<AUTO>(const char *fmt, ...) {
-    va_list va;
-    va_start(va, fmt);
-    printf_base<AUTO>(fmt, va);
-    va_end(va);
-}
-
-template <>
 void printf<AUTO>(std::ostringstream &out) {
-    if (option<bool>("quiet")) {
+    if (option<bool>("quiet_verbose")) {
         return;
     }
     printf<STATIC>(out);
 }
 
-
 template <>
 void printf_base<STATS>(const char *fmt, va_list va) {
-    if (option<bool>("quiet_stats")) {
+    if (option<bool>("quiet_stats_verbose")) {
         return;
     }
     printf_base<AUTO>(fmt, va);
 }
 
 template <>
-void printf<STATS>(const char *fmt, ...) {
-    va_list va;
-    va_start(va, fmt);
-    printf_base<STATS>(fmt, va);
-    va_end(va);
-}
-
-template <>
 void printf<STATS>(std::ostringstream &out) {
-    if (option<bool>("quiet_stats")) {
+    if (option<bool>("quiet_stats_verbose")) {
         return;
     }
     printf<AUTO>(out);
@@ -298,14 +252,6 @@ void printf_base<ANALYSIS>(const char *fmt, va_list va) {
         return;
     }
     printf_base<AUTO>(fmt, va);
-}
-
-template <>
-void printf<ANALYSIS>(const char *fmt, ...) {
-    va_list va;
-    va_start(va, fmt);
-    printf_base<ANALYSIS>(fmt, va);
-    va_end(va);
 }
 
 template <>
@@ -362,7 +308,7 @@ CommandParser::CommandParser(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
         out << argv[i] << " ";
     }
-    parser(std::move(out.str()), MAX_BUFFER_SIZE);
+    parser(std::forward<std::string>(out.str()), MAX_BUFFER_SIZE);
 }
 
 bool CommandParser::valid() const {
@@ -370,7 +316,6 @@ bool CommandParser::valid() const {
 }
 
 void CommandParser::parser(std::string &input, const size_t max) {
-
     m_count = 0;
     auto stream = std::istringstream{input};
     auto in = std::string{};
@@ -382,7 +327,6 @@ void CommandParser::parser(std::string &input, const size_t max) {
 }
 
 void CommandParser::parser(std::string &&input, const size_t max) {
-
     m_count = 0;
     auto stream = std::istringstream{input};
     auto in = std::string{};

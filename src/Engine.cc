@@ -94,7 +94,6 @@ void Engine::display(const int g) const {
 }
 
 Engine::Response Engine::gather_movelist(const int g) {
-
     auto rep = std::ostringstream{};
     const auto movelist = get_position(g)->get_movelist();
 
@@ -106,12 +105,9 @@ Engine::Response Engine::gather_movelist(const int g) {
 }
 
 Engine::Response Engine::fen(std::string fen, const int g) {
-
     auto rep = std::ostringstream{};
     auto success = get_position(g)->fen(fen);
-    if (success) {
-        rep << "";
-    } else {
+    if (!success) {
         rep << "Illegal FEN format";
     }
 
@@ -119,12 +115,9 @@ Engine::Response Engine::fen(std::string fen, const int g) {
 }
 
 Engine::Response Engine::do_textmove(std::string move, const int g) {
-
     auto rep = std::ostringstream{};
     auto success = get_position(g)->do_textmove(move);
-    if (success) {
-        rep << "";
-    } else {
+    if (!success) {
         rep << "Illegal move";
     }
     return rep.str();
@@ -133,22 +126,40 @@ Engine::Response Engine::do_textmove(std::string move, const int g) {
 Engine::Response Engine::undo_move(const int g) {
     auto rep = std::ostringstream{};
     auto success = get_position(g)->undo();
-    if (success) {
-        rep << "";
-    } else {
+    if (!success) {
         rep << "Fail to undo move";
     }
     return rep.str();
 }
 
-Engine::Response Engine::position(std::string fen,
-                                  std::string moves, const int g) {
-
+Engine::Response Engine::position(std::string pos, const int g) {
     auto rep = std::ostringstream{};
-    auto success = get_position(g)->position(fen, moves);
-    if (success) {
-        rep << "";
-    } else {
+    auto parser = Utils::CommandParser(pos);
+
+    auto fen_idx = -1;
+    auto moves_idx = -1;
+
+    auto fen = std::string{};
+    auto moves = std::string{};
+    
+    if (const auto res = parser.find("fen")) {
+        fen_idx = res->idx;
+    }
+
+    if (const auto res = parser.find("moves")) {
+        moves_idx = res->idx;
+    }
+    
+    if (fen_idx != -1) {
+        if (moves_idx != -1) {
+            fen = parser.get_slice(fen_idx+1, moves_idx)->str;
+            moves = parser.get_commands(moves_idx+1)->str;
+        } else {
+            fen = parser.get_commands(fen_idx+1)->str;
+        }
+    }
+
+    if (!get_position(g)->position(fen, moves)) {
         rep << "Illegal position";
     }
     return rep.str();

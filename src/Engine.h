@@ -43,9 +43,7 @@ public:
     Response fen(std::string fen, const int g = DEFUALT_POSITION);
     Response do_textmove(std::string move, const int g = DEFUALT_POSITION);
     Response undo_move(const int g = DEFUALT_POSITION);
-    Response position(std::string fen,
-                      std::string moves,
-                      const int g = DEFUALT_POSITION);
+    Response position(std::string pos, const int g = DEFUALT_POSITION);
     Response raw_nn(const int symmetry, const int g = DEFUALT_POSITION);
     Response input_planes(const int symmetry, const int g = DEFUALT_POSITION);
     Response history_board(const int g = DEFUALT_POSITION);

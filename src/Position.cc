@@ -51,7 +51,6 @@ void Position::push_board() {
 }
 
 bool Position::fen(std::string &fen) {
-
     auto fork_board = std::make_shared<Board>(board);
     auto success = fork_board->fen2board(fen);
     auto current_ply = fork_board->get_gameply();
@@ -111,7 +110,6 @@ bool Position::do_textmove(std::string smove) {
 }
 
 std::vector<Move> Position::get_movelist() {
-
     auto movelist = std::vector<Move>{};
     const auto color = get_to_move();
     board.generate_movelist(color, movelist);
@@ -120,7 +118,6 @@ std::vector<Move> Position::get_movelist() {
 }
 
 bool Position::undo() {
-
     const auto ply = get_gameply();
     if (ply == 0) {
         return false;
@@ -136,7 +133,6 @@ bool Position::undo() {
 }
 
 bool Position::position(std::string &fen, std::string& moves) {
-
     // first : Set the fen.
     auto fork_board = std::make_shared<Board>(board);
     auto success = fork_board->fen2board(fen);
@@ -157,7 +153,6 @@ bool Position::position(std::string &fen, std::string& moves) {
 
         while (moves_stream >> move_str) {
             const auto move = Board::text2move(move_str);
-            ++move_cnt;
             if (move.valid()) {
                 if (fork_board->is_legal(move)) {
                     fork_board->do_move(move);
@@ -165,7 +160,7 @@ bool Position::position(std::string &fen, std::string& moves) {
                 }
             }
 
-            if (move_cnt != chain_board.size()) {
+            if (++move_cnt != chain_board.size()) {
                 moves_success = false;
                 break;
             }
@@ -249,7 +244,6 @@ const std::shared_ptr<const Board> Position::get_past_board(const int p) const {
 }
 
 std::pair<int, int> Position::get_repeat() const {
-
     constexpr auto MIN_REPEAT_CNT = 4; 
     const auto endboard = get_gameply();
     const auto startboard = m_startboard;
@@ -308,13 +302,16 @@ bool Position::is_eaten() const {
 
 std::string Position::history_board() const {
     auto out = std::ostringstream{};
-    const auto lastmove = get_last_move();
+    auto idx = size_t{0};
     for (const auto &board : m_history) {
+        const auto lastmove = board->get_last_move();
+        out << "Board Index : " << ++idx << std::endl;
         if (option<bool>("using_traditional_chinese")) {
             board->board_stream<Types::TRADITIONAL_CHINESE>(out, lastmove);
         } else {
             board->board_stream<Types::ASCII>(out, lastmove);
         }
     }
+    out << std::endl;
     return out.str();
 }

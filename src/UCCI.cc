@@ -17,3 +17,7 @@
 */
 #include "UCCI.h"
 
+ASCII::ASCII() {
+    init();
+    loop();
+}

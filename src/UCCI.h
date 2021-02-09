@@ -28,9 +28,19 @@
 #include "CLInterface.h"
 
 class UCCI : public CLInterface {
-
+public:
+    UCCI();
+    UCCI(const UCCI&) = delete;
+    UCCI& operator=(const UCCI&) = delete;
     
+private:
+    virtual void init();
 
+    virtual void loop();
+
+    virtual std::string execute(Utils::CommandParser &parser);
+
+    std::unique_ptr<Engine> m_ucci_engine{nullptr};
 
 };
 
