@@ -73,9 +73,8 @@ bool Position::fen(std::string &fen) {
 
     m_history[current_ply] = fork_board;
     m_startboard = current_ply;
-    if (board.get_hash() != m_history[current_ply]->get_hash()) {
-        board = *m_history[current_ply];
-    }
+    board = *m_history[current_ply];
+
     return true;
 }
 
@@ -126,13 +125,13 @@ bool Position::undo() {
     m_history.resize(ply);
     board = *m_history[ply - 1];
 
-    assert(get_gameply() == ply);
+    assert(get_gameply() == ply-1);
     assert(get_gameply() == (int)m_history.size()-1);
 
     return true;
 }
 
-bool Position::position(std::string &fen, std::string& moves) {
+bool Position::position(std::string &fen, std::string &moves) {
     // first : Set the fen.
     auto fork_board = std::make_shared<Board>(board);
     auto success = fork_board->fen2board(fen);
@@ -143,7 +142,7 @@ bool Position::position(std::string &fen, std::string& moves) {
     }
 
     // second : Do moves.
-    auto chain_board = std::vector<std::shared_ptr<const Board>>{};
+    auto chain_move = std::vector<Move>{};
     bool moves_success = true;
     auto move_cnt = size_t{0};
 
@@ -156,11 +155,11 @@ bool Position::position(std::string &fen, std::string& moves) {
             if (move.valid()) {
                 if (fork_board->is_legal(move)) {
                     fork_board->do_move(move);
-                    chain_board.emplace_back(std::make_shared<Board>(*fork_board));
+                    chain_move.emplace_back(move);
                 }
             }
 
-            if (++move_cnt != chain_board.size()) {
+            if (++move_cnt != chain_move.size()) {
                 moves_success = false;
                 break;
             }
@@ -170,13 +169,10 @@ bool Position::position(std::string &fen, std::string& moves) {
     if (moves_success) {
         Position::fen(fen);
         for (auto i = size_t{0}; i < move_cnt; ++i) {
-            m_history.emplace_back(chain_board[i]);
-            assert(chain_board[i]->get_gameply() == (int)m_history.size()-1);
+            do_move_assume_legal(chain_move[i]);
         }
 
         current_ply += move_cnt;
-        m_startboard = current_ply;
-        board = *m_history[current_ply];
         assert(get_gameply() == current_ply);
         assert(get_gameply() == (int)m_history.size()-1);
     }
@@ -188,12 +184,17 @@ bool Position::gameover() {
     return get_winner() != Types::INVALID_COLOR;
 }
 
-Types::Color Position::get_winner() const {
+Types::Color Position::get_winner() {
     if (resigned != Types::INVALID_COLOR) {
         if (resigned == Types::EMPTY_COLOR) {
             return Types::EMPTY_COLOR;
         }
         return Board::swap_color(resigned);
+    }
+
+    auto movelist = get_movelist();
+    if (movelist.empty()) {
+        return Board::swap_color(get_to_move());
     }
 
     const auto kings = board.get_kings();
@@ -300,6 +301,10 @@ bool Position::is_eaten() const {
     return board.is_eaten();
 }
 
+bool Position::is_checkmate(const Types::Vertices vtx) const {
+    return board.is_checkmate(vtx);
+}
+
 std::string Position::history_board() const {
     auto out = std::ostringstream{};
     auto idx = size_t{0};
@@ -314,4 +319,18 @@ std::string Position::history_board() const {
     }
     out << std::endl;
     return out.str();
+}
+
+std::vector<std::shared_ptr<const Board>>& Position::get_history() {
+    return m_history;
+}
+
+std::string Position::get_fen() const {
+    auto out = std::ostringstream{};
+    board.fen_stream(out);
+    return out.str();
+}
+
+std::string Position::get_wxfmove() const {
+    return board.get_wxfmove();
 }

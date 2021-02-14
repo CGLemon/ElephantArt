@@ -21,7 +21,7 @@ public:
     std::shared_ptr<UCTNodeEvals> nn_evals() const { return m_nn_evals; }
 
     void from_nn_evals(UCTNodeEvals nn_evals) { 
-        m_nn_evals = std::make_shared<UCTNodeEvals>(nn_evals);;
+        m_nn_evals = std::make_shared<UCTNodeEvals>(nn_evals);
     }
 
     void from_gameover(Position &position) {
@@ -57,7 +57,7 @@ struct SearchInfo {
 class Search {
 public:
     static constexpr auto MAX_PLAYOUTS = 150000;
-    Search(Position &position, Network &network, Train &train);
+    Search(Position &pos, Network &network, Train &train);
     ~Search();
 
     SearchInfo nn_direct();
@@ -68,7 +68,7 @@ private:
     void prepare_uct();
     void clear_nodes();
     void increment_playouts();
-    void play_simulation(Position &currposition, UCTNode *const node,
+    void play_simulation(Position &currpos, UCTNode *const node,
                          UCTNode *const root_node, SearchResult &search_result);
     float get_min_psa_ratio();
     bool is_uct_running();

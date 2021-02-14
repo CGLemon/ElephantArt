@@ -141,9 +141,9 @@ struct Model {
         virtual bool valid() = 0;
     };
     
-    static std::vector<float> gather_planes(const Position *const position,
+    static std::vector<float> gather_planes(const Position *const pos,
                                             const int symmetry);
-    static std::vector<float> gather_features(const Position *const position);
+    static std::vector<float> gather_features(const Position *const pos);
 
     static void load_weights(const std::string &filename,
                              std::shared_ptr<NNWeights> &nn_weight);

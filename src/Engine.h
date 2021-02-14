@@ -54,7 +54,7 @@ public:
     Response dump_collection(std::string filename = "NO_FILE_NAME",
                              const int g = DEFUALT_POSITION);
     Response selfplay(const int g = DEFUALT_POSITION);
-
+    Response printf_pgn(std::string filename = "NO_FILE_NAME", const int g = DEFUALT_POSITION);
 private:
     int adjust_ref(const int g) const;
 

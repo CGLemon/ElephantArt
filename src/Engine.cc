@@ -21,6 +21,7 @@
 #include "Model.h"
 #include "Decoder.h"
 #include "Utils.h"
+#include "PGNParser.h"
 
 #include <iomanip>
 #include <sstream>
@@ -228,6 +229,13 @@ Engine::Response Engine::input_planes(const int symmetry, const int g) {
         }
         rep << std::endl;
     }
+    
+    const auto input_features = Model::gather_features(&p);
+    rep << "features" << std::endl;
+    for (int f = 0; f < INPUT_FEATURES; ++f) {
+        rep << std::setw(5) << input_features[f] << std::endl;
+    }
+    rep << std::endl;
     return rep.str();
 }
 
@@ -312,4 +320,16 @@ Engine::Response Engine::selfplay(const int g) {
 
 Engine::Response Engine::get_maps() {
     return Decoder::get_mapstring();
+}
+
+Engine::Response Engine::printf_pgn(std::string filename, const int g) {
+    auto rep = std::ostringstream{};
+    auto parser = PGNParser{};
+    auto &p = *get_position(g);
+    if (filename != "NO_FILE_NAME") {
+        parser.save_pgn(filename, p);
+    } else {
+        parser.pgn_stream(rep, p);
+    }
+    return rep.str();
 }

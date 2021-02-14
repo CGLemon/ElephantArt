@@ -26,6 +26,7 @@
  */
 
 #include "CLInterface.h"
+#include "Engine.h"
 
 class UCCI : public CLInterface {
 public:

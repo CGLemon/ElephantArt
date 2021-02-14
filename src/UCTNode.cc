@@ -35,11 +35,11 @@ UCTNode::~UCTNode() {
 }
 
 bool UCTNode::expend_children(Network &network,
-                              Position &position,
+                              Position &pos,
                               const float min_psa_ratio,
                               const bool is_root) {
 
-    if (position.gameover()) {
+    if (pos.gameover()) {
         return false;
     }
 
@@ -48,15 +48,15 @@ bool UCTNode::expend_children(Network &network,
     }
 
     const auto raw_netlist =
-        network.get_output(&position, Network::Ensemble::RANDOM_SYMMETRY);
+        network.get_output(&pos, Network::Ensemble::RANDOM_SYMMETRY);
 
-    m_color = position.get_to_move();
+    m_color = pos.get_to_move();
     link_nn_output(raw_netlist, m_color);
 
     auto nodelist = std::vector<Network::PolicyMapsPair>{};
     float legal_accumulate = 0.0f;
 
-    auto movelist = position.get_movelist();
+    auto movelist = pos.get_movelist();
     for (const auto &move : movelist) {
         if (is_root) { /* Do something... */ }
 

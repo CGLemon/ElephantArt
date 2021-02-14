@@ -689,21 +689,14 @@ void Board::info_stream<Types::ASCII>(std::ostream &out) const {
         out << "color error!";
     }
 
-    out << ", Last move : ";
-    out << get_last_move().to_string(); 
-
-    out << ", Ply number : ";
-    out << get_gameply(); 
-
-    out << ", Hash : ";
-    out << std::hex;
-    out << get_hash();
-    out << std::dec;
+    out << ", WXF : " << get_wxfmove();
+    out << ", Last move : " << get_last_move().to_string();
+    out << ", Ply number : " << get_gameply();
+    out << ", Hash : " << std::hex << get_hash() << std::dec;
 
     out << ",\n Fen : ";
     fen_stream(out);
-    out << "}";
-    out << std::endl;
+    out << "}" << std::endl;
 }
 
 template<>
@@ -718,22 +711,14 @@ void Board::info_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out) const {
         out << "color error!";
     }
 
-    out << "，上一手棋 ：";
-    out << get_last_move().to_string(); 
-
-    out << "，第 ";
-    out << get_gameply(); 
-    out << " 手棋";
-
-    out << "，哈希 ：";
-    out << std::hex;
-    out << get_hash();
-    out << std::dec;
+    out << ", WXF : " << get_wxfmove();
+    out << "，上一手棋 ：" << get_last_move().to_string();
+    out << "，第 " << get_gameply() << " 手棋";
+    out << "，哈希 ：" << std::hex << get_hash() << std::dec;
 
     out << "，\n Fen ：";
     fen_stream(out);
-    out << "}";
-    out << std::endl;
+    out << "}" << std::endl;
 }
 
 void Board::fen_stream(std::ostream &out) const {
@@ -1286,8 +1271,6 @@ void Board::undo_from_pseudo_move(Board::PseudoMoveRecord record) {
 
 
 bool Board::is_king_face_king() const {
-
-    auto success = bool{false};
     const auto red_x = get_x(m_king_vertex[Types::RED]);
     const auto black_x = get_x(m_king_vertex[Types::BLACK]);
     if (red_x == black_x) {
@@ -1295,10 +1278,10 @@ bool Board::is_king_face_king() const {
         const auto file_bb = Utils::file2bitboard(file);
         const auto cnt = Utils::count_few(file_bb);
         if (cnt == 2) {
-            success = true;
+            return true;
         }
     }
-    return success;
+    return false;
 }
 
 bool Board::is_checkmate(const Types::Vertices vtx) const {
@@ -1456,4 +1439,49 @@ std::uint64_t Board::get_hash() const {
 
 Move Board::get_last_move() const {
     return m_lastmove;
+}
+
+std::string Board::get_wxfmove() const {
+    auto lastmove = get_last_move();
+    if (lastmove.valid()) {
+        const auto move2wxf = [this](Move move){
+            auto out = std::ostringstream{};
+            const auto from = move.get_from();
+            const auto to = move.get_to();
+            const auto tomove = get_to_move();
+            const auto color = swap_color(tomove);
+
+            auto from_xy = get_xy(from);
+            auto to_xy = get_xy(to);
+
+            if (color == Types::BLACK) {
+                from_xy.first = WIDTH - from_xy.first;
+                from_xy.second = HEIGHT - from_xy.second;
+                to_xy.first = WIDTH - to_xy.first;
+                to_xy.second = HEIGHT - to_xy.second;
+            } else {
+                from_xy.first = from_xy.first + 1;
+                from_xy.second = from_xy.second + 1;
+                to_xy.first = to_xy.first + 1;
+                to_xy.second = to_xy.second + 1;
+            }
+
+            const auto pis = get_piece(to);
+            piece_stream<Types::ASCII>(out, pis);
+            if (to_xy.second == from_xy.second) {
+                out << from_xy.first
+                        << "."
+                        << to_xy.first;
+            } else {
+                out << from_xy.second
+                        << (to_xy.second - from_xy.second > 0 ? "+" : "-")
+                        << to_xy.second;
+            }
+            
+            return out.str();
+        };
+
+        return move2wxf(lastmove);
+    }
+    return std::string{"None"};
 }

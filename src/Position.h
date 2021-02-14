@@ -53,18 +53,24 @@ public:
 
     Types::Piece_t get_piece_type(const Types::Vertices vtx) const;
     Types::Piece get_piece(const Types::Vertices vtx) const;
-
+    std::string get_fen() const;
+    std::string get_wxfmove() const;
+    
     Board board;
     
-    Types::Color get_winner() const;
+    Types::Color get_winner();
     std::uint64_t get_hash() const;
     std::uint64_t calc_hash(const int symmetry = Board::IDENTITY_SYMMETRY) const;
 
     const std::shared_ptr<const Board> get_past_board(const int p) const;
+    std::vector<std::shared_ptr<const Board>>& get_history();
+    
     bool is_eaten() const;
+    bool is_checkmate(const Types::Vertices vtx) const;
     std::string history_board() const;
 
     std::pair<int, int> get_repeat() const;
+    std::array<Types::Vertices, 2> get_kings() const;
 
 private:
     Types::Color resigned{Types::INVALID_COLOR};

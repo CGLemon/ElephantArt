@@ -122,7 +122,7 @@ void fill_piece_planes(const std::shared_ptr<const Board> board,
     }
 }
 
-std::vector<float> Model::gather_planes(const Position *const position,
+std::vector<float> Model::gather_planes(const Position *const pos,
                                         const int symmetry) {
 
     constexpr auto MOVES_PLANES = INPUT_MOVES * 14;
@@ -130,29 +130,28 @@ std::vector<float> Model::gather_planes(const Position *const position,
     static_assert(INPUT_CHANNELS == MOVES_PLANES + STATUS_PLANES, "");
     static_assert(INPUT_CHANNELS == 18, "");
 
-    // planes |  1 -  7 | current player picee position.
-    // planes |  8      | current player is red or not.
-    // planes |  9 - 15 | next player picee position.
-    // planes | 16      | next player is red or not.
-    // planes | 17 - 18 | others.
+    // planes |  1 -  7 | Current player picee position.
+    // planes |  8 - 14 | Next player picee position.
+    // planes | 15 - 16 | Last move.
+    // planes | 17 - 18 | Others.
 
     auto input_data = std::vector<float>(INPUT_CHANNELS * Board::INTERSECTIONS, 0.0f);
-    auto color = position->get_to_move();
+    auto color = pos->get_to_move();
     auto blk_iterator = std::begin(input_data);
     auto red_iterator = std::begin(input_data);
     if (color == Types::BLACK) {
-        std::advance(red_iterator, (1 + INPUT_MOVES * 7) * Board::INTERSECTIONS);
+        std::advance(red_iterator, (INPUT_MOVES * 7) * Board::INTERSECTIONS);
     } else {
-        std::advance(blk_iterator, (1 + INPUT_MOVES * 7) * Board::INTERSECTIONS);
+        std::advance(blk_iterator, (INPUT_MOVES * 7) * Board::INTERSECTIONS);
     }
 
-    const auto ply = position->get_gameply()+1;
-    const auto past_moves = std::min(INPUT_MOVES, ply);
+    const auto ply = pos->get_gameply();
+    const auto past_moves = std::min(INPUT_MOVES, ply+1);
     
-    // plane 1-7 and 9-15
+    // plane 1-7 and 8-14
     for (auto p = 0; p < INPUT_MOVES; ++p) {
         if (p < past_moves) {
-            const auto board = position->get_past_board(p);
+            const auto board = pos->get_past_board(p);
             fill_piece_planes(board,
                               red_iterator,
                               blk_iterator,
@@ -162,19 +161,41 @@ std::vector<float> Model::gather_planes(const Position *const position,
         std::advance(blk_iterator, 7 * Board::INTERSECTIONS);
     }
 
-    // plane 8 or 16
-    std::fill(red_iterator, red_iterator + Board::INTERSECTIONS, static_cast<float>(true));
-
-    // plane 17 - 18
     // Not complete yet
+    auto status_iterator = std::begin(input_data) + INPUT_MOVES * 14 * Board::INTERSECTIONS;
+    // plane 15 - 16
+    const auto lastmove = pos->get_last_move();
+    const auto from = Board::get_xy(lastmove.get_from());
+    const auto to = Board::get_xy(lastmove.get_to());
+
+    status_iterator[Board::get_index(from.first, from.second)] = static_cast<float>(true);
+    status_iterator[Board::INTERSECTIONS + Board::get_index(to.first, to.second)] = static_cast<float>(true);
+
+    std::advance(status_iterator, 2 * Board::INTERSECTIONS);
+    // plane 16 - 18
+    std::fill(status_iterator, std::end(input_data), 1.f);
 
     return input_data;
 }
 
-std::vector<float> Model::gather_features(const Position *const position) {
+std::vector<float> Model::gather_features(const Position *const pos) {
+    // feature 1 : Game plies.
+    // feature 2 : Current is red or not.
+    // feature 3 : Repeat one.
+    // feature 4 : Repeat two.
+
     auto input_features = std::vector<float>(INPUT_FEATURES, 0.0f);
-    const auto ply = position->get_gameply();
+    auto color = pos->get_to_move();
+    const auto ply = pos->get_gameply();
+    const auto rpt = pos->get_repeat();
     input_features[0] = static_cast<float>(ply)/30.f;
+    input_features[1] = color == Types::RED ? 1.0f : -1.0f ;
+    if (rpt.first >= 1) {
+        input_features[2] = static_cast<float>(true);
+    }
+    if (rpt.first >= 2) {
+        input_features[3] = static_cast<float>(true);
+    }
 
     return input_features;
 }

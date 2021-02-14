@@ -80,7 +80,6 @@ bool Move::is_ok() const {
 }
 
 std::string Move::to_string() const {
-
     if (!valid()) {
         return std::string{"None"};
     }

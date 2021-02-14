@@ -57,19 +57,19 @@ bool Search::stop_thinking() const {
               m_rootnode->get_visits() > m_maxvisits;
 }
 
-void Search::play_simulation(Position &currposition, UCTNode *const node,
+void Search::play_simulation(Position &currpos, UCTNode *const node,
                              UCTNode *const root_node, SearchResult &search_result) {
 
     node->increment_threads();
 
     if (node->expandable()) {
-        if (currposition.gameover()) {
-            search_result.from_gameover(currposition);
+        if (currpos.gameover()) {
+            search_result.from_gameover(currpos);
             node->apply_evals(search_result.nn_evals());
         } else {
             const bool has_children = node->has_children();
             const bool success = node->expend_children(m_network,
-                                                       currposition,
+                                                       currpos,
                                                        get_min_psa_ratio());
             if (!has_children && success) {
                 const auto nn_evals = node->get_node_evals();
@@ -79,12 +79,12 @@ void Search::play_simulation(Position &currposition, UCTNode *const node,
     }
 
     if (node->has_children() && !search_result.valid()) {
-        auto color = currposition.get_to_move();
+        auto color = currpos.get_to_move();
         auto next = node->uct_select_child(color, node == root_node);
         auto maps = next->get_maps();
         auto move = Decoder::maps2move(maps);
-        currposition.do_move_assume_legal(move);
-        play_simulation(currposition, next, root_node, search_result);
+        currpos.do_move_assume_legal(move);
+        play_simulation(currpos, next, root_node, search_result);
     }
 
     if (search_result.valid()) {

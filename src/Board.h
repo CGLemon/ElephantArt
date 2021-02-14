@@ -96,6 +96,8 @@ public:
     static void pre_initialize();
     static Move text2move(std::string text);
     
+    std::string get_wxfmove() const;
+    
     void set_to_move(Types::Color color);
     void swap_to_move();
     void increment_gameply();
@@ -104,6 +106,8 @@ public:
     void do_move(Move move);
     bool is_legal(Move move);
     bool is_eaten() const;
+    bool is_attack(const Types::Vertices vtx) const;
+    bool is_checkmate(const Types::Vertices vtx) const;
 
 private:
     #define P_  Types::R_PAWN
@@ -230,8 +234,6 @@ private:
     PseudoMoveRecord do_pseudo_move(Move move);
     void undo_from_pseudo_move(PseudoMoveRecord record);
     bool is_king_face_king() const;
-    bool is_checkmate(const Types::Vertices vtx) const;
-    bool is_attack(const Types::Vertices vtx) const;
 
     int m_movenum;
     int m_gameply;

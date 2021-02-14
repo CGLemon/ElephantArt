@@ -56,8 +56,8 @@ void Zobrist::init_zobrist() {
     while (true) {
         auto buf = std::vector<KEY>{};
 
-        for (int i = 0; i < 18; i++) {
-            for (int j = 0; j < ZOBRIST_SIZE; j++) {
+        for (int i = 0; i < 18; ++i) {
+            for (int j = 0; j < ZOBRIST_SIZE; ++j) {
                 zobrist[i][j] = rng.randuint64();
                 buf.emplace_back(zobrist[i][j]);
             }

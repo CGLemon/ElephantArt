@@ -15,9 +15,30 @@
     You should have received a copy of the GNU General Public License
     along with Saya.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include "UCCI.h"
 
-ASCII::ASCII() {
+UCCI::UCCI() {
     init();
     loop();
+}
+
+void UCCI::loop() {
+    while (true) {
+        auto input = std::string{};
+        if (std::getline(std::cin, input)) {
+
+            auto parser = Utils::CommandParser(input);
+            Utils::printf<Utils::EXTERN>("%s\n", input.c_str());
+
+            if (!parser.valid()) {
+                continue;
+            }
+
+            if (parser.get_count() == 1 && parser.find("quit")) {
+                Utils::printf<Utils::SYNC>("Exit\n");
+                break;
+            }
+        }
+    }
 }
