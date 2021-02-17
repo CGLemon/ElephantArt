@@ -23,6 +23,13 @@ UCCI::UCCI() {
     loop();
 }
 
+void UCCI::init() {
+    if (m_ucci_engine == nullptr) {
+        m_ucci_engine = std::make_unique<Engine>();
+    }
+    m_ucci_engine->initialize();
+}
+
 void UCCI::loop() {
     while (true) {
         auto input = std::string{};
@@ -36,9 +43,28 @@ void UCCI::loop() {
             }
 
             if (parser.get_count() == 1 && parser.find("quit")) {
-                Utils::printf<Utils::SYNC>("Exit\n");
                 break;
             }
+
+            auto out = execute(parser);
+            Utils::printf<Utils::SYNC>("%s\n", out.c_str());
         }
     }
+}
+
+std::string UCCI::execute(Utils::CommandParser &parser) {
+    auto out = std::ostringstream{};
+    if (const auto res = parser.find("ucci", 0)) {
+        out << "id name " << PROGRAM << " " << VERSION << std::endl;
+        out << "id author " << "NA" << std::endl;
+    } else if (const auto res = parser.find("isready", 0)) {
+        out << "readyok";
+    } else if (const auto res = parser.find("position", 0)) {
+        auto pos = parser.get_commands(1)->str;
+        out << m_ucci_engine->position(pos);
+    } else {
+        auto commands = parser.get_commands();
+        out << "Unknown command: " << commands;
+    }
+    return out.str();
 }

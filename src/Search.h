@@ -63,7 +63,9 @@ public:
     SearchInfo nn_direct();
     SearchInfo random_move();
     SearchInfo uct_search();
-
+    void think();
+    void stop_search();
+    
 private:
     void prepare_uct();
     void clear_nodes();
@@ -71,7 +73,7 @@ private:
     void play_simulation(Position &currpos, UCTNode *const node,
                          UCTNode *const root_node, SearchResult &search_result);
     float get_min_psa_ratio();
-    bool is_uct_running();
+    bool is_running();
     void set_running(bool is_running);
     void set_playouts(int playouts);
     bool stop_thinking() const;

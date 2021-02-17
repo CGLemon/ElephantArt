@@ -196,12 +196,12 @@ ArgsParser::ArgsParser(int argc, char** argv) {
     }
 
     if (const auto res = parser.find("--quiet")) {
-        set_option("quiet", true);
+        set_option("quiet_verbose", true);
         parser.remove_command(res->idx);
     }
 
     if (const auto res = parser.find("--quiet_stats")) {
-        set_option("quiet_stats", true);
+        set_option("quiet_stats_verbose", true);
         parser.remove_command(res->idx);
     }
 
@@ -224,7 +224,9 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 
     if (const auto res = parser.find_next({"--mode", "-m"})) {
         if (is_parameter(res->str)) {
-            if (res->str == "ascii" || res->str == "ucci") {
+            if (res->str == "ascii"
+                    || res->str == "ucci"
+                    || res->str == "selfplay") {
                 set_option("mode", res->get<std::string>());
                 parser.remove_slice(res->idx-1, res->idx+1);
             }
@@ -279,6 +281,104 @@ ArgsParser::ArgsParser(int argc, char** argv) {
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
+
+    if (const auto res = parser.find_next("--black_pawn")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("black_pawn_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--black_horse")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("black_horse_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--black_cannon")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("black_cannon_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--black_rook")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("black_rook_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--black_elephant")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("black_elephant_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--black_advisor")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("black_advisor_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--black_king")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("black_king_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--red_pawn")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("red_pawn_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--red_horse")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("red_horse_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--red_cannon")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("red_cannon_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--red_rook")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("red_rook_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--red_elephant")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("red_elephant_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--red_advisor")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("red_advisor_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--red_king")) {
+        if (is_parameter(res->str)) {
+            set_option<char>("red_king_en", res->get<char>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
     
 #ifdef USE_CUDA
     set_option("use_gpu", true);
@@ -286,6 +386,9 @@ ArgsParser::ArgsParser(int argc, char** argv) {
     
     if (error_commands(parser)) {
         help();
+    }
+    if (option<std::string>("mode") == "ucci") {
+        set_option("quiet_verbose", true);
     }
 }
 

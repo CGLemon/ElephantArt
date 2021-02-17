@@ -25,15 +25,19 @@
  * https://www.xqbase.com/protocol/cchess_ucci.htm
  */
 
-#include "CLInterface.h"
 #include "Engine.h"
+#include "Utils.h"
+#include "CLInterface.h"
+
+#include <memory>
+#include <string>
 
 class UCCI : public CLInterface {
 public:
     UCCI();
     UCCI(const UCCI&) = delete;
     UCCI& operator=(const UCCI&) = delete;
-    
+     
 private:
     virtual void init();
 

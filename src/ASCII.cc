@@ -63,7 +63,6 @@ void ASCII::loop() {
 }
 
 std::string ASCII::execute(Utils::CommandParser &parser) {
-
     auto out = std::ostringstream{};
     const auto lambda_syntax_not_understood =
         [&](Utils::CommandParser &p, size_t ignore) -> void {

@@ -16,7 +16,7 @@ Search::Search(Position &position, Network &network, Train &train) :
 
     m_parameters = std::make_shared<SearchParameters>();
 
-    const auto t = m_parameters->threads-1;
+    const auto t = m_parameters->threads;
     m_searchpool.initialize(t);
     m_threadGroup = std::make_unique<ThreadGroup<void>>(m_searchpool);
 
@@ -26,6 +26,7 @@ Search::Search(Position &position, Network &network, Train &train) :
 
 Search::~Search() {
     clear_nodes();
+    m_threadGroup->wait_all();
 }
 
 void Search::increment_playouts() {
@@ -40,12 +41,12 @@ float Search::get_min_psa_ratio() {
     return 0.0f;
 }
 
-bool Search::is_uct_running() {
+bool Search::is_running() {
     return m_running.load();
 }
 
-void Search::set_running(bool is_running) {
-    m_running.store(is_running);
+void Search::set_running(bool running) {
+    m_running.store(running);
 }
 
 void Search::set_playouts(int playouts) {
@@ -105,7 +106,7 @@ SearchInfo Search::uct_search() {
             if (result.valid()) {
                 increment_playouts();
             }
-        } while(is_uct_running());
+        } while(is_running());
     };
     auto info = SearchInfo{};
     auto out = std::ostringstream{};
@@ -113,28 +114,26 @@ SearchInfo Search::uct_search() {
     auto timer = Utils::Timer{};
 
     prepare_uct();
-    m_threadGroup->fill_tasks(uct_worker);
+    m_threadGroup->add_tasks(m_parameters->threads-1, uct_worker);
 
     bool keep_running = true;
     do {
         auto currposition = std::make_unique<Position>(m_rootposition);
         auto result = SearchResult{};
-
         play_simulation(*currposition, m_rootnode, m_rootnode, result);
         if (result.valid()) {
             increment_playouts();
         }
-
         keep_running &= (!stop_thinking());
         set_running(keep_running);
-    } while (is_uct_running());
+    } while (is_running());
 
     m_threadGroup->wait_all();
 
     m_train.gather_probabilities(*m_rootnode, m_rootposition);
 
     info.move = uct_best_move();
-    const auto s =timer.get_duration();
+    const auto s = timer.get_duration();
     Utils::printf<Utils::ANALYSIS>("Searching time %.4f second(s)\n", s);
 
     UCT_Information::dump_stats(m_rootnode, m_rootposition);
@@ -252,4 +251,48 @@ SearchInfo Search::random_move() {
     info.move = Decoder::maps2move(maps);
 
     return info;
+}
+
+void Search::think() {
+    if (is_running()) {
+        return;
+    }
+    m_threadGroup->wait_all();
+    
+    m_rootposition = m_position;
+    const auto uct_worker = [&]() -> void {
+        do {
+            auto currposition = std::make_unique<Position>(m_rootposition);
+            auto result = SearchResult{};
+            play_simulation(*currposition, m_rootnode, m_rootnode, result);
+            if (result.valid()) {
+                increment_playouts();
+            }
+        } while(is_running());
+    };
+    
+    const auto main_worker = [&]() -> void {
+        bool keep_running = true;
+        do {
+            auto currposition = std::make_unique<Position>(m_rootposition);
+            auto result = SearchResult{};
+            play_simulation(*currposition, m_rootnode, m_rootnode, result);
+            if (result.valid()) {
+                increment_playouts();
+            }
+            keep_running &= (!stop_thinking());
+            set_running(keep_running);
+            Utils::printf<Utils::SYNC>("info\n");
+        } while(is_running());
+        Utils::printf<Utils::SYNC>("bestmove\n");
+        Utils::printf<Utils::SYNC>("ponder\n");
+    };
+
+    prepare_uct();
+    m_threadGroup->add_task(main_worker);
+    m_threadGroup->add_tasks(m_parameters->threads-1, uct_worker);
+}
+
+void Search::stop_search() {
+    set_running(false);
 }

@@ -17,6 +17,7 @@
 */
 
 #include "ASCII.h"
+#include "UCCI.h"
 #include "config.h"
 #include "Utils.h"
 
@@ -41,7 +42,11 @@ static void ascii_loop() {
     auto ascii = std::make_shared<ASCII>();
 }
 
-int main(int argc, char** argv) {
+static void ucci_loop() {
+    auto ucci = std::make_shared<UCCI>();
+}
+
+int main(int argc, char **argv) {
 
     const auto args = ArgsParser(argc, argv);
     const auto license = get_license();
@@ -54,7 +59,7 @@ int main(int argc, char** argv) {
     if (option<std::string>("mode") == "ascii") {
         ascii_loop();
     } else if (option<std::string>("mode") == "ucci") {
-        std::cout << "UCCI" << std::endl;
+        ucci_loop();
     }
 
     return 0;

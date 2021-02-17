@@ -24,7 +24,9 @@
 #endif
 
 #ifdef USE_OPENBLAS
+#ifndef __APPLE__
 #include <cblas.h>
+#endif
 #endif
 
 #ifdef USE_EIGEN

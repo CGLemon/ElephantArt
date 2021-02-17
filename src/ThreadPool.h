@@ -114,7 +114,6 @@ inline void  ThreadPool::dump_status() {
     wake_up();
 }
 
-
 inline void ThreadPool::add_thread(std::function<void()> initializer) {
     m_threads.emplace_back( [this, initializer]() -> void {
 
@@ -186,7 +185,6 @@ inline int ThreadPool::get_threads() const {
 }
 
 inline void ThreadPool::quit_all() {
-
     if (m_quit.load()) {
         return;
     }
@@ -220,6 +218,16 @@ public:
         m_taskresults.emplace_back(
             m_pool.add_task(std::forward<F>(f), std::forward<Args>(args)...)
         );
+    }
+    
+    template<class F, class... Args>
+    void add_tasks(int t, F&& f, Args&&... args) {
+        const auto threads = m_pool.get_threads();
+        t = t > threads ? t :
+                t < 0 ? 0 : t;
+        for (int i = 0; i < t; ++i) {
+            add_task(std::forward<F>(f), std::forward<Args>(args)...);
+        }
     }
 
     template<class F, class... Args>

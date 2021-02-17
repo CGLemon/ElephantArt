@@ -51,7 +51,6 @@ bool collision(std::vector<T> &array) {
 }
 
 void Zobrist::init_zobrist() {
-
     Random<random_t::XoroShiro128Plus> rng(zobrist_seed);
     while (true) {
         auto buf = std::vector<KEY>{};

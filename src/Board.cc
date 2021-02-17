@@ -44,6 +44,22 @@ std::array<Board::Magic, Board::NUM_VERTICES> Board::m_rookfile_magics;
 std::array<Board::Magic, Board::NUM_VERTICES> Board::m_cannonrank_magics;
 std::array<Board::Magic, Board::NUM_VERTICES> Board::m_cannonfile_magics;
 
+#define PIECES_CACHE                                         \
+const auto blk_pawn = option<char>("black_pawn_en");         \
+const auto blk_cannon = option<char>("black_cannon_en");     \
+const auto blk_rook = option<char>("black_rook_en");         \
+const auto blk_horse = option<char>("black_horse_en");       \
+const auto blk_elephant = option<char>("black_elephant_en"); \
+const auto blk_advisor = option<char>("black_advisor_en");   \
+const auto blk_king = option<char>("black_king_en");         \
+const auto red_pawn = option<char>("red_pawn_en");           \
+const auto red_cannon = option<char>("red_cannon_en");       \
+const auto red_rook = option<char>("red_rook_en");           \
+const auto red_horse = option<char>("red_horse_en");         \
+const auto red_elephant = option<char>("red_elephant_en");   \
+const auto red_advisor = option<char>("red_advisor_en");     \
+const auto red_king = option<char>("red_king_en");
+
 void Board::reset_board() {
     clear_status();
     auto start_position = get_start_position();
@@ -108,77 +124,45 @@ bool Board::fen2board(std::string &fen) {
 
     // part 1 : position
     fen_format >> fen_stream;
-    const auto black_pawn_en = option<char>("black_pawn_en");
-    const auto black_cannon_en = option<char>("black_cannon_en");
-    const auto black_rook_en = option<char>("black_rook_en");
-    const auto black_horse_en = option<char>("black_horse_en");
-    const auto black_elephant_en = option<char>("black_elephant_en");
-    const auto black_advisor_en = option<char>("black_advisor_en");
-    const auto black_king_en = option<char>("black_king_en");
-
-    const auto red_pawn_en = option<char>("red_pawn_en");
-    const auto red_cannon_en = option<char>("red_cannon_en");
-    const auto red_rook_en = option<char>("red_rook_en");
-    const auto red_horse_en = option<char>("red_horse_en");
-    const auto red_elephant_en = option<char>("red_elephant_en");
-    const auto red_advisor_en = option<char>("red_advisor_en");
-    const auto red_king_en = option<char>("red_king_en");
-
+    PIECES_CACHE;
+    const auto bb_process = [](Types::Vertices &vtx, BitBoard &p_bb, BitBoard &c_bb) {
+        auto bb = Utils::vertex2bitboard(vtx);
+        p_bb |= bb;
+        c_bb |= bb;
+    };
     auto vtx = Types::VTX_A9;
     for (const char &c : fen_stream) {
         bool skip = false;
-        if (c == black_pawn_en) {
-            auto bb = Utils::vertex2bitboard(vtx);
-            bb_pawn |= bb;
-            bb_black |= bb;
-        } else if (c == black_cannon_en) {
-            auto bb = Utils::vertex2bitboard(vtx);
-            bb_cannon |= bb;
-            bb_black |= bb;
-        } else if (c == black_rook_en) {
-            auto bb = Utils::vertex2bitboard(vtx);
-            bb_rook |= bb;
-            bb_black |= bb;
-        } else if (c == black_horse_en) {
-            auto bb = Utils::vertex2bitboard(vtx);
-            bb_horse |= bb;
-            bb_black |= bb;
-        } else if (c == black_elephant_en) {
-            auto bb = Utils::vertex2bitboard(vtx);
-            bb_elephant |= bb;
-            bb_black |= bb;
-        } else if (c == black_advisor_en) {
-            auto bb = Utils::vertex2bitboard(vtx);
-            bb_advisor |= bb;
-            bb_black |= bb;
-        } else if (c == black_king_en) {
+        if (c == blk_pawn) {
+            bb_process(vtx, bb_pawn, bb_black);
+        } else if (c == blk_cannon) {
+            bb_process(vtx, bb_cannon, bb_black);
+        } else if (c == blk_rook) {
+            bb_process(vtx, bb_rook, bb_black);
+        } else if (c == blk_horse) {
+            bb_process(vtx, bb_horse, bb_black);
+        } else if (c == blk_elephant) {
+            bb_process(vtx, bb_elephant, bb_black);
+        } else if (c == blk_advisor) {
+            bb_process(vtx, bb_advisor, bb_black);
+        } else if (c == blk_king) {
             king_vertex_black = vtx;
             bb_black |= Utils::vertex2bitboard(vtx);
-        } else if (c == red_pawn_en) {
+        } else if (c == red_pawn) {
             auto bb = Utils::vertex2bitboard(vtx);
             bb_pawn |= bb;
             bb_red |= bb;
-        } else if (c == red_cannon_en) {
-            auto bb = Utils::vertex2bitboard(vtx);
-            bb_cannon |= bb;
-            bb_red|= bb;
-        } else if (c == red_rook_en) {
-            auto bb = Utils::vertex2bitboard(vtx);
-            bb_rook |= bb;
-            bb_red |= bb;
-        } else if (c == red_horse_en) {
-            auto bb = Utils::vertex2bitboard(vtx);
-            bb_horse |= bb;
-            bb_red |= bb;
-        } else if (c == red_elephant_en) {
-            auto bb = Utils::vertex2bitboard(vtx);
-            bb_elephant |= bb;
-            bb_red |= bb;
-        } else if (c == red_advisor_en) {
-            auto bb = Utils::vertex2bitboard(vtx);
-            bb_advisor |= bb;
-            bb_red |= bb;
-        } else if (c == red_king_en) {
+        } else if (c == red_cannon) {
+            bb_process(vtx, bb_cannon, bb_red);
+        } else if (c == red_rook) {
+            bb_process(vtx, bb_rook, bb_red);
+        } else if (c == red_horse) {
+            bb_process(vtx, bb_horse, bb_red);
+        } else if (c == red_elephant) {
+            bb_process(vtx, bb_elephant, bb_red);
+        } else if (c == red_advisor) {
+            bb_process(vtx, bb_advisor, bb_red);
+        } else if (c == red_king) {
             king_vertex_red = vtx;
             bb_red |= Utils::vertex2bitboard(vtx);
         } else if (c >= '1' && c <= '9') {
@@ -877,7 +861,23 @@ bool Board::is_on_board(const Types::Vertices vtx) {
 }
 
 std::string Board::get_start_position() {
-    return std::string{"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"};
+    PIECES_CACHE
+    
+    auto start_pos = std::ostringstream{};
+    start_pos << blk_rook << blk_horse << blk_elephant << blk_advisor
+              << blk_king << blk_advisor << blk_elephant << blk_horse << blk_rook << "/";
+    start_pos << "9/";
+    start_pos << "1" << blk_cannon << "5" << blk_cannon << "1/";
+    start_pos << blk_pawn << "1" << blk_pawn << "1" << blk_pawn << "1" << blk_pawn << "1" << blk_pawn << "/";
+    start_pos << "9/";
+    start_pos << "9/";
+    start_pos << red_pawn << "1" << red_pawn << "1" << red_pawn << "1" << red_pawn << "1" << red_pawn << "/";
+    start_pos << "1" << red_cannon << "5" << red_cannon << "1/";
+    start_pos << "9/";
+    start_pos << red_rook << red_horse << red_elephant << red_advisor
+              << red_king << red_advisor << red_elephant << red_horse << red_rook;
+    start_pos << " w - - 0 1";
+    return start_pos.str();
 }
 
 

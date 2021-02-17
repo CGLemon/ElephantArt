@@ -262,27 +262,6 @@ void printf<ANALYSIS>(std::ostringstream &out) {
     printf<AUTO>(out);
 }
 
-// void auto_printf(const char *fmt, ...) {
-// 
-//     if (option<bool>("quiet")) {
-//         return;
-//     }
-// 
-//     va_list ap;
-//     va_start(ap, fmt);
-//     vfprintf(stdout, fmt, ap);
-//     va_end(ap);
-// }
-// 
-// void auto_printf(std::ostringstream &out) {
-// 
-//     if (option<bool>("quiet")) {
-//         return;
-//     }
-// 
-//     std::cout << out.str();
-// }
-
 void space_stream(std::ostream &out, const size_t times) {
     for (auto t = size_t{0}; t < times; ++t) {
         out << " ";
@@ -568,7 +547,7 @@ void Option::set<float>(float value) {
 template<>
 void Option::set<char>(char value) {
     option_handle();
-    m_value = std::to_string(value);
+    m_value = std::string{value};
 }
 
 void Option::option_handle() const {
