@@ -33,7 +33,7 @@ std::array<Zobrist::KEY, 200> Zobrist::zobrist_positions;
 template<typename T>
 bool collision(std::vector<T> &array) {
     const auto s = array.size();
-    if (s == 1) {
+    if (s <= 1) {
         return false;
     }
 

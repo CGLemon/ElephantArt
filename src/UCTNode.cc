@@ -38,7 +38,6 @@ bool UCTNode::expend_children(Network &network,
                               Position &pos,
                               const float min_psa_ratio,
                               const bool is_root) {
-
     if (pos.gameover()) {
         return false;
     }
@@ -129,7 +128,6 @@ const std::vector<std::shared_ptr<UCTNode::UCTNodePointer>> &UCTNode::get_childr
 }
 
 UCTNodeEvals UCTNode::get_node_evals() const {
-
     auto evals = UCTNodeEvals{};
 
     evals.red_stmeval = m_red_stmeval;
@@ -226,7 +224,6 @@ int UCTNode::get_virtual_loss() const {
 
 float UCTNode::get_stmeval(const Types::Color color,
                            const bool use_virtual_loss) const {
-
     auto virtual_loss = get_virtual_loss();
     auto visits = get_visits();
 
@@ -249,7 +246,6 @@ float UCTNode::get_stmeval(const Types::Color color,
 
 float UCTNode::get_winloss(const Types::Color color,
                            const bool use_virtual_loss) const {
-
     auto virtual_loss = get_virtual_loss();
     auto visits = get_visits();
 
@@ -302,7 +298,6 @@ UCTNode *UCTNode::get_child(const int maps) {
 }
 
 std::vector<std::pair<float, int>> UCTNode::get_lcb_list(const Types::Color color) {
-
     wait_expanded();
     assert(has_children());
     assert(color == m_color);
@@ -325,7 +320,6 @@ std::vector<std::pair<float, int>> UCTNode::get_lcb_list(const Types::Color colo
 }
 
 std::vector<std::pair<float, int>> UCTNode::get_winrate_list(const Types::Color color) {
-
     wait_expanded();
     assert(has_children());
     assert(color == m_color);
@@ -430,7 +424,6 @@ void UCTNode::apply_evals(std::shared_ptr<UCTNodeEvals> evals) {
 }
 
 void UCTNode::update(std::shared_ptr<UCTNodeEvals> evals) {
-
     const float eval = 0.5f * (evals->red_stmeval + evals->red_winloss);
     const float old_stmeval = m_accumulated_red_stmevals.load();
     const float old_winloss = m_accumulated_red_wls.load();
@@ -450,7 +443,6 @@ void UCTNode::update(std::shared_ptr<UCTNodeEvals> evals) {
 }
 
 void UCTNode::dirichlet_noise(const float epsilon, const float alpha) {
-
     auto child_cnt = m_children.size();
     auto dirichlet_buffer = std::vector<float>(child_cnt);
     auto gamma = std::gamma_distribution<float>(alpha, 1.0f);
@@ -489,7 +481,6 @@ void UCTNode::dirichlet_noise(const float epsilon, const float alpha) {
 
 UCTNodeEvals UCTNode::prepare_root_node(Network &network,
                                         Position &position) {
-
     const auto noise = parameters()->dirichlet_noise;
     const auto is_root = true;
     const auto success = expend_children(network, position, 0.0f, is_root);
@@ -512,7 +503,6 @@ UCTNodeEvals UCTNode::prepare_root_node(Network &network,
 }
 
 int UCTNode::get_best_move() {
-
     wait_expanded();
     assert(has_children());
 
@@ -538,8 +528,7 @@ int UCTNode::get_best_move() {
 }
 
 int UCTNode::randomize_first_proportionally(float random_temp) {
-
-    int select_move = -1;
+    auto select_maps = -1;
     auto accum = float{0.0f};
     auto accum_vector = std::vector<std::pair<float, int>>{};
 
@@ -559,12 +548,12 @@ int UCTNode::randomize_first_proportionally(float random_temp) {
 
     for (auto idx = size_t{0}; idx < size; ++idx) {
         if (pick < accum_vector[idx].first) {
-            select_move = accum_vector[idx].second;
+            select_maps = accum_vector[idx].second;
             break;
         }
     }
 
-    return select_move;
+    return select_maps;
 }
 
 void UCTNode::increment_threads() {
@@ -713,8 +702,8 @@ void UCT_Information::dump_tree_stats(UCTNode *node) {
     const auto nodes = status->nodes.load();
     const auto edges = status->edges.load();
 
-    Utils::printf<Utils::ANALYSIS>("Tree Status: \n");
-    Utils::printf<Utils::ANALYSIS>("  nodes : %d | edges : %d | tree memory used : %.2f MiB\n", nodes, edges, mem);
+    Utils::printf<Utils::STATIC>("Tree Status: \n");
+    Utils::printf<Utils::STATIC>("  nodes : %d | edges : %d | tree memory used : %.2f MiB\n", nodes, edges, mem);
 }
 
 void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off) {
@@ -723,12 +712,12 @@ void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off)
     const auto parentvisits = static_cast<float>(node->get_visits());
     assert(color == node->get_color());
 
-    Utils::printf<Utils::ANALYSIS>("Search List :\n"); 
-    Utils::printf<Utils::ANALYSIS>("Root -> %7d (WL: %5.2f%%) (V: %5.2f%%) (D: %5.2f%%)\n",
-                                   node->get_visits(),
-                                   node->get_winloss(color, false) * 100.f,
-                                   node->get_stmeval(color, false) * 100.f,
-                                   node->get_draw() * 100.f);
+    Utils::printf<Utils::STATIC>("Search List :\n"); 
+    Utils::printf<Utils::STATIC>("Root -> %7d (WL: %5.2f%%) (V: %5.2f%%) (D: %5.2f%%)\n",
+                                     node->get_visits(),
+                                     node->get_winloss(color, false) * 100.f,
+                                     node->get_stmeval(color, false) * 100.f,
+                                     node->get_draw() * 100.f);
 
     int push = 0;
     for (auto &lcb : lcblist) {
@@ -746,20 +735,20 @@ void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off)
         const auto move = Decoder::maps2move(maps);
         const auto pv_string = move.to_string() + " " + pv_to_srting(child);
         const auto visit_ratio = static_cast<float>(visits) / parentvisits;
-        Utils::printf<Utils::ANALYSIS>("  %4s -> %7d (WL: %5.2f%%) (V: %5.2f%%) (LCB: %5.2f%%) (D: %5.2f%%) (P: %5.2f%%) (N: %5.2f%%) ", 
-                                       move.to_string().c_str(),
-                                       visits,
-                                       wl_eval * 100.f,    // win loss eval
-                                       stm_eval * 100.f,   // side to move eval
-                                       lcb_value * 100.f,  // LCB eval
-                                       draw * 100.f,       // draw probability
-                                       pobability * 100.f, // move probability
-                                       visit_ratio * 100.f);
-        Utils::printf<Utils::ANALYSIS>("PV: %s\n", pv_string.c_str());
+        Utils::printf<Utils::STATIC>("  %4s -> %7d (WL: %5.2f%%) (V: %5.2f%%) (LCB: %5.2f%%) (D: %5.2f%%) (P: %5.2f%%) (N: %5.2f%%) ", 
+                                         move.to_string().c_str(),
+                                         visits,
+                                         wl_eval * 100.f,    // win loss eval
+                                         stm_eval * 100.f,   // side to move eval
+                                         lcb_value * 100.f,  // LCB eval
+                                         draw * 100.f,       // draw probability
+                                         pobability * 100.f, // move probability
+                                         visit_ratio * 100.f);
+        Utils::printf<Utils::STATIC>("PV: %s\n", pv_string.c_str());
 
         push++;
         if (push == cut_off) {
-            Utils::printf<Utils::ANALYSIS>("     ...remain %d selections\n", (int)lcblist.size() - cut_off);
+            Utils::printf<Utils::STATIC>("     ...remain %d selections\n", (int)lcblist.size() - cut_off);
             break;
         }
     }

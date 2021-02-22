@@ -2,9 +2,12 @@
 #define SEARCH_H_INCLUDE
 
 #include <memory>
+#include <mutex>
 #include <functional>
+#include <limits>
 
 #include "SearchParameters.h"
+#include "TimeControl.h"
 #include "ThreadPool.h"
 #include "Search.h"
 #include "Network.h"
@@ -47,37 +50,57 @@ public:
 
 private:
     std::shared_ptr<UCTNodeEvals> m_nn_evals{nullptr};
-
 };
 
-struct SearchInfo {
+class SearchInformation {
+public:
     Move move;
+    int depth;
+    float seconds;
+};
+
+class SearchSetting {
+public:
+    bool ponder{false};
+    int nodes{std::numeric_limits<int>::max()};
+    int depth{std::numeric_limits<int>::max()};
+    int milliseconds{std::numeric_limits<int>::max()};
+    int movestogo{0};
+    int increment{0};
 };
 
 class Search {
 public:
-    static constexpr auto MAX_PLAYOUTS = 150000;
+    static constexpr auto MAX_PLAYOUTS = 1500000;
     Search(Position &pos, Network &network, Train &train);
     ~Search();
 
-    SearchInfo nn_direct();
-    SearchInfo random_move();
-    SearchInfo uct_search();
-    void think();
-    void stop_search();
+    Move nn_direct_move();
+    Move random_move();
+    Move uct_move();
+    void think(SearchSetting setting, SearchInformation *info);
+    void interrupt();
+    void ponderhit();
+    std::shared_ptr<SearchParameters> parameters();
     
 private:
     void prepare_uct();
     void clear_nodes();
     void increment_playouts();
     void play_simulation(Position &currpos, UCTNode *const node,
-                         UCTNode *const root_node, SearchResult &search_result);
+                         UCTNode *const root_node, SearchResult &search_result, int &depth);
     float get_min_psa_ratio();
     bool is_running();
     void set_running(bool is_running);
     void set_playouts(int playouts);
-    bool stop_thinking() const;
+    bool stop_thinking(int elapsed, int limittime) const;
     Move uct_best_move() const;
+
+    void increment_threads();
+    void decrement_threads();
+
+    std::mutex m_thinking_mtx;
+    SearchSetting m_setting;
     Position m_rootposition;
     Position & m_position;
     Network & m_network;
@@ -90,6 +113,7 @@ private:
 
     int m_maxplayouts;
     int m_maxvisits;
+    std::atomic<int> m_running_threads{0};
     std::atomic<bool> m_running{false};
     std::atomic<int> m_playouts{0};
     Utils::Timer m_timer;

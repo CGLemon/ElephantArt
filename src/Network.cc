@@ -64,22 +64,30 @@ void Network::initialize(const int playouts, const std::string &weightsfile) {
 #ifndef __APPLE__
 #ifdef USE_OPENBLAS
     openblas_set_num_threads(1);
-    Utils::printf<Utils::AUTO>("BLAS Core: %s\n", openblas_get_corename());
+    if (option<bool>("stats_verbose")) {
+        Utils::printf<Utils::AUTO>("BLAS Core: %s\n", openblas_get_corename());
+    }
 #endif
 #ifdef USE_MKL
     mkl_set_num_threads(1);
     MKLVersion Version;
     mkl_get_version(&Version);
-    Utils::printf<Utils::AUTO>("BLAS core: MKL %s\n", Version.Processor);
+    if (option<bool>("stats_verbose")) {
+        Utils::printf<Utils::AUTO>("BLAS core: MKL %s\n", Version.Processor);
+    }
 #endif
 #endif
 
 #ifdef USE_EIGEN
-    Utils::printf<Utils::AUTO>("BLAS Core: built-in Eigen %d.%d.%d library.\n",
-                               EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION);
+    if (option<bool>("stats_verbose")) {
+        Utils::printf<Utils::AUTO>("BLAS Core: built-in Eigen %d.%d.%d library.\n",
+                                    EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION);
+    }
 #endif
     set_playouts(playouts);
-
+    if (option<bool>("stats_verbose")) {
+        m_cache.dump_capacity();
+    }
 #ifdef USE_CUDA
     using backend = CUDABackend;
 #else
@@ -145,7 +153,7 @@ void dummy_forward(std::vector<float> &policy,
         p = dist(rng);
     }
     const auto p_acc = std::accumulate(std::begin(policy),
-                                           std::end(policy), 0.0f);
+                                       std::end(policy), 0.0f);
     for (auto &p : policy) {
         p /= p_acc;
     }
@@ -154,8 +162,7 @@ void dummy_forward(std::vector<float> &policy,
         v = dist(rng);
     }
     const auto v_acc = std::accumulate(std::begin(value),
-                                           std::begin(value)+ 3,
-                                           0.0f);
+                                       std::begin(value)+ 3, 0.0f);
 
     for (int idx = 0; idx < 3; ++idx) {
         value[idx] = value[idx] / v_acc;
@@ -181,10 +188,10 @@ Network::Netresult Network::get_output_internal(const Position *const position,
 
 
     const auto result = Model::get_result(policy_out,
-                                              winrate_out,
-                                              option<float>("softmax_temp"),
-                                              option<float>("softmax_temp"),
-                                              symmetry);
+                                          winrate_out,
+                                          option<float>("softmax_pol_temp"),
+                                          option<float>("softmax_wdl_temp"),
+                                          symmetry);
 
     return result;
 }

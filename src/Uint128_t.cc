@@ -23,13 +23,13 @@
 #include <iomanip>
 #include <sstream>
 
-#define BIN_SCAN(NAME)                    \
-for (auto i = size_t{0}; i < 64; ++i) {   \
-  if ((NAME & (1ULL << (63 - i))) != 0) { \
-    out << 1;                             \
-  } else {                                \
-    out << 0;                             \
-  }                                       \
+#define BIN_SCAN(NAME)                      \
+for (auto i = size_t{0}; i < 64; ++i) {     \
+    if ((NAME & (1ULL << (63 - i))) != 0) { \
+      out << 1;                             \
+    } else {                                \
+      out << 0;                             \
+    }                                       \
 }
 
 template<>

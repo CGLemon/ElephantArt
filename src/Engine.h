@@ -48,15 +48,18 @@ public:
     Response input_planes(const int symmetry, const int g = DEFUALT_POSITION);
     Response history_board(const int g = DEFUALT_POSITION);
     Response rand_move(const int g = DEFUALT_POSITION);
-    Response nn_direct(const int g = DEFUALT_POSITION);
-    Response uct_search(const int g = DEFUALT_POSITION);
+    Response nn_direct_move(const int g = DEFUALT_POSITION);
+    Response uct_move(const int g = DEFUALT_POSITION);
     Response get_maps();
     Response dump_collection(std::string filename = "NO_FILE_NAME",
                              const int g = DEFUALT_POSITION);
+    Response think(SearchSetting setting, const int g = DEFUALT_POSITION);
+    Response interrupt(const int g = DEFUALT_POSITION);
+    Response ponderhit(const int g = DEFUALT_POSITION);
     Response selfplay(const int g = DEFUALT_POSITION);
     Response printf_pgn(std::string filename = "NO_FILE_NAME", const int g = DEFUALT_POSITION);
 private:
-    int adjust_ref(const int g) const;
+    int clamp(const int g) const;
 
     std::shared_ptr<Position> get_position(const int g) const;
     std::shared_ptr<Search> get_search(const int g) const;

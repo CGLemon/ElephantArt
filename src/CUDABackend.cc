@@ -11,7 +11,7 @@
 
 void CUDABackend::initialize(std::shared_ptr<Model::NNWeights> weights) {
     Utils::printf<Utils::AUTO>("Using CUDA network.\n");
-    CUDA::gpu_info();
+    CUDA::check_devices();
     reload(weights);
     prepare_worker();
 }
@@ -55,7 +55,6 @@ void CUDABackend::forward(const std::vector<float> &planes,
                           const std::vector<float> &features,
                           std::vector<float> &output_pol,
                           std::vector<float> &output_val) {
-
     auto entry = std::make_shared<ForwawrdEntry>(planes,
                                                  features,
                                                  output_pol,
@@ -76,7 +75,6 @@ void CUDABackend::forward(const std::vector<float> &planes,
 
 
 void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNWeights> weights) {
-
     if (m_graph != nullptr) {
         return;
     }
@@ -400,7 +398,7 @@ void CUDABackend::worker(int gpu) {
             std::unique_lock<std::mutex> lock(m_mutex);
             bool timeout = !m_cv.wait_for(lock, std::chrono::milliseconds(waittime),
                                               [maxbatch, this](){ return !(m_forward_queue.size() < maxbatch); }
-                                         );
+                                          );
             if (!m_forward_queue.empty()) {
                 if (timeout && m_narrow_pipe.exchange(true) == false) {
                     if (waittime > 1) {
@@ -494,8 +492,8 @@ void CUDABackend::worker(int gpu) {
 void CUDABackend::prepare_worker() {
     m_thread_running = true;
     if (m_threads.size() == 0) {
-        for (int g = 0; g < (int)m_nngraphs.size(); ++g) {
-            m_threads.emplace_back([g, this](){ worker(g); });
+        for (int gpu = 0; gpu < (int)m_nngraphs.size(); ++gpu) {
+            m_threads.emplace_back([g=gpu, this](){ worker(g); });
         }
     }
 }

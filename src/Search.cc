@@ -24,6 +24,10 @@ Search::Search(Position &position, Network &network, Train &train) :
     m_maxvisits = m_parameters->visits;
 }
 
+std::shared_ptr<SearchParameters> Search::parameters() {
+    return m_parameters;
+}
+
 Search::~Search() {
     clear_nodes();
     m_threadGroup->wait_all();
@@ -53,16 +57,15 @@ void Search::set_playouts(int playouts) {
     m_playouts.store(playouts);
 }
 
-bool Search::stop_thinking() const {
-   return m_playouts.load() > m_maxplayouts ||
+bool Search::stop_thinking(int elapsed, int limittime) const {
+   return elapsed > limittime ||
+              m_playouts.load() > m_maxplayouts ||
               m_rootnode->get_visits() > m_maxvisits;
 }
 
 void Search::play_simulation(Position &currpos, UCTNode *const node,
-                             UCTNode *const root_node, SearchResult &search_result) {
-
+                             UCTNode *const root_node, SearchResult &search_result, int &depth) {
     node->increment_threads();
-
     if (node->expandable()) {
         if (currpos.gameover()) {
             search_result.from_gameover(currpos);
@@ -85,61 +88,25 @@ void Search::play_simulation(Position &currpos, UCTNode *const node,
         auto maps = next->get_maps();
         auto move = Decoder::maps2move(maps);
         currpos.do_move_assume_legal(move);
-        play_simulation(currpos, next, root_node, search_result);
+        play_simulation(currpos, next, root_node, search_result, depth);
+        ++depth;
     }
 
     if (search_result.valid()) {
         auto out = search_result.nn_evals();
         node->update(out);
     }
-
     node->decrement_threads();
 }
 
-SearchInfo Search::uct_search() {
-    m_rootposition = m_position;
-    const auto uct_worker = [&]() -> void {
-        do {
-            auto currposition = std::make_unique<Position>(m_rootposition);
-            auto result = SearchResult{};
-            play_simulation(*currposition, m_rootnode, m_rootnode, result);
-            if (result.valid()) {
-                increment_playouts();
-            }
-        } while(is_running());
-    };
-    auto info = SearchInfo{};
-    auto out = std::ostringstream{};
-
-    auto timer = Utils::Timer{};
-
-    prepare_uct();
-    m_threadGroup->add_tasks(m_parameters->threads-1, uct_worker);
-
-    bool keep_running = true;
-    do {
-        auto currposition = std::make_unique<Position>(m_rootposition);
-        auto result = SearchResult{};
-        play_simulation(*currposition, m_rootnode, m_rootnode, result);
-        if (result.valid()) {
-            increment_playouts();
-        }
-        keep_running &= (!stop_thinking());
-        set_running(keep_running);
-    } while (is_running());
-
+Move Search::uct_move() {
+    auto info = SearchInformation{};
+    auto setting = SearchSetting{};
+    think(setting, &info);
+    // Wait the thread's running finish.
     m_threadGroup->wait_all();
 
-    m_train.gather_probabilities(*m_rootnode, m_rootposition);
-
-    info.move = uct_best_move();
-    const auto s = timer.get_duration();
-    Utils::printf<Utils::ANALYSIS>("Searching time %.4f second(s)\n", s);
-
-    UCT_Information::dump_stats(m_rootnode, m_rootposition);
-    clear_nodes();
-
-    return info;
+    return info.move;
 }
 
 Move Search::uct_best_move() const {
@@ -162,11 +129,12 @@ void Search::prepare_uct() {
     const auto nn_eval = m_rootnode->get_node_evals();
     const auto stm_eval = color == Types::RED ? nn_eval.red_stmeval : 1 - nn_eval.red_stmeval;
     const auto winloss = color == Types::RED ? nn_eval.red_winloss : 1 - nn_eval.red_winloss;
-
-    Utils::printf<Utils::ANALYSIS>("Raw NN output\n");
-    Utils::printf<Utils::ANALYSIS>("  stm eval : %.2f%\n", stm_eval * 100.f);
-    Utils::printf<Utils::ANALYSIS>("  winloss : %.2f%\n", winloss * 100.f);
-    Utils::printf<Utils::ANALYSIS>("  draw probability : %.2f%\n", nn_eval.draw * 100.f);
+    if (option<bool>("analysis_verbose")) {
+        Utils::printf<Utils::STATIC>("Raw NN output\n");
+        Utils::printf<Utils::STATIC>("  stm eval : %.2f%\n", stm_eval * 100.f);
+        Utils::printf<Utils::STATIC>("  winloss : %.2f%\n", winloss * 100.f);
+        Utils::printf<Utils::STATIC>("  draw probability : %.2f%\n", nn_eval.draw * 100.f);
+    }
 }
 
 void Search::clear_nodes() {
@@ -182,7 +150,7 @@ void Search::clear_nodes() {
     }
 }
 
-SearchInfo Search::nn_direct() {
+Move Search::nn_direct_move() {
     m_rootposition = m_position;
     auto analysis = std::vector<std::pair<float, int>>();
     auto acc = 0.0f;
@@ -201,34 +169,32 @@ SearchInfo Search::nn_direct() {
 
     std::stable_sort(std::rbegin(analysis), std::rend(analysis));
 
-    auto info = SearchInfo{};
-    info.move = Decoder::maps2move(std::begin(analysis)->second);
-
-    auto out = std::ostringstream{};
-    auto prec = option<int>("float_precision");
-    for (int i = 0; i < 10; ++i) {
-        const auto policy = analysis[i].first;
-        const auto maps = analysis[i].second;
-        const auto move = Decoder::maps2move(maps);
-        out << "Move "
-            << move.to_string()
-            << " -> Policy : raw "
-            << std::fixed
-            << std::setprecision(prec)
-            << policy
-            << " | normalize "
-            << std::fixed
-            << std::setprecision(prec)
-            << policy / acc
-            << std::endl;
+    auto move = Decoder::maps2move(std::begin(analysis)->second);
+    if (option<bool>("analysis_verbose")) {
+        auto out = std::ostringstream{};
+        auto prec = option<int>("float_precision");
+        for (int i = 0; i < 10; ++i) {
+            const auto policy = analysis[i].first;
+            const auto maps = analysis[i].second;
+            const auto move = Decoder::maps2move(maps);
+            out << "Move "
+                << move.to_string()
+                << " -> Policy : raw "
+                << std::fixed
+                << std::setprecision(prec)
+                << policy
+                << " | normalize "
+                << std::fixed
+                << std::setprecision(prec)
+                << policy / acc
+                << std::endl;
+        }
+        Utils::printf<Utils::STATIC>(out);
     }
-
-    Utils::printf<Utils::ANALYSIS>(out);
-
-    return info;
+    return move;
 }
 
-SearchInfo Search::random_move() {
+Move Search::random_move() {
     m_rootposition = m_position;
 
     auto rng = Random<random_t::XoroShiro128Plus>::get_Rng();
@@ -247,45 +213,111 @@ SearchInfo Search::random_move() {
         }
     }
 
-    auto info = SearchInfo{};
-    info.move = Decoder::maps2move(maps);
-
-    return info;
+    return Decoder::maps2move(maps);
 }
 
-void Search::think() {
+void Search::increment_threads() {
+    m_running_threads.fetch_add(1);
+}
+
+void Search::decrement_threads() {
+    m_running_threads.fetch_sub(1);
+}
+
+void Search::think(SearchSetting setting, SearchInformation *info) {
     if (is_running()) {
         return;
     }
+    // Cahce the pointer in order to avoid to miss the caller.
+    bool need_to_return = info ? true : false;
     m_threadGroup->wait_all();
-    
     m_rootposition = m_position;
     const auto uct_worker = [&]() -> void {
+        increment_threads();
         do {
-            auto currposition = std::make_unique<Position>(m_rootposition);
+            auto depth = 0;
+            auto currpos = std::make_unique<Position>(m_rootposition);
             auto result = SearchResult{};
-            play_simulation(*currposition, m_rootnode, m_rootnode, result);
+            play_simulation(*currpos, m_rootnode, m_rootnode, result, depth);
             if (result.valid()) {
                 increment_playouts();
             }
         } while(is_running());
+        decrement_threads();
     };
+
+    m_setting = setting;
     
     const auto main_worker = [&]() -> void {
         bool keep_running = true;
+        auto maxdepth = 0;
+        const auto limitnodes = m_setting.nodes;
+        const auto limitdepth = m_setting.depth;
+        auto controller = TimeControl(m_setting.milliseconds,
+                                      m_setting.movestogo,
+                                      m_setting.increment);
+        controller.set_plies(m_rootposition.get_gameply());
+
+        auto timer = Utils::Timer{};
+        auto limittime = std::numeric_limits<int>::max();
+
         do {
-            auto currposition = std::make_unique<Position>(m_rootposition);
+            auto depth = 0;
+            auto currpos = std::make_unique<Position>(m_rootposition);
             auto result = SearchResult{};
-            play_simulation(*currposition, m_rootnode, m_rootnode, result);
+            play_simulation(*currpos, m_rootnode, m_rootnode, result, depth);
             if (result.valid()) {
                 increment_playouts();
             }
-            keep_running &= (!stop_thinking());
+            const auto color = m_rootposition.get_to_move();
+            const auto score = (m_rootnode->get_meaneval(color, false) - 0.5f) * 200.0f;
+            const auto nodes = m_nodestats->nodes.load() + m_nodestats->edges.load();
+            const auto elapsed = timer.get_duration_milliseconds();
+            controller.set_score(score);
+            {
+                std::lock_guard<std::mutex> lock(m_thinking_mtx);
+                if (!m_setting.ponder) {
+                    limittime = controller.get_limittime();
+                }
+            }
+            keep_running &= (!stop_thinking(elapsed, limittime));
+            keep_running &= (!(limitnodes < nodes));
+            keep_running &= (!(limitdepth < depth));
+            keep_running &= is_running();
             set_running(keep_running);
-            Utils::printf<Utils::SYNC>("info\n");
+
+            if (option<bool>("ucci_response") && (depth > maxdepth || !keep_running)) {
+                if (keep_running) {
+                    maxdepth = depth;
+                }
+                const auto pv = UCT_Information::pv_to_srting(m_rootnode);
+                Utils::printf<Utils::SYNC>("info depth %d time %d nodes %d score %d pv %s\n",
+                                               maxdepth, elapsed, nodes, int(score), pv.c_str());
+            }
         } while(is_running());
-        Utils::printf<Utils::SYNC>("bestmove\n");
-        Utils::printf<Utils::SYNC>("ponder\n");
+
+        // Waiting, until all threads finish searching.
+        while (m_running_threads.load() != 0) {
+            std::this_thread::yield();
+        }
+
+        m_train.gather_probabilities(*m_rootnode, m_rootposition);
+
+        const auto time = timer.get_duration();
+        const auto move = uct_best_move();
+        if (option<bool>("ucci_response")) {
+            Utils::printf<Utils::SYNC>("bestmove %s\n", move.to_string().c_str());
+        }
+        if (need_to_return) {
+            info->move = move;
+            info->seconds = time;
+            info->depth = maxdepth;
+        }
+        if (option<bool>("analysis_verbose")) {
+            Utils::printf<Utils::STATIC>("Searching time %.4f second(s)\n", time);
+            UCT_Information::dump_stats(m_rootnode, m_rootposition);
+        }
+        clear_nodes();
     };
 
     prepare_uct();
@@ -293,6 +325,12 @@ void Search::think() {
     m_threadGroup->add_tasks(m_parameters->threads-1, uct_worker);
 }
 
-void Search::stop_search() {
+void Search::interrupt() {
     set_running(false);
+    m_threadGroup->wait_all();
+}
+
+void Search::ponderhit() {
+    std::lock_guard<std::mutex> lock(m_thinking_mtx);
+    m_setting.ponder = false;
 }

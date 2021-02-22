@@ -27,7 +27,6 @@
 #include <memory>
 
 const static std::string get_license() {
-
     auto out = std::ostringstream{};
     out << "    ";
     out << PROGRAM << " " << VERSION << " Copyright (C) 2020  Hung-Zhe Lin"    << std::endl;
@@ -47,11 +46,10 @@ static void ucci_loop() {
 }
 
 int main(int argc, char **argv) {
-
     const auto args = ArgsParser(argc, argv);
     const auto license = get_license();
 
-    Utils::printf<Utils::SYNC>("%s", license.c_str());
+    Utils::printf<Utils::AUTO>("%s", license.c_str());
     args.dump();
 
     init_basic_parameters();

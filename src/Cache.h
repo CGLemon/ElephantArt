@@ -38,6 +38,7 @@ public:
     void insert(std::uint64_t hash, const EntryType &result);
     void resize(size_t size);
 
+    void dump_capacity();
     void dump_stats();
     size_t get_estimated_size();
 
@@ -71,7 +72,6 @@ private:
 
 template <typename EntryType>
 bool Cache<EntryType>::lookup(std::uint64_t hash, EntryType &result) {
-
     LockGuard<lock_t::S_LOCK> lock(m_sm);
     
     bool success = true;
@@ -90,7 +90,6 @@ bool Cache<EntryType>::lookup(std::uint64_t hash, EntryType &result) {
 
 template <typename EntryType>
 void Cache<EntryType>::insert(std::uint64_t hash, const EntryType &result) {
-
     LockGuard<lock_t::X_LOCK> lock(m_sm);
     
     if (m_cache.find(hash) == m_cache.end()) {
@@ -107,7 +106,6 @@ void Cache<EntryType>::insert(std::uint64_t hash, const EntryType &result) {
 
 template <typename EntryType>
 void Cache<EntryType>::resize(size_t size) {
-
     LockGuard<lock_t::X_LOCK> lock(m_sm);
 
     m_size = size > Cache::MAX_CACHE_COUNT ? Cache::MAX_CACHE_COUNT : 
@@ -121,7 +119,6 @@ void Cache<EntryType>::resize(size_t size) {
 
 template <typename EntryType> 
 void Cache<EntryType>::clear() {
-
     LockGuard<lock_t::X_LOCK> lock(m_sm);
     
     if (!m_order.empty()) {
@@ -143,14 +140,21 @@ void Cache<EntryType>::clear_stats() {
     m_inserts = 0;
 }
 
+template <typename EntryType>
+void Cache<EntryType>::dump_capacity() {
+    LockGuard<lock_t::S_LOCK> lock(m_sm);
+    Utils::printf<Utils::AUTO>("Cach memory used : %.4f(Mib)\n",
+                               (float)(m_size * Cache::ENTRY_SIZE) / (1024.f * 1024.f));
+}
+
 template <typename EntryType> 
 void Cache<EntryType>::dump_stats() {
-    LockGuard<lock_t::X_LOCK> lock(m_sm);
-    Utils::printf<Utils::STATS>("Cache: %d/%d hits/lookups = %.2f, hitrate, %d inserts, %lu size, memory used : %lu\n",
-                                    m_hits, m_lookups,
-                                    100.f * m_hits / (m_lookups + 1),
-                                    m_inserts,
-                                    m_cache.size(),
-                                    get_estimated_size());
+    LockGuard<lock_t::S_LOCK> lock(m_sm);
+    Utils::printf<Utils::AUTO>("Cache: %d/%d hits/lookups = %.2f, hitrate, %d inserts, %lu size, memory used : %zu\n",
+                                   m_hits, m_lookups,
+                                   100.f * m_hits / (m_lookups + 1),
+                                   m_inserts,
+                                   m_cache.size(),
+                                   get_estimated_size());
 }
 #endif

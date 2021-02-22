@@ -62,30 +62,30 @@ void Engine::initialize() {
     }
 }
 
-int Engine::adjust_ref(const int g) const {
-    if (g < 0 || g > option<int>("num_games")) {
+int Engine::clamp(const int g) const {
+    if (g < 0 || g >= option<int>("num_games")) {
         return DEFUALT_POSITION;
     }
     return g;
 }
 
 std::shared_ptr<Position> Engine::get_position(const int g) const {
-    const auto adj_g = adjust_ref(g);
+    const auto adj_g = clamp(g);
     return m_positions[adj_g];
 }
 
 std::shared_ptr<Search> Engine::get_search(const int g) const {
-    const auto adj_g = adjust_ref(g);
+    const auto adj_g = clamp(g);
     return m_search_group[adj_g];
 }
 
 std::shared_ptr<Train> Engine::get_train(const int g) const {
-    const auto adj_g = adjust_ref(g);
+    const auto adj_g = clamp(g);
     return m_train_group[adj_g];
 }
 
 void Engine::reset_game(const int g) {
-    assert(g >= 0 || g < option<int>("num_games"));
+    assert(g >= 0 || g <= option<int>("num_games"));
     get_position(g)->init_game(g);
 }
 
@@ -251,32 +251,32 @@ Engine::Response Engine::rand_move(const int g) {
     const auto p = get_position(g); 
     const auto s = get_search(g);
 
-    const auto res = s->random_move();
-    const auto success = p->do_move(res.move);
+    const auto move = s->random_move();
+    const auto success = p->do_move(move);
     assert(success);
 
     return rep.str();
 }
 
-Engine::Response Engine::nn_direct(const int g) {
+Engine::Response Engine::nn_direct_move(const int g) {
     auto rep = std::ostringstream{};
     const auto p = get_position(g); 
     const auto s = get_search(g);
 
-    const auto res = s->nn_direct();
-    const auto success = p->do_move(res.move);
+    const auto move = s->nn_direct_move();
+    const auto success = p->do_move(move);
     assert(success);
 
     return rep.str();
 }
 
-Engine::Response Engine::uct_search(const int g) {
+Engine::Response Engine::uct_move(const int g) {
     auto rep = std::ostringstream{};
     const auto p = get_position(g); 
     const auto s = get_search(g);
 
-    const auto res = s->uct_search();
-    const auto success = p->do_move(res.move);
+    const auto move = s->uct_move();
+    const auto success = p->do_move(move);
     assert(success);
 
     return rep.str();
@@ -301,8 +301,8 @@ Engine::Response Engine::selfplay(const int g) {
     auto t = get_train(g);
     while (!p->gameover()) {
         display();
-        const auto res = s->uct_search();
-        const auto success = p->do_move(res.move);
+        const auto move = s->uct_move();
+        const auto success = p->do_move(move);
         assert(success);
     }
     const auto winner = p->get_winner();
@@ -332,4 +332,22 @@ Engine::Response Engine::printf_pgn(std::string filename, const int g) {
         parser.pgn_stream(rep, p);
     }
     return rep.str();
+}
+
+Engine::Response Engine::think(SearchSetting setting, const int g) {
+    auto s = get_search(g);
+    s->think(setting, nullptr);
+    return std::string{};
+}
+
+Engine::Response Engine::interrupt(const int g) {
+    auto s = get_search(g);
+    s->interrupt();
+    return std::string{};
+}
+
+Engine::Response Engine::ponderhit(const int g) {
+    auto s = get_search(g);
+    s->ponderhit();
+    return std::string{};
 }

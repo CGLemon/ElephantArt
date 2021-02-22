@@ -36,13 +36,13 @@ public:
 
 private:
     bool acquire_exclusive_lock();
-    int get_share_counter();
+    int get_shared_counter();
 
     void take_break();
 
-    std::atomic<int> m_share_counter{0};
+    std::atomic<int> m_shared_counter{0};
     std::atomic<bool> m_exclusive{false};
-    std::chrono::microseconds m_wait_microseconds{100};
+    std::chrono::microseconds m_wait_microseconds{0};
 };
 
 inline void SharedMutex::take_break() {
@@ -54,39 +54,43 @@ inline bool SharedMutex::acquire_exclusive_lock() {
     return m_exclusive.compare_exchange_weak(expected, true);
 }
 
-inline int SharedMutex::get_share_counter() {
-    return m_share_counter.load();
+inline int SharedMutex::get_shared_counter() {
+    return m_shared_counter.load();
 }
 
 inline void SharedMutex::lock() {
     while (!acquire_exclusive_lock()) {
         take_break();
     }
-    while (get_share_counter() > 0) {
+    while (get_shared_counter() > 0) {
         take_break();
     }
 }
 
 inline void SharedMutex::unlock() {
-    auto v = m_exclusive.exchange(false);
-    assert(v == true);
+    m_exclusive.store(false);
 }
 
 inline void SharedMutex::lock_shared() {
-    while (!acquire_exclusive_lock()) {
-        take_break();
+    while (true) {
+        m_shared_counter.fetch_add(1);
+        if (m_exclusive.load()) {
+            m_shared_counter.fetch_sub(1);
+	    } else {
+		    break;
+        }
+        while (m_exclusive.load()) {
+            take_break();
+        }
     }
-    m_share_counter.fetch_add(1);
-    unlock();
 }
 
 inline void SharedMutex::unlock_shared() {
-    m_share_counter.fetch_sub(1);
+    m_shared_counter.fetch_sub(1);
 }
 
 enum class lock_t {
-    X_LOCK,
-    S_LOCK
+    X_LOCK, S_LOCK
 };
 
 template<lock_t T>

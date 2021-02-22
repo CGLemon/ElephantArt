@@ -601,11 +601,12 @@ void Board::init_magics() {
     }
 
     const auto t = timer.get_duration();
-    Utils::printf<Utils::STATS>("Generating Magic numbers spent %.4f second(s)\n", t);
+    if (option<bool>("stats_verbose")) {
+        Utils::printf<Utils::AUTO>("Generating the Magic Numbers spent %.4f second(s)\n", t);
+    }
 }
 
 void Board::dump_memory() {
-
     auto res = size_t{0};
     res += sizeof(m_pawn_attacks);
     res += sizeof(m_advisor_attacks);
@@ -626,7 +627,10 @@ void Board::dump_memory() {
         res += sizeof(BitBoard) * m_cannonrank_magics[v].attacks.capacity();
         res += sizeof(BitBoard) * m_cannonfile_magics[v].attacks.capacity();
     }
-    Utils::printf<Utils::STATS>("Attacks Table Memory : %.4f (Mib)\n", (double)res / (1024.f * 1024.f));
+    if (option<bool>("stats_verbose")) {
+        Utils::printf<Utils::AUTO>("Attacks Table Memory : %.4f (Mib)\n",
+                                        static_cast<float>(res) / (1024.f * 1024.f));
+    }
 }
 
 void Board::pre_initialize() {
@@ -663,7 +667,6 @@ void Board::piece_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out, Types::P
 
 template<>
 void Board::info_stream<Types::ASCII>(std::ostream &out) const {
-
     out << "{";
     if (m_tomove == Types::RED) {
         out << "Next player : RED";
@@ -685,7 +688,6 @@ void Board::info_stream<Types::ASCII>(std::ostream &out) const {
 
 template<>
 void Board::info_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out) const {
-
     out << "{";
     if (m_tomove == Types::RED) {
         out << "下一手 ：紅方";
@@ -706,7 +708,6 @@ void Board::info_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out) const {
 }
 
 void Board::fen_stream(std::ostream &out) const {
-
     for (int y = HEIGHT - 1; y >= 0; --y) {
         auto skip = size_t{0};
         for (int x = 0; x < WIDTH; ++x) {

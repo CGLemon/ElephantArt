@@ -230,38 +230,6 @@ void printf<AUTO>(std::ostringstream &out) {
     printf<STATIC>(out);
 }
 
-template <>
-void printf_base<STATS>(const char *fmt, va_list va) {
-    if (option<bool>("quiet_stats_verbose")) {
-        return;
-    }
-    printf_base<AUTO>(fmt, va);
-}
-
-template <>
-void printf<STATS>(std::ostringstream &out) {
-    if (option<bool>("quiet_stats_verbose")) {
-        return;
-    }
-    printf<AUTO>(out);
-}
-
-template <>
-void printf_base<ANALYSIS>(const char *fmt, va_list va) {
-    if (option<bool>("quiet_search_verbose")) {
-        return;
-    }
-    printf_base<AUTO>(fmt, va);
-}
-
-template <>
-void printf<ANALYSIS>(std::ostringstream &out) {
-    if (option<bool>("quiet_search_verbose")) {
-        return;
-    }
-    printf<AUTO>(out);
-}
-
 void space_stream(std::ostream &out, const size_t times) {
     for (auto t = size_t{0}; t < times; ++t) {
         out << " ";
@@ -321,7 +289,6 @@ size_t CommandParser::get_count() const {
 }
 
 std::shared_ptr<CommandParser::Reuslt> CommandParser::get_command(size_t id) const {
-
     if (!valid() || id > m_count) {
         return nullptr;
     }
@@ -333,7 +300,6 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::get_commands(size_t b) con
 }
 
 std::shared_ptr<CommandParser::Reuslt> CommandParser::get_slice(size_t b, size_t e) const {
-
      if (!valid() || b >= m_count || e > m_count || b >= e) {
          return nullptr;
      }
@@ -353,7 +319,6 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::get_slice(size_t b, size_t
 }
 
 std::shared_ptr<CommandParser::Reuslt> CommandParser::find(const std::string input, int id) const {
-
     if (!valid()) {
         return nullptr;
     }
@@ -374,7 +339,6 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::find(const std::string inp
 }
 
 std::shared_ptr<CommandParser::Reuslt> CommandParser::find(const std::initializer_list<std::string> inputs, int id) const {
-
     for (const auto &in : inputs) {
         if (const auto res = find(in, id)) {
             return res;
@@ -384,7 +348,6 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::find(const std::initialize
 }
 
 std::shared_ptr<CommandParser::Reuslt> CommandParser::find_next(const std::string input) const {
-
     const auto res = find(input);
 
     if (!res || res->idx+1 > (int)get_count()) {
@@ -394,7 +357,6 @@ std::shared_ptr<CommandParser::Reuslt> CommandParser::find_next(const std::strin
 }
 
 std::shared_ptr<CommandParser::Reuslt> CommandParser::find_next(const std::initializer_list<std::string> inputs) const {
-
     for (const auto &in : inputs) {
         if (const auto res = find_next(in)) {
             return res;
@@ -619,7 +581,6 @@ void Timer::release() {
 }
 
 float Timer::get_record_time(size_t id) const {
-
     if (record_count == 0) {
         return 0.f;
     }

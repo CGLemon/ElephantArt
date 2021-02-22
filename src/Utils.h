@@ -37,8 +37,24 @@
 namespace Utils {
 
 enum Printf_t {
-    SYNC, STATIC, AUTO, EXTERN, STATS, ANALYSIS
+    SYNC, STATIC, AUTO, EXTERN
 };
+
+/**
+ * SYNC   : Printing the verbose to the terminate. It also save verbose
+ *          in the log file, if the log file exist.
+ *
+ * STATIC : If the log file exixt, Saving verbose in the log file. If NOT,
+ *          Printing the verbose to the terminate.
+ *
+ * AUTO   : It based on STATIC mode. The difference is the parameter
+ *          "quit_verbose". If the "quit_verbose" is true, it will don't
+ *          output any verbose.
+ *
+ * EXTERN : Only Saving verbose in the log file, if the log file exist.
+ *
+ */
+
 
 template <Printf_t>
 void printf_base(const char *fmt, va_list va);
@@ -53,9 +69,6 @@ void printf(const char *fmt, ...) {
 
 template <Printf_t>
 void printf(std::ostringstream &out);
-
-// void auto_printf(const char *fmt, ...);
-// void auto_printf(std::ostringstream &out);
 
 void space_stream(std::ostream &out, const size_t times);
 void strip_stream(std::ostream &out, const size_t times);

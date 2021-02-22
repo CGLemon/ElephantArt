@@ -121,15 +121,15 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         lambda_syntax_not_understood(parser, 2);
         const auto cnt = parser.get_count();
         if (cnt == 1) { 
-            out << m_ascii_engine->uct_search();
+            out << m_ascii_engine->uct_move();
         } else {
             const auto mode = parser.get_command(1)->str;
             if (mode == "rand") {
                 out << m_ascii_engine->rand_move();
             } else if (mode == "nn-direct") {
-                out << m_ascii_engine->nn_direct();
+                out << m_ascii_engine->nn_direct_move();
             } else if (mode == "uct") {
-                out << m_ascii_engine->uct_search();
+                out << m_ascii_engine->uct_move();
             }
         }
     } else if (const auto res = parser.find("dump-collection", 0)) {
@@ -158,7 +158,8 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
             out << m_ascii_engine->printf_pgn(filename);
         }
     } else {
-        out << "unknown command" << std::endl;
+        auto commands = parser.get_commands();
+        out << "Unknown command: " << commands->str;
     }
 
     return out.str();

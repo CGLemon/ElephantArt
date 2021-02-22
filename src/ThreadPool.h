@@ -146,7 +146,6 @@ inline void ThreadPool::add_thread(std::function<void()> initializer) {
 template<typename F, typename... Args>
 std::future<typename std::result_of<F(Args...)>::type>
 ThreadPool::add_task(F&& f, Args&&... args) {
-
     const auto lambda_except = [this]() -> void {
         if (this->m_fork_threads.load() <= 0 || this->m_quit.load()) {
             auto out = std::ostringstream{};

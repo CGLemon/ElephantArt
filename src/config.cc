@@ -21,7 +21,9 @@
 #include "Board.h"
 #include "Decoder.h"
 #include "Utils.h"
+#include "Search.h"
 
+#include <limits>
 #include <string>
 
 std::unordered_map<std::string, Utils::Option> options_map;
@@ -73,14 +75,16 @@ void init_options_map() {
     options_map["threads"] << Utils::Option::setoption(1, 256, 1);
 
     options_map["quiet_verbose"] << Utils::Option::setoption(false);
-    options_map["quiet_stats_verbose"] << Utils::Option::setoption(false);
-    options_map["quiet_search_verbose"] << Utils::Option::setoption(false);
+    options_map["stats_verbose"] << Utils::Option::setoption(false);
+    options_map["analysis_verbose"] << Utils::Option::setoption(false);
+    options_map["ucci_response"] << Utils::Option::setoption(true);
     options_map["log_file"] << Utils::Option::setoption(NO_LOG_FILE_NAME);
 
     options_map["num_games"] << Utils::Option::setoption(1, 32, 1);
     options_map["reserve_movelist"] << Utils::Option::setoption(60);
 
-    options_map["softmax_temp"] << Utils::Option::setoption(1.0f);
+    options_map["softmax_pol_temp"] << Utils::Option::setoption(1.0f);
+    options_map["softmax_wdl_temp"] << Utils::Option::setoption(1.0f);
     options_map["cache_moves"] << Utils::Option::setoption(20);
     options_map["weights_file"] << Utils::Option::setoption(NO_WEIGHT_FILE_NAME);
     options_map["float_precision"] << Utils::Option::setoption(5);
@@ -88,8 +92,8 @@ void init_options_map() {
     options_map["min_cutoff"] << Utils::Option::setoption(1);
 
     options_map["ponder"] << Utils::Option::setoption(false);
-    options_map["playouts"] << Utils::Option::setoption(1600);
-    options_map["visits"] << Utils::Option::setoption(1024 * 1024);
+    options_map["playouts"] << Utils::Option::setoption(Search::MAX_PLAYOUTS);
+    options_map["visits"] << Utils::Option::setoption(Search::MAX_PLAYOUTS);
     options_map["fpu_root_reduction"] << Utils::Option::setoption(0.25f);
     options_map["fpu_reduction"] << Utils::Option::setoption(0.25f);
     options_map["cpuct_init"] << Utils::Option::setoption(2.5f);
@@ -195,18 +199,25 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         parser.remove_command(res->idx);
     }
 
-    if (const auto res = parser.find("--quiet")) {
+    if (const auto res = parser.find({"--quiet", "-q"})) {
         set_option("quiet_verbose", true);
         parser.remove_command(res->idx);
     }
 
-    if (const auto res = parser.find("--quiet_stats")) {
-        set_option("quiet_stats_verbose", true);
+    if (const auto res = parser.find("--stats_verbose")) {
+        set_option("stats_verbose", true);
         parser.remove_command(res->idx);
     }
 
-    if (const auto res = parser.find("--quiet_analysis")) {
-        set_option("quiet_search_verbose", true);
+    if (const auto res = parser.find("--analysis_verbose")) {
+        set_option("analysis_verbose", true);
+        parser.remove_command(res->idx);
+    }
+
+    if (const auto res = parser.find("--debug_mode")) {
+        set_option("quiet_verbose", false);
+        set_option("stats_verbose", true);
+        set_option("analysis_verbose", true);
         parser.remove_command(res->idx);
     }
 

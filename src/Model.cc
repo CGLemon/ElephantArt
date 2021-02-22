@@ -209,26 +209,24 @@ void Model::load_weights(const std::string &filename,
     file.open(filename.c_str());
 
     if (!file.is_open()) {
-        if (filename != NO_WEIGHT_FILE_NAME) {
-            Utils::printf<Utils::AUTO>("Could not opne file : %s!\n", filename.c_str());
-        }
+        Utils::printf<Utils::AUTO>("Could not opne file : %s!\n", filename.c_str());
         return;
     }
 
     while(std::getline(file, line)) {
-        buffer << line;
-        buffer << std::endl;
+        buffer << line << std::endl;
     }
     file.close();
     
     try {
         fill_weights(buffer, nn_weight);
     } catch (const char* err) {
+        // Should not happned.
         Utils::printf<Utils::AUTO>("Loading network file warning!\n", err);
         Utils::printf<Utils::AUTO>("    Cause : %s.\n", err);
     }
     
-    if (nn_weight->loaded) {
+    if (nn_weight->loaded && option<bool>("stats_verbose")) {
         Utils::printf<Utils::AUTO>("Loading is successful!\n");
     }
 }
@@ -572,8 +570,9 @@ void Model::fill_weights(std::istream &weights_file,
             }
         }
     }
-
-    dump_nn_info(nn_weight, timer);
+    if (option<bool>("stats_verbose")) {
+        dump_nn_info(nn_weight, timer);
+    }
 }
 
 NNResult Model::get_result(std::vector<float> &policy,
@@ -688,7 +687,6 @@ void Model::process_weights(std::shared_ptr<NNWeights> &nn_weight) {
 }
 
 void Model::dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &timer) {
-
     const auto duration = [](Utils::Timer &timer, int t) -> float {
         auto cnt = timer.get_record_count();
         if (t == 1) {
@@ -699,24 +697,24 @@ void Model::dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &ti
         return 0;
     };
 
-    Utils::printf<Utils::STATS>("Neural Network Information :\n");
-    Utils::printf<Utils::STATS>("Time :\n");
-    Utils::printf<Utils::STATS>("  initialization process : %.4f second(s)\n", duration(timer, 1));
-    Utils::printf<Utils::STATS>("  input layer process : %.4f second(s)\n", duration(timer, 2));
-    Utils::printf<Utils::STATS>("  tower layers process: %.4f second(s)\n", duration(timer, 3));
-    Utils::printf<Utils::STATS>("  output layers process: %.4f second(s)\n", duration(timer, 4));
-    Utils::printf<Utils::STATS>("Channels / Blocks :  %d / %d\n", nn_weight->residual_channels, nn_weight->residual_blocks);
-    Utils::printf<Utils::STATS>("Tower Struct :\n");
+    Utils::printf<Utils::AUTO>("Neural Network Information :\n");
+    Utils::printf<Utils::AUTO>("Time :\n");
+    Utils::printf<Utils::AUTO>("  initialization process : %.4f second(s)\n", duration(timer, 1));
+    Utils::printf<Utils::AUTO>("  input layer process : %.4f second(s)\n", duration(timer, 2));
+    Utils::printf<Utils::AUTO>("  tower layers process: %.4f second(s)\n", duration(timer, 3));
+    Utils::printf<Utils::AUTO>("  output layers process: %.4f second(s)\n", duration(timer, 4));
+    Utils::printf<Utils::AUTO>("Channels / Blocks :  %d / %d\n", nn_weight->residual_channels, nn_weight->residual_blocks);
+    Utils::printf<Utils::AUTO>("Tower Struct :\n");
     for (auto i = 0; i < nn_weight->residual_blocks; ++i) {
-        Utils::printf<Utils::STATS>("  block %2d : ", i+1);
+        Utils::printf<Utils::AUTO>("  block %2d : ", i+1);
         if (nn_weight->residual_tower[i].apply_se) {
-            Utils::printf<Utils::STATS>("ResidualBlock-SE\n");
+            Utils::printf<Utils::AUTO>("ResidualBlock-SE\n");
         } else {
-            Utils::printf<Utils::STATS>("ResidualBlock\n");
+            Utils::printf<Utils::AUTO>("ResidualBlock\n");
         }
     }
-    Utils::printf<Utils::STATS>("Policy Channels : %d\n", nn_weight->policy_extract_channels);
-    Utils::printf<Utils::STATS>("Value Channels : %d\n", nn_weight->value_extract_channels);
+    Utils::printf<Utils::AUTO>("Policy Channels : %d\n", nn_weight->policy_extract_channels);
+    Utils::printf<Utils::AUTO>("Value Channels : %d\n", nn_weight->value_extract_channels);
 }
 
 void get_weights_from_file(std::istream &weights_file, std::vector<float> &weights) {

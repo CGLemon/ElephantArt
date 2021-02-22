@@ -17,6 +17,7 @@
 */
 
 #include "UCCI.h"
+#include "Search.h"
 
 UCCI::UCCI() {
     init();
@@ -43,11 +44,12 @@ void UCCI::loop() {
             }
 
             if (parser.get_count() == 1 && parser.find("quit")) {
+                Utils::printf<Utils::SYNC>("bye\n");
                 break;
             }
 
             auto out = execute(parser);
-            Utils::printf<Utils::SYNC>("%s\n", out.c_str());
+            Utils::printf<Utils::SYNC>("%s", out.c_str());
         }
     }
 }
@@ -57,14 +59,42 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
     if (const auto res = parser.find("ucci", 0)) {
         out << "id name " << PROGRAM << " " << VERSION << std::endl;
         out << "id author " << "NA" << std::endl;
+        out << "ucciok" << std::endl;
     } else if (const auto res = parser.find("isready", 0)) {
-        out << "readyok";
+        out << "readyok" << std::endl;
+    } else if (const auto res = parser.find({"display", "d"}, 0)) {
+        m_ucci_engine->display();
+    } else if (const auto res = parser.find("go", 0)) {
+        auto setting = SearchSetting{};
+        if (const auto ponder = parser.find("ponder")) {
+            setting.ponder = true;
+        }
+        if (const auto depth = parser.find_next("depth")) {
+            setting.depth = depth->get<int>();
+        }
+        if (const auto nodes = parser.find_next("nodes")) {
+            setting.nodes = nodes->get<int>();
+        }
+        if (const auto time = parser.find_next("time")) {
+            setting.milliseconds = 1000 * time->get<int>();
+        }
+        if (const auto movestogo = parser.find_next("movestogo")) {
+            setting.movestogo = movestogo->get<int>();
+        }
+        if (const auto increment = parser.find_next("increment")) {
+            setting.increment = increment->get<int>();
+        }
+        out << m_ucci_engine->think(setting);
+    } else if (const auto res = parser.find("stop", 0)) {
+        m_ucci_engine->interrupt();
+    } else if (const auto res = parser.find("ponderhit", 0)) {
+        m_ucci_engine->ponderhit();
     } else if (const auto res = parser.find("position", 0)) {
         auto pos = parser.get_commands(1)->str;
-        out << m_ucci_engine->position(pos);
+        m_ucci_engine->position(pos);
     } else {
         auto commands = parser.get_commands();
-        out << "Unknown command: " << commands;
+        out << "Unknown command: " << commands->str << std::endl;
     }
     return out.str();
 }
