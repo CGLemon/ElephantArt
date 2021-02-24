@@ -1,19 +1,19 @@
 /*
-    This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe Lin
+    This file is part of ElephantArt.
+    Copyright (C) 2021 Hung-Zhe Lin
 
-    Saya is free software: you can redistribute it and/or modify
+    ElephantArt is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    Saya is distributed in the hope that it will be useful,
+    ElephantArt is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with Saya.  If not, see <http://www.gnu.org/licenses/>.
+    along with ElephantArt.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <cassert>
@@ -133,7 +133,8 @@ std::vector<float> Model::gather_planes(const Position *const pos,
     // planes |  1 -  7 | Current player picee position.
     // planes |  8 - 14 | Next player picee position.
     // planes | 15 - 16 | Last move.
-    // planes | 17 - 18 | Others.
+    // planes |   17    | Is red or not.
+    // planes |   18    | Always one.
 
     auto input_data = std::vector<float>(INPUT_CHANNELS * Board::INTERSECTIONS, 0.0f);
     auto color = pos->get_to_move();
@@ -161,35 +162,40 @@ std::vector<float> Model::gather_planes(const Position *const pos,
         std::advance(blk_iterator, 7 * Board::INTERSECTIONS);
     }
 
-    // Not complete yet
     auto status_iterator = std::begin(input_data) + INPUT_MOVES * 14 * Board::INTERSECTIONS;
     // plane 15 - 16
     const auto lastmove = pos->get_last_move();
-    const auto from = Board::get_xy(lastmove.get_from());
-    const auto to = Board::get_xy(lastmove.get_to());
-
-    status_iterator[Board::get_index(from.first, from.second)] = static_cast<float>(true);
-    status_iterator[Board::INTERSECTIONS + Board::get_index(to.first, to.second)] = static_cast<float>(true);
+    if (lastmove.valid()) {
+        const auto from = Board::get_xy(lastmove.get_from());
+        const auto to = Board::get_xy(lastmove.get_to());
+        status_iterator[Board::get_index(from.first, from.second)] = static_cast<float>(true);
+        status_iterator[Board::INTERSECTIONS + Board::get_index(to.first, to.second)] = static_cast<float>(true);
+    }
 
     std::advance(status_iterator, 2 * Board::INTERSECTIONS);
-    // plane 16 - 18
-    std::fill(status_iterator, std::end(input_data), 1.f);
+    // plane 17 - 18
+    if (color == Types::RED) {
+        std::fill(status_iterator, std::end(input_data), 1.f);
+    } else {
+        std::fill(status_iterator+Board::INTERSECTIONS, std::end(input_data), 1.f);
+    }
+    std::advance(status_iterator, 2 * Board::INTERSECTIONS);
+    assert(status_iterator == std::end(input_data));
 
     return input_data;
 }
 
 std::vector<float> Model::gather_features(const Position *const pos) {
     // feature 1 : Game plies.
-    // feature 2 : Current is red or not.
+    // feature 2 : Fair remaining plies. (Not yet)
     // feature 3 : Repeat one.
     // feature 4 : Repeat two.
 
     auto input_features = std::vector<float>(INPUT_FEATURES, 0.0f);
-    auto color = pos->get_to_move();
     const auto ply = pos->get_gameply();
     const auto rpt = pos->get_repeat();
     input_features[0] = static_cast<float>(ply)/30.f;
-    input_features[1] = color == Types::RED ? 1.0f : -1.0f ;
+    input_features[1] = 0;
     if (rpt.first >= 1) {
         input_features[2] = static_cast<float>(true);
     }

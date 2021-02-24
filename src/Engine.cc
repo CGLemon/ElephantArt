@@ -1,19 +1,19 @@
 /*
-    This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe Lin
+    This file is part of ElephantArt.
+    Copyright (C) 2021 Hung-Zhe Lin
 
-    Saya is free software: you can redistribute it and/or modify
+    ElephantArt is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    Saya is distributed in the hope that it will be useful,
+    ElephantArt is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with Saya.  If not, see <http://www.gnu.org/licenses/>.
+    along with ElephantArt.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "Engine.h"
@@ -179,7 +179,7 @@ Engine::Response Engine::raw_nn(const int symmetry, const int g) {
     auto nnout = m_network->get_output(&p, Network::DIRECT, symmetry);
     auto microsecond = timer.get_duration_microseconds();
     for (int p = 0; p < POLICYMAP; ++p) {
-        rep << "map probabilities : " << p+1 << std::endl;
+        rep << "map probabilities: " << p+1 << std::endl;
         for (int y = 0; y < Board::HEIGHT; ++y) {
             for (int x = 0; x < Board::WIDTH; ++x) {
                 const auto idx = Board::get_index(x, y);
@@ -192,12 +192,12 @@ Engine::Response Engine::raw_nn(const int symmetry, const int g) {
         }
         rep << std::endl;
     }
-    rep << "wdl probabilities ( win / draw / loss ) : " << std::endl;
+    rep << "wdl probabilities ( win / draw / loss ): " << std::endl;
     for (int v = 0; v < 3; ++v) {
         rep << nnout.winrate_misc[v] << " ";
     }
     rep << std::endl << std::endl;
-    rep << "stm winrate : " << std::endl;
+    rep << "stm winrate: " << std::endl;
     rep << nnout.winrate_misc[3];
     rep << std::endl << std::endl;
 
@@ -217,7 +217,7 @@ Engine::Response Engine::input_planes(const int symmetry, const int g) {
     const auto &p = *get_position(g);
     const auto input_planes = Model::gather_planes(&p, symmetry);
     for (int p = 0; p < INPUT_CHANNELS; ++p) {
-        rep << "planes : " << p+1 << std::endl;
+        rep << "planes: " << p+1 << std::endl;
         for (int y = 0; y < Board::HEIGHT; ++y) {
             for (int x = 0; x < Board::WIDTH; ++x) {
                 const auto idx = Board::get_index(x, y);

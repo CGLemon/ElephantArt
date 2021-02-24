@@ -152,10 +152,16 @@ class ResBlock(nn.Module):
         return F.relu(out, inplace=True)
 
 
-class Network(nn.Module):
+class NNProcess(nn.Module):
     def __init__(self , config : NetworkConfig):
         super().__init__()
+
+        # Tensor Collector will collect all weights which we want automatically.
+        # According to multi-task learning, some heads are only auxiliary. These
+        # heads may be not useful in inference process. So they will not be 
+        # collected by Tensor Collector.
         self.tensor_collector = []
+
         self.nntype = config.nntype
         self.input_channels = config.input_channels
         self.input_features = config.input_features
@@ -209,6 +215,7 @@ class Network(nn.Module):
         self.residual_tower = nn.Sequential(*nn_stack)
 
         # policy head
+        # Following the CrazyAra policy map. The kernel size is 3.
         self.policy_conv = ConvBlock(
             in_channels=self.residual_channels,
             out_channels=self.policy_extract, 
@@ -241,9 +248,9 @@ class Network(nn.Module):
             relu=False,
             collector=self.tensor_collector
         )
-
-        self.dump_info()
         self.trainable()
+        if config.miscVerbose:
+            self.dump_info()
 
     def forward(self, planes, features):
         x = self.input_conv(planes)
@@ -312,36 +319,36 @@ class Network(nn.Module):
             f.write("end info\n")
 
             f.write("fork model\n")
-            f.write(Network.conv2text(self.input_channels, self.residual_channels, 3))
-            f.write(Network.bn2text(self.residual_channels))
-            f.write(Network.fullyconnect2text(self.input_features, self.residual_channels * 2))
-            f.write(Network.fullyconnect2text(self.residual_channels * 2, self.residual_channels))
+            f.write(NNProcess.conv2text(self.input_channels, self.residual_channels, 3))
+            f.write(NNProcess.bn2text(self.residual_channels))
+            f.write(NNProcess.fullyconnect2text(self.input_features, self.residual_channels * 2))
+            f.write(NNProcess.fullyconnect2text(self.residual_channels * 2, self.residual_channels))
 
             for s in self.stack:
                 if s == "ResidualBlock" or s == "ResidualBlock-SE":
-                    f.write(Network.conv2text(self.residual_channels, self.residual_channels, 3))
-                    f.write(Network.bn2text(self.residual_channels))
-                    f.write(Network.conv2text(self.residual_channels, self.residual_channels, 3))
-                    f.write(Network.bn2text(self.residual_channels))
+                    f.write(NNProcess.conv2text(self.residual_channels, self.residual_channels, 3))
+                    f.write(NNProcess.bn2text(self.residual_channels))
+                    f.write(NNProcess.conv2text(self.residual_channels, self.residual_channels, 3))
+                    f.write(NNProcess.bn2text(self.residual_channels))
                     if s == "ResidualBlock-SE":
-                        f.write(Network.fullyconnect2text(self.residual_channels * 1, self.residual_channels * 4))
-                        f.write(Network.fullyconnect2text(self.residual_channels * 4, self.residual_channels * 2))
+                        f.write(NNProcess.fullyconnect2text(self.residual_channels * 1, self.residual_channels * 4))
+                        f.write(NNProcess.fullyconnect2text(self.residual_channels * 4, self.residual_channels * 2))
 
-            f.write(Network.conv2text(self.residual_channels, self.policy_extract, 3))
-            f.write(Network.bn2text(self.policy_extract))
-            f.write(Network.conv2text(self.policy_extract, self.policy_map, 3))
+            f.write(NNProcess.conv2text(self.residual_channels, self.policy_extract, 3))
+            f.write(NNProcess.bn2text(self.policy_extract))
+            f.write(NNProcess.conv2text(self.policy_extract, self.policy_map, 3))
             
-            f.write(Network.conv2text(self.residual_channels, self.value_extract, 1))
-            f.write(Network.bn2text(self.value_extract))
+            f.write(NNProcess.conv2text(self.residual_channels, self.value_extract, 1))
+            f.write(NNProcess.bn2text(self.value_extract))
             
-            f.write(Network.fullyconnect2text(self.value_extract * self.plane_size, self.valuelayers))
-            f.write(Network.fullyconnect2text(self.valuelayers, self.winrate_size))
+            f.write(NNProcess.fullyconnect2text(self.value_extract * self.plane_size, self.valuelayers))
+            f.write(NNProcess.fullyconnect2text(self.valuelayers, self.winrate_size))
             
             f.write("end model\n")
 
             f.write("fork parameters\n")
             for tensor in self.tensor_collector:
-                f.write(Network.tensor2text(tensor))
+                f.write(NNProcess.tensor2text(tensor))
             f.write("end parameters\n")
             f.write("end main")
 

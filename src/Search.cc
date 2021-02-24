@@ -1,3 +1,21 @@
+/*
+    This file is part of ElephantArt.
+    Copyright (C) 2021 Hung-Zhe Lin
+
+    ElephantArt is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    ElephantArt is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with ElephantArt.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <numeric>
 #include <algorithm>
 #include <sstream>
@@ -124,16 +142,17 @@ void Search::prepare_uct() {
     set_playouts(0);
     set_running(true);
     m_rootnode->prepare_root_node(m_network, m_rootposition);
+    const auto nn_eval = m_rootnode->get_node_evals();
+    m_rootnode->update(std::make_shared<UCTNodeEvals>(nn_eval));
 
     const auto color = m_rootposition.get_to_move();
-    const auto nn_eval = m_rootnode->get_node_evals();
     const auto stm_eval = color == Types::RED ? nn_eval.red_stmeval : 1 - nn_eval.red_stmeval;
     const auto winloss = color == Types::RED ? nn_eval.red_winloss : 1 - nn_eval.red_winloss;
     if (option<bool>("analysis_verbose")) {
         Utils::printf<Utils::STATIC>("Raw NN output\n");
-        Utils::printf<Utils::STATIC>("  stm eval : %.2f%\n", stm_eval * 100.f);
-        Utils::printf<Utils::STATIC>("  winloss : %.2f%\n", winloss * 100.f);
-        Utils::printf<Utils::STATIC>("  draw probability : %.2f%\n", nn_eval.draw * 100.f);
+        Utils::printf<Utils::STATIC>("  stm eval: %.2f%\n", stm_eval * 100.f);
+        Utils::printf<Utils::STATIC>("  winloss: %.2f%\n", winloss * 100.f);
+        Utils::printf<Utils::STATIC>("  draw probability: %.2f%\n", nn_eval.draw * 100.f);
     }
 }
 
@@ -228,10 +247,10 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
     if (is_running()) {
         return;
     }
-    // Cahce the pointer in order to avoid to miss the caller.
-    bool need_to_return = info ? true : false;
+
     m_threadGroup->wait_all();
     m_rootposition = m_position;
+
     const auto uct_worker = [&]() -> void {
         increment_threads();
         do {
@@ -246,21 +265,18 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         decrement_threads();
     };
 
-    m_setting = setting;
-    
-    const auto main_worker = [&]() -> void {
+    const auto main_worker = [&, set = setting, info]() -> void {
         bool keep_running = true;
         auto maxdepth = 0;
-        const auto limitnodes = m_setting.nodes;
-        const auto limitdepth = m_setting.depth;
-        auto controller = TimeControl(m_setting.milliseconds,
-                                      m_setting.movestogo,
-                                      m_setting.increment);
+        const auto limitnodes = set.nodes;
+        const auto limitdepth = set.depth;
+        auto controller = TimeControl(set.milliseconds,
+                                      set.movestogo,
+                                      set.increment);
         controller.set_plies(m_rootposition.get_gameply());
 
         auto timer = Utils::Timer{};
         auto limittime = std::numeric_limits<int>::max();
-
         do {
             auto depth = 0;
             auto currpos = std::make_unique<Position>(m_rootposition);
@@ -273,10 +289,10 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
             const auto score = (m_rootnode->get_meaneval(color, false) - 0.5f) * 200.0f;
             const auto nodes = m_nodestats->nodes.load() + m_nodestats->edges.load();
             const auto elapsed = timer.get_duration_milliseconds();
-            controller.set_score(score);
+            controller.set_score(int(score));
             {
                 std::lock_guard<std::mutex> lock(m_thinking_mtx);
-                if (!m_setting.ponder) {
+                if (!set.ponder) {
                     limittime = controller.get_limittime();
                 }
             }
@@ -303,19 +319,21 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
 
         m_train.gather_probabilities(*m_rootnode, m_rootposition);
 
-        const auto time = timer.get_duration();
+        const auto elapsed = timer.get_duration();
         const auto move = uct_best_move();
         if (option<bool>("ucci_response")) {
             Utils::printf<Utils::SYNC>("bestmove %s\n", move.to_string().c_str());
         }
-        if (need_to_return) {
+        if (info) {
             info->move = move;
-            info->seconds = time;
+            info->seconds = elapsed;
             info->depth = maxdepth;
         }
         if (option<bool>("analysis_verbose")) {
-            Utils::printf<Utils::STATIC>("Searching time %.4f second(s)\n", time);
             UCT_Information::dump_stats(m_rootnode, m_rootposition);
+            Utils::printf<Utils::STATIC>("Speed:\n");
+            Utils::printf<Utils::STATIC>("  %.4f second(s), %d playout(s), %.2f p/s\n",
+                                              elapsed, m_playouts.load(), m_playouts.load()/elapsed);
         }
         clear_nodes();
     };

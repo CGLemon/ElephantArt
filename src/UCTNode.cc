@@ -1,3 +1,21 @@
+/*
+    This file is part of ElephantArt.
+    Copyright (C) 2021 Hung-Zhe Lin
+
+    ElephantArt is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    ElephantArt is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with ElephantArt.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "UCTNode.h"
 #include "Board.h"
 #include "Random.h"
@@ -238,6 +256,7 @@ float UCTNode::get_stmeval(const Types::Color color,
         accumulated_evals += static_cast<float>(virtual_loss);
     }
     auto eval = accumulated_evals / static_cast<float>(visits);
+
     if (color == Types::RED) {
         return eval;
     }
@@ -260,6 +279,7 @@ float UCTNode::get_winloss(const Types::Color color,
         accumulated_wls += static_cast<float>(virtual_loss);
     }
     auto wl = accumulated_wls / static_cast<float>(visits);
+
     if (color == Types::RED) {
         return wl;
     }
@@ -683,7 +703,6 @@ void UCTNode::wait_expanded() const {
         if (v == ExpandState::EXPANDED) {
             break;
         }
-        std::this_thread::yield();
     }
 }
 
@@ -703,7 +722,7 @@ void UCT_Information::dump_tree_stats(UCTNode *node) {
     const auto edges = status->edges.load();
 
     Utils::printf<Utils::STATIC>("Tree Status: \n");
-    Utils::printf<Utils::STATIC>("  nodes : %d | edges : %d | tree memory used : %.2f MiB\n", nodes, edges, mem);
+    Utils::printf<Utils::STATIC>("  nodes: %d, edges: %d, tree memory used: %.2f MiB\n", nodes, edges, mem);
 }
 
 void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off) {
@@ -712,7 +731,7 @@ void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off)
     const auto parentvisits = static_cast<float>(node->get_visits());
     assert(color == node->get_color());
 
-    Utils::printf<Utils::STATIC>("Search List :\n"); 
+    Utils::printf<Utils::STATIC>("Search List:\n"); 
     Utils::printf<Utils::STATIC>("Root -> %7d (WL: %5.2f%%) (V: %5.2f%%) (D: %5.2f%%)\n",
                                      node->get_visits(),
                                      node->get_winloss(color, false) * 100.f,

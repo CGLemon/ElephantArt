@@ -1,3 +1,21 @@
+/*
+    This file is part of ElephantArt.
+    Copyright (C) 2021 Hung-Zhe Lin
+
+    ElephantArt is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    ElephantArt is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with ElephantArt.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #ifndef TRAIN_H_INCLUDE
 #define TRAIN_H_INCLUDE
 
@@ -18,7 +36,6 @@ struct DataCollection {
     using MAPS_PAIR = std::pair<int, float>;
     using PIECES_PAIR = std::array<std::vector<int>, 2>;
 
-
     struct PositionPieces {
         PIECES_PAIR pawns;
         PIECES_PAIR horses;
@@ -34,7 +51,11 @@ struct DataCollection {
     int movenum;
     int gameply;
     int repeat;
-    std::array<float, Board::INTERSECTIONS * INPUT_CHANNELS> input_features;
+    int last_from_move;
+    int last_to_move;
+
+    std::array<float, Board::INTERSECTIONS * INPUT_CHANNELS> input_planes;
+    std::array<float, INPUT_FEATURES> input_features;
 
     PIECES_HISTORY pieces_history;
 
@@ -51,8 +72,8 @@ class Train {
 public:
     Train();
 
-    void gather_probabilities(UCTNode &node, Position &position);
-    void gather_move(Move move, Position &position);
+    void gather_probabilities(UCTNode &node, Position &pos);
+    void gather_move(Move move, Position &pos);
 
     void gather_winner(Types::Color color);
     void save_data(std::string filename, bool append = true);

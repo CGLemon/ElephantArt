@@ -1,19 +1,19 @@
 /*
-    This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe Lin
+    This file is part of ElephantArt.
+    Copyright (C) 2021 Hung-Zhe Lin
 
-    Saya is free software: you can redistribute it and/or modify
+    ElephantArt is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    Saya is distributed in the hope that it will be useful,
+    ElephantArt is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with Saya.  If not, see <http://www.gnu.org/licenses/>.
+    along with ElephantArt.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "ASCII.h"
@@ -39,7 +39,7 @@ void ASCII::init() {
 void ASCII::loop() {
     while (true) {
         m_ascii_engine->display();
-        Utils::printf<Utils::SYNC>("Saya : ");
+        Utils::printf<Utils::SYNC>("Elephant: ");
 
         auto input = std::string{};
         if (std::getline(std::cin, input)) {
@@ -68,8 +68,8 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         [&](Utils::CommandParser &p, size_t ignore) -> void {
 
         if (p.get_count() <= ignore) return;
-        out << p.get_commands(ignore)->str << " ";
-        out << ": syntax not understood" << std::endl;
+        out << "Syntax not understood: ";
+        out << p.get_commands(ignore)->str << std::endl;
     };
 
     if (const auto res = parser.find("legal-moves", 0)) {

@@ -1,19 +1,19 @@
 /*
-    This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe Lin
+    This file is part of ElephantArt.
+    Copyright (C) 2021 Hung-Zhe Lin
 
-    Saya is free software: you can redistribute it and/or modify
+    ElephantArt is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    Saya is distributed in the hope that it will be useful,
+    ElephantArt is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with Saya.  If not, see <http://www.gnu.org/licenses/>.
+    along with ElephantArt.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef TYPE_H_INCLUDE
@@ -65,14 +65,14 @@ public:
     };
 
     enum Piece_t : int {
-        PAWN = 0, HORSE, CANNON, ROOK, ELEPHANT, ADVISOR, KING, EMPTY_PIECE_T, PIECE_T_NB = 7
+        PAWN = 0, CANNON, ROOK, HORSE, ELEPHANT, ADVISOR, KING, EMPTY_PIECE_T, PIECE_T_NB = 7
     };
 
     ENABLE_BASE_OPERATORS_ON(Piece_t)
 
     enum Piece : int {
-        R_PAWN = 0, R_HORSE, R_CANNON, R_ROOK, R_ELEPHANT, R_ADVISOR, R_KING,
-        B_PAWN = 7, B_HORSE, B_CANNON, B_ROOK, B_ELEPHANT, B_ADVISOR, B_KING,
+        R_PAWN = 0, R_CANNON, R_ROOK, R_HORSE, R_ELEPHANT, R_ADVISOR, R_KING,
+        B_PAWN = 7, B_CANNON, B_ROOK, B_HORSE, B_ELEPHANT, B_ADVISOR, B_KING,
         EMPTY_PIECE,
         INVAL_PIECE, 
         PIECE_NB = 16

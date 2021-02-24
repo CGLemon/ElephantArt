@@ -1,19 +1,19 @@
 /*
-    This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe Lin
+    This file is part of ElephantArt.
+    Copyright (C) 2021 Hung-Zhe Lin
 
-    Saya is free software: you can redistribute it and/or modify
+    ElephantArt is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    Saya is distributed in the hope that it will be useful,
+    ElephantArt is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with Saya.  If not, see <http://www.gnu.org/licenses/>.
+    along with ElephantArt.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "Board.h"
@@ -643,9 +643,9 @@ void Board::pre_initialize() {
 template<>
 void Board::piece_stream<Types::ASCII>(std::ostream &out, Types::Piece p) {
     p == Types::R_PAWN      ? out << option<char>("red_pawn_en")     : p == Types::B_PAWN      ? out << option<char>("black_pawn_en")     :
-    p == Types::R_HORSE     ? out << option<char>("red_horse_en")    : p == Types::B_HORSE     ? out << option<char>("black_horse_en")    :
     p == Types::R_CANNON    ? out << option<char>("red_cannon_en")   : p == Types::B_CANNON    ? out << option<char>("black_cannon_en")   :
     p == Types::R_ROOK      ? out << option<char>("red_rook_en")     : p == Types::B_ROOK      ? out << option<char>("black_rook_en")     :
+    p == Types::R_HORSE     ? out << option<char>("red_horse_en")    : p == Types::B_HORSE     ? out << option<char>("black_horse_en")    :
     p == Types::R_ELEPHANT  ? out << option<char>("red_elephant_en") : p == Types::B_ELEPHANT  ? out << option<char>("black_elephant_en") :
     p == Types::R_ADVISOR   ? out << option<char>("red_advisor_en")  : p == Types::B_ADVISOR   ? out << option<char>("black_advisor_en")  :
     p == Types::R_KING      ? out << option<char>("red_king_en")     : p == Types::B_KING      ? out << option<char>("black_king_en")     :
@@ -656,9 +656,9 @@ template<>
 void Board::piece_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out, Types::Piece p) {
     using STR = std::string;
     p == Types::R_PAWN      ? out << option<STR>("red_pawn_ch")     : p == Types::B_PAWN      ? out << option<STR>("black_pawn_ch")     :
-    p == Types::R_HORSE     ? out << option<STR>("red_horse_ch")    : p == Types::B_HORSE     ? out << option<STR>("black_horse_ch")    :
     p == Types::R_CANNON    ? out << option<STR>("red_cannon_ch")   : p == Types::B_CANNON    ? out << option<STR>("black_cannon_ch")   :
     p == Types::R_ROOK      ? out << option<STR>("red_rook_ch")     : p == Types::B_ROOK      ? out << option<STR>("black_rook_ch")     :
+    p == Types::R_HORSE     ? out << option<STR>("red_horse_ch")    : p == Types::B_HORSE     ? out << option<STR>("black_horse_ch")    :
     p == Types::R_ELEPHANT  ? out << option<STR>("red_elephant_ch") : p == Types::B_ELEPHANT  ? out << option<STR>("black_elephant_ch") :
     p == Types::R_ADVISOR   ? out << option<STR>("red_advisor_ch")  : p == Types::B_ADVISOR   ? out << option<STR>("black_advisor_ch")  :
     p == Types::R_KING      ? out << option<STR>("red_king_ch")     : p == Types::B_KING      ? out << option<STR>("black_king_ch")     :
@@ -887,7 +887,6 @@ Types::Piece Board::get_piece(const int x, const int y) const {
 }
 
 Types::Piece Board::get_piece(const Types::Vertices vtx) const {
-
     auto color = Types::INVALID_COLOR;
 
     if (Utils::on_area(vtx, m_bb_color[Types::RED])) {
@@ -914,7 +913,6 @@ Types::Piece Board::get_piece(const Types::Vertices vtx) const {
 }
 
 Types::Piece_t Board::get_piece_type(const Types::Vertices vtx) const {
-
     auto pt = Types::EMPTY_PIECE_T;
     auto at = Utils::vertex2bitboard(vtx);
 
@@ -939,8 +937,8 @@ Types::Piece_t Board::get_piece_type(const Types::Vertices vtx) const {
 }
 
 BitBoard &Board::get_piece_bitboard_ref(Types::Piece_t pt) {
-
     assert(pt != Types::KING);
+
     if (pt == Types::HORSE) {
         return m_bb_horse;
     } else if (pt == Types::ROOK) {
@@ -1088,13 +1086,13 @@ int Board::generate_pseudo_movelist(Types::Color color, std::vector<Move> &movel
 
     int cnt = 0;
 
-    cnt += generate_move<Types::KING>    (color, movelist);
     cnt += generate_move<Types::PAWN>    (color, movelist);
+    cnt += generate_move<Types::CANNON>  (color, movelist);
     cnt += generate_move<Types::ROOK>    (color, movelist);
     cnt += generate_move<Types::HORSE>   (color, movelist);
-    cnt += generate_move<Types::CANNON>  (color, movelist);
     cnt += generate_move<Types::ADVISOR> (color, movelist);
     cnt += generate_move<Types::ELEPHANT>(color, movelist);
+    cnt += generate_move<Types::KING>    (color, movelist);
 
     return cnt;
 }

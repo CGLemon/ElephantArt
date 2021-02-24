@@ -1,19 +1,19 @@
 /*
-    This file is part of Saya.
-    Copyright (C) 2020 Hung-Zhe Lin
+    This file is part of ElephantArt.
+    Copyright (C) 2021 Hung-Zhe Lin
 
-    Saya is free software: you can redistribute it and/or modify
+    ElephantArt is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    Saya is distributed in the hope that it will be useful,
+    ElephantArt is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with Saya.  If not, see <http://www.gnu.org/licenses/>.
+    along with ElephantArt.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifdef USE_CUDA
@@ -143,27 +143,36 @@ void check_devices() {
         throw std::runtime_error("No CUDA device");
     }
 
-    if (option<bool>("stats_verbose")) {
-        Utils::printf<Utils::AUTO>("Using cuDNN: ");
-        if (is_using_cuDNN()) {
-            Utils::printf<Utils::AUTO>("Yes\n");
-            const auto version = cudnnGetVersion();
-            const auto major = version/1000;
-            const auto minor = version/100 - major * 10;
-            Utils::printf<Utils::AUTO>("cuDNN version : Major %zu, Minor %zu\n", major, minor);
-        } else {
-            Utils::printf<Utils::AUTO>("No\n");
-        }
-
-        Utils::printf<Utils::AUTO>("Number of CUDA devices: %zu\n", devicecount);
-        for(int i = 0; i < devicecount; ++i) {
-            Utils::printf<Utils::AUTO>("\n=== Device %zu ===\n", i);
-            cudaDeviceProp sDeviceProp;
-            cudaGetDeviceProperties(&sDeviceProp, i);
-            output_spec(sDeviceProp);
-        }
-        Utils::printf<Utils::AUTO>("\n");
+    int cuda_version;
+    cudaDriverGetVersion(&cuda_version);
+    {
+        const auto major = cuda_version/1000;
+        const auto minor = (cuda_version - major * 1000)/10;
+        Utils::printf<Utils::AUTO>("CUDA version: Major %zu, Minor %zu\n", major, minor);
     }
+
+
+    Utils::printf<Utils::AUTO>("Using cuDNN: ");
+    if (is_using_cuDNN()) {
+        Utils::printf<Utils::AUTO>("Yes\n");
+#ifdef USE_CUDNN
+        const auto cudnn_version = cudnnGetVersion();
+        const auto major = cudnn_version/1000;
+        const auto minor = (cudnn_version -  major * 1000)/100;
+        Utils::printf<Utils::AUTO>("cuDNN version: Major %zu, Minor %zu\n", major, minor);
+#endif
+    } else {
+        Utils::printf<Utils::AUTO>("No\n");
+    }
+
+    Utils::printf<Utils::AUTO>("Number of CUDA devices: %zu\n", devicecount);
+    for(int i = 0; i < devicecount; ++i) {
+        Utils::printf<Utils::AUTO>("=== Device %zu ===\n", i);
+        cudaDeviceProp sDeviceProp;
+        cudaGetDeviceProperties(&sDeviceProp, i);
+        output_spec(sDeviceProp);
+    }
+    Utils::printf<Utils::AUTO>("\n");
 }
 } // namespace CUDA
 

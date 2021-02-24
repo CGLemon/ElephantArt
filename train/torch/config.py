@@ -1,5 +1,10 @@
 import json
 
+# Verbose option
+debugVerbose = False
+miscVerbose = True
+
+
 # Config.json example
 # {
 #     "NeuralNetwork" : {
@@ -18,55 +23,67 @@ import json
 # }
 
 CONFIG_KEYWOED = [
-    "NeuralNetwork",
-    "NNType",
-    "InputChannels",
-    "InputFeatures",
-    "PolicyExtract",
-    "ValueExtract",
-    "Stack",
-    "ResidualChannels",
-    "ResidualBlock",
-    "ResidualBlock-SE",
+    "NeuralNetwork",    # claiming
+    "NNType",           # the type of net
+    "Version",          # net version(implies the net structure)
+    "InputChannels",    # Input planes channels
+    "InputFeatures",    # Input features size
+    "PolicyExtract",    # policy shared head channels
+    "ValueExtract",     # value shared head channels
+    "Stack",            # the net structure(also implies the block number)
+    "ResidualChannels", # each resnet block channels
+    "ResidualBlock",    # resnet block without variant
+    "ResidualBlock-SE", # resnet block with SE structure
 ]
 
 class NetworkConfig:
     def __init__(self):
+        # Adjustable values
         self.stack = []
-        self.nntype = None
-        self.input_channels = None
-        self.input_features = None
         self.residual_channels = None
         self.policy_extract = None
         self.value_extract = None
-        self.xsize = 10
-        self.ysize = 9
-        self.policy_map = 2 * (9 + 8) + 8 + 4 + 4 # 50
-        self.winrate_size = 4
-        self.valuelayers = 256
+
+        # Option values(not yet)
+
+        # Fixed values but flexible
+        self.nntype = None
+        self.input_channels = None
+        self.input_features = None
+
+        # Fixed values
+        self.xsize = 10 # fixed
+        self.ysize = 9 # fixed
+        self.policy_map = 50 # fixed
+            # 50 = 18 (file moves) + 16 (rank moves) +
+            #      8(horse moves) + 4(advisor moves) + 4(elephant moves)
+
+        self.valuelayers = 256 # fixed
+        self.winrate_size = 4 # one stm-winrate head + three wdl-winrate head
 
 def json_loader(filename):
     with open(filename, 'r') as f:
         data = json.load(f)
     return data
 
-def NN_parser(json_data):
-    nn_config = NetworkConfig()
+def nnparser(json_data):
+    # We assume that every value is valid.
+    nnconfig = NetworkConfig()
     resnet = json_data["NeuralNetwork"]
 
-    nn_config.nntype = resnet["NNType"]
-    nn_config.input_channels = resnet["InputChannels"]
-    nn_config.residual_channels = resnet["ResidualChannels"]
-    nn_config.policy_extract = resnet["PolicyExtract"]
-    nn_config.value_extract = resnet["ValueExtract"]
-    nn_config.input_features = resnet["InputFeatures"]
+    nnconfig.nntype = resnet["NNType"]
+    nnconfig.input_channels = resnet["InputChannels"]
+    nnconfig.residual_channels = resnet["ResidualChannels"]
+    nnconfig.policy_extract = resnet["PolicyExtract"]
+    nnconfig.value_extract = resnet["ValueExtract"]
+    nnconfig.input_features = resnet["InputFeatures"]
 
     stack = resnet["Stack"]
     for s in stack:
-        nn_config.stack.append(s)
-    return nn_config
+        nnconfig.stack.append(s)
+    return nnconfig
 
 def gather_networkconfig(filename):
     d = json_loader(filename)
-    n = NN_parser(d)
+    n = nnparser(d)
     return n
