@@ -125,9 +125,6 @@ Uint128_t &operator BITWISE##=(const Uint128_t & rhs);
     Uint128_t operator-(const Uint128_t &rhs) const;
     Uint128_t operator-(const int i) const;
     Uint128_t &operator-=(const Uint128_t &rhs);
-    
-    // Uint128_t operator*(const Uint128_t &rhs) const;
-    // Uint128_t &operator*=(const Uint128_t & rhs);
 };
 
 static constexpr Uint128_t tie(std::uint64_t upper, std::uint64_t lower) {

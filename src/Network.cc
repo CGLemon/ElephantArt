@@ -178,7 +178,6 @@ Network::Netresult Network::get_output_internal(const Position *const position,
 
     auto input_planes = Model::gather_planes(position, symmetry);
     auto input_features = Model::gather_features(position) ;
-
     if (m_forward->valid()) {
         m_forward->forward(input_planes, input_features, policy_out, winrate_out);
     } else {

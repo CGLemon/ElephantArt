@@ -52,11 +52,11 @@ void Uint128_t::outStream<Uint128_t::Stream_t::HEX>(std::ostream &out) const {
 
 void Uint128_t::dump_status() const {
     auto out = std::ostringstream{};
-    out << "binary : ";
+    out << "binary: ";
     outStream<Stream_t::BIN>(out);
     out << "\n";
   
-    out << "hex    : ";
+    out << "hex   : ";
     outStream<Stream_t::HEX>(out);
     out << "\n";
     

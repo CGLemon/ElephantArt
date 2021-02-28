@@ -79,10 +79,10 @@ std::uint64_t Random<random_t::SplitMix_64>::randuint64() {
      * The detail of parameteres are from
      * https://github.com/lemire/testingRNG/blob/master/source/splitmix64.h
      */
-    constexpr auto seed_Idx = SEED_SZIE - 1;
+    constexpr auto seed_idx = SEED_SZIE - 1;
 
-    Random<random_t::SplitMix_64>::m_seeds[seed_Idx] += 0x9e3779b97f4a7c15;
-    auto z = Random<random_t::SplitMix_64>::m_seeds[seed_Idx];
+    Random<random_t::SplitMix_64>::m_seeds[seed_idx] += 0x9e3779b97f4a7c15;
+    auto z = Random<random_t::SplitMix_64>::m_seeds[seed_idx];
     z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
     z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
     return z ^ (z >> 31);

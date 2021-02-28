@@ -3,14 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-import config
-from config import NetworkConfig
-
-
-def dump_dependent_version():
-    print("Name : {name} ->  Version : {ver}".format(name =  "Numpy", ver = np.__version__))
-    print("Name : {name} ->  Version : {ver}".format(name =  "Torch", ver = torch.__version__))
-
 class FullyConnect(nn.Module):
     def __init__(self, in_size,
                        out_size,
@@ -138,13 +130,13 @@ class ResBlock(nn.Module):
         if self.with_se:
             b, c, _, _ = out.size()
             seprocess = self.avg_pool(out)
-            seprocess = torch.flatten(seprocess, start_dim=1, end_dim=3);
+            seprocess = torch.flatten(seprocess, start_dim=1, end_dim=3)
             seprocess = self.extend(seprocess)
             seprocess = self.squeeze(seprocess)
 
             gammas, betas = torch.split(seprocess, self.channels, dim=1)
-            gammas = torch.reshape(gammas, (b, c, 1, 1));
-            betas = torch.reshape(betas, (b, c, 1, 1));
+            gammas = torch.reshape(gammas, (b, c, 1, 1))
+            betas = torch.reshape(betas, (b, c, 1, 1))
             out = torch.sigmoid(gammas) * out + betas
             
         out += identity
@@ -153,7 +145,7 @@ class ResBlock(nn.Module):
 
 
 class NNProcess(nn.Module):
-    def __init__(self , config : NetworkConfig):
+    def __init__(self, cfg):
         super().__init__()
 
         # Tensor Collector will collect all weights which we want automatically.
@@ -162,20 +154,21 @@ class NNProcess(nn.Module):
         # collected by Tensor Collector.
         self.tensor_collector = []
 
-        self.nntype = config.nntype
-        self.input_channels = config.input_channels
-        self.input_features = config.input_features
-        self.residual_channels = config.residual_channels
-        self.xsize = config.xsize
-        self.ysize = config.ysize
+        self.cfg = cfg
+        self.nntype = cfg.nntype
+        self.input_channels = cfg.input_channels
+        self.input_features = cfg.input_features
+        self.residual_channels = cfg.residual_channels
+        self.xsize = cfg.xsize
+        self.ysize = cfg.ysize
         self.plane_size = self.xsize * self.ysize
-        self.value_extract = config.value_extract
-        self.policy_extract = config.policy_extract
-        self.policy_map = config.policy_map
-        self.stack = config.stack
+        self.value_extract = cfg.value_extract
+        self.policy_extract = cfg.policy_extract
+        self.policy_map = cfg.policy_map
+        self.stack = cfg.stack
 
-        self.winrate_size = config.winrate_size
-        self.valuelayers = config.valuelayers
+        self.winrate_size = cfg.winrate_size
+        self.valuelayers = cfg.valuelayers
 
         # build network
         # input layers
@@ -249,7 +242,7 @@ class NNProcess(nn.Module):
             collector=self.tensor_collector
         )
         self.trainable()
-        if config.miscVerbose:
+        if self.cfg.miscVerbose:
             self.dump_info()
 
     def forward(self, planes, features):
@@ -276,8 +269,9 @@ class NNProcess(nn.Module):
         val = torch.flatten(val, start_dim=1)
         val = self.value_fc_1(val)
         val = self.value_fc_2(val)
+        wdl, stm = torch.split(val, 3, dim=1)
 
-        return pol, val
+        return pol, wdl, torch.tanh(stm)
 
     def trainable(self, t=True):
         if t==True:
@@ -292,11 +286,11 @@ class NNProcess(nn.Module):
         self.load_state_dict(torch.load(filename))
 
     def dump_info(self):
-        print("Plane size [x,y] : [{xsize}, {ysize}] ".format(xsize=self.xsize, ysize=self.ysize))
-        print("Input channels : {channels}".format(channels=self.input_channels))
-        print("Input features : {features}".format(features=self.input_features))
-        print("Residual channels : {channels}".format(channels=self.residual_channels))
-        print("Residual tower : size -> {s} [".format(s=len(self.stack)))
+        print("Plane size [x,y]: [{xsize}, {ysize}] ".format(xsize=self.xsize, ysize=self.ysize))
+        print("Input channels: {channels}".format(channels=self.input_channels))
+        print("Input features: {features}".format(features=self.input_features))
+        print("Residual channels: {channels}".format(channels=self.residual_channels))
+        print("Residual tower: size -> {s} [".format(s=len(self.stack)))
         for s in self.stack:
             print("  {}".format(s))
         print("]")

@@ -39,47 +39,59 @@ void vector_stream(const std::vector<T> arr, std::ostream &out) {
 void DataCollection::out_stream(std::ostream &out) {
 /*
  * ------- claiming -------
- * L1        : Version
+ * L1       : Version
  *
  * ------- Inputs data -------
- * L2  - L15 : Pieces Index
- * L16       : Current Player
- * L17       : Game plies 
- * L18       : Repeat conut
- * L19 - L20 : last move
+ * L2  - L8 : Current player pieces Index
+ * L9  - L15: Other player pieces Index
+ * L16 - L17: last move
+ * L18      : Current Player
+ * L19      : Game plies 
+ * L20      : Repeat conut
  *
  * ------- Prediction data -------
- * L21       : Probabilities
- * L22       : Which pieces go to move
- * L23       : Result
+ * L21      : Probabilities
+ * L22      : Which piece go to move
+ * L23      : Result
  *
  */
+
+    // version
     out << version << std::endl;
 
+    // pieces Index
     for (const auto &past: pieces_history) {
-        vector_stream(past.pawns[Types::RED], out);
-        vector_stream(past.cannons[Types::RED], out);
-        vector_stream(past.rooks[Types::RED], out);
-        vector_stream(past.horses[Types::RED], out);
-        vector_stream(past.elephants[Types::RED], out);
-        vector_stream(past.advisors[Types::RED], out);
-        vector_stream(past.kings[Types::RED], out);
+        vector_stream(past.pawns[to_move], out);
+        vector_stream(past.cannons[to_move], out);
+        vector_stream(past.rooks[to_move], out);
+        vector_stream(past.horses[to_move], out);
+        vector_stream(past.elephants[to_move], out);
+        vector_stream(past.advisors[to_move], out);
+        vector_stream(past.kings[to_move], out);
 
-        vector_stream(past.pawns[Types::BLACK], out);
-        vector_stream(past.cannons[Types::BLACK], out);
-        vector_stream(past.rooks[Types::BLACK], out);
-        vector_stream(past.horses[Types::BLACK], out);
-        vector_stream(past.elephants[Types::BLACK], out);
-        vector_stream(past.advisors[Types::BLACK], out);
-        vector_stream(past.kings[Types::BLACK], out);
+        vector_stream(past.pawns[Board::swap_color(to_move)], out);
+        vector_stream(past.cannons[Board::swap_color(to_move)], out);
+        vector_stream(past.rooks[Board::swap_color(to_move)], out);
+        vector_stream(past.horses[Board::swap_color(to_move)], out);
+        vector_stream(past.elephants[Board::swap_color(to_move)], out);
+        vector_stream(past.advisors[Board::swap_color(to_move)], out);
+        vector_stream(past.kings[Board::swap_color(to_move)], out);
     }
 
-    out << (to_move == Types::RED ? 1 : 0) << std::endl;
-    out << gameply << std::endl;
-    out << repeat << std::endl;
+    // last move
     out << last_from_move << std::endl;
     out << last_to_move << std::endl;
 
+    // to move
+    out << (to_move == Types::RED ? 1 : 0) << std::endl;
+
+    // plies
+    out << gameply << std::endl;
+
+    // repeat
+    out << repeat << std::endl;
+
+    // probabilities
     const auto p_s = probabilities.size();
     for (auto idx = size_t{0}; idx < p_s; ++idx) {
         const auto x = probabilities[idx];
@@ -95,9 +107,11 @@ void DataCollection::out_stream(std::ostream &out) {
         }
     }
 
+    // piece to go  
     Board::piece_stream<Types::ASCII>(out, static_cast<Types::Piece>(piece));
     Utils::strip_stream(out, 1);
 
+    // result
     if (winner == Types::INVALID_COLOR) {
         out << "NA";
     } else if (winner == Types::EMPTY_COLOR) {

@@ -506,7 +506,6 @@ void CUDABackend::worker(int gpu) {
     }
 }
 
-
 void CUDABackend::prepare_worker() {
     m_thread_running = true;
     if (m_threads.size() == 0) {

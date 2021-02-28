@@ -242,6 +242,8 @@ void strip_stream(std::ostream &out, const size_t times) {
     }
 }
 
+constexpr size_t CommandParser::MAX_BUFFER_SIZE;
+
 CommandParser::CommandParser(std::string &input) {
     parser(std::forward<std::string>(input), MAX_BUFFER_SIZE);
 }

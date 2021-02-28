@@ -28,7 +28,6 @@ namespace CUDA {
 Batchnorm::Batchnorm(const int max_batch,
                      const size_t output_channels,
                      bool ReLU) {
-
     m_channels = output_channels;
     m_maxbatch = max_batch;
     m_ReLU = ReLU;
@@ -79,7 +78,6 @@ Convolve::Convolve(const int max_batch,
                    const size_t filter_size, 
                    const size_t input_channels,
                    const size_t output_channels) {
-
     m_in_channels = input_channels;
     m_out_channels = output_channels;
     m_filter = filter_size;
@@ -178,7 +176,6 @@ void Convolve::Forward(const int batch, float *input, float *output,
 
 void Convolve::LoadingWeight(const std::vector<float> &weights,
                              size_t &scratch_size, CudaHandel *handel) {
-
     if (is_loaded) {
         return;
     }
@@ -253,7 +250,6 @@ void Convolve::LoadingWeight(const std::vector<float> &weights,
 void Convolve::LoadingWeight(const std::vector<float> &weights,
                              const std::vector<float> &biases,
                              size_t &scratch_size, CudaHandel *handel) {
-
     if (is_loaded) {
         return;
     }
@@ -293,7 +289,6 @@ FullyConnect::~FullyConnect() {
 
 void FullyConnect::LoadingWeight(const std::vector<float> &weights,
                                  const std::vector<float> &biases) {
-
     if (is_loaded) { 
         return;
     }
@@ -314,7 +309,6 @@ void FullyConnect::LoadingWeight(const std::vector<float> &weights,
 }
 
 void FullyConnect::Forward(const int batch, float *input, float *output, CudaHandel *handel) {
-
     if (!is_loaded) {
         return;
     }
@@ -349,7 +343,6 @@ void GlobalAvgPool::Forward(const int batch, float *input, float *output) {
 }
 
 SEUnit::SEUnit(const int max_batch, const size_t channels, const size_t se_size) {
-
     m_se_size = se_size;
     m_maxbatch = max_batch;
     m_channels = channels;
@@ -360,7 +353,6 @@ void SEUnit::LoadingWeight(const std::vector<float> &weights_w1,
                            const std::vector<float> &weights_b1,
                            const std::vector<float> &weights_w2,
                            const std::vector<float> &weights_b2) {
-
     if (is_loaded) { 
         return;
     }
@@ -401,9 +393,7 @@ void SEUnit::LoadingWeight(const std::vector<float> &weights_w1,
 }
 
 void SEUnit::Forward(const int batch, float *input, float *ouput, CudaHandel *handel) {
-
     global_avg_pool(input, cuda_op[0], batch, m_channels, spatial_size);
-
 
     const size_t fc1_input_size = m_channels;
     const size_t fc1_output_size = m_se_size;
@@ -463,7 +453,6 @@ SEUnit::~SEUnit() {
 
 InputPool::InputPool(const int max_batch, const size_t input_size,
                      const size_t squeeze, const size_t channels) {
-
     m_squeeze = squeeze; 
     m_input_size = input_size;
     m_maxbatch = max_batch;
@@ -476,7 +465,6 @@ void InputPool::LoadingWeight(const std::vector<float> &weights_w1,
                               const std::vector<float> &weights_b1,
                               const std::vector<float> &weights_w2,
                               const std::vector<float> &weights_b2) {
-
     if (is_loaded) { 
         return;
     }
@@ -516,10 +504,10 @@ void InputPool::LoadingWeight(const std::vector<float> &weights_w1,
 }
 
 void InputPool::Forward(const int batch, float *input, float *output, CudaHandel *handel) {
-
     const size_t fc1_input_size = m_input_size;
     const size_t fc1_output_size = m_squeeze;
     const bool fc1_relu = true;
+
     gemm(false, true,
          batch,
          fc1_output_size,
@@ -540,6 +528,7 @@ void InputPool::Forward(const int batch, float *input, float *output, CudaHandel
     const size_t fc2_input_size = m_squeeze;
     const size_t fc2_output_size = m_channels;
     const bool fc2_relu = false;
+
     gemm(false, true,
          batch,
          fc2_output_size,

@@ -1,26 +1,6 @@
 import json
-
-# Verbose option
-debugVerbose = False
-miscVerbose = True
-
-
-# Config.json example
-# {
-#     "NeuralNetwork" : {
-#         "NNType" : "Residual",
-#         "InputChannels" : 18,
-#         "InputFeatures" : 4
-#         "ResidualChannels" : 64,
-#         "PolicyExtract" : 256,
-#         "ValueExtract" : 8,
-#         "Stack" : [
-#             "ResidualBlock",
-#             "ResidualBlock",
-#             "ResidualBlock-SE"
-#         ]
-#     }
-# }
+import os
+import torch
 
 CONFIG_KEYWOED = [
     "NeuralNetwork",    # claiming
@@ -34,10 +14,34 @@ CONFIG_KEYWOED = [
     "ResidualChannels", # each resnet block channels
     "ResidualBlock",    # resnet block without variant
     "ResidualBlock-SE", # resnet block with SE structure
+
+    "Train",            # claiming
+    "GPUs",
+    "Epochs",
+    "LearningRate",     # the learning rate
+    "WeightDecay",      # the net weight decay
+    "TrainDirectory",
+    "ValidationDirectory",
+    "TestDirectory"
 ]
 
-class NetworkConfig:
+class Config:
     def __init__(self):
+        # Verbose option  
+        self.debugVerbose = False
+        self.miscVerbose = False
+
+        # Training option
+        self.num_workers = None
+        self.gpus = None
+        self.epochs = None
+        self.batchsize = None
+        self.lr = None
+        self.weight_decay = None
+        self.train_dir = None
+        self.val_dir = None
+        self.test_dir = None
+
         # Adjustable values
         self.stack = []
         self.residual_channels = None
@@ -52,8 +56,8 @@ class NetworkConfig:
         self.input_features = None
 
         # Fixed values
-        self.xsize = 10 # fixed
-        self.ysize = 9 # fixed
+        self.xsize = 9 # fixed
+        self.ysize = 10 # fixed
         self.policy_map = 50 # fixed
             # 50 = 18 (file moves) + 16 (rank moves) +
             #      8(horse moves) + 4(advisor moves) + 4(elephant moves)
@@ -61,29 +65,59 @@ class NetworkConfig:
         self.valuelayers = 256 # fixed
         self.winrate_size = 4 # one stm-winrate head + three wdl-winrate head
 
+def trainparser(json_data, config):
+    # We assume that every value is valid.
+    train = json_data["Train"]
+
+    config.gpus = train["GPUs"]
+    config.lr = train["LearningRate"]
+    config.weight_decay = train["WeightDecay"]
+
+    config.train_dir = train["TrainDirectory"]
+    config.val_dir = train["ValidationDirectory"]
+    config.test_dir = train["TestDirectory"]
+    config.epochs = train["Epochs"]
+    config.batchsize = train["BatchSize"]
+    config.num_workers = train["Workers"]
+
+    if config.epochs == None:
+        config.epochs = 1000 # the lightning default epochs
+
+    if config.num_workers == None:
+        config.num_workers = os.cpu_count()
+
+    if config.gpus == None:
+        if torch.cuda.is_available():
+            config.gpus = torch.cuda.device_count()
+
+    return config
+
+def nnparser(json_data, config):
+    # We assume that every value is valid.
+    resnet = json_data["NeuralNetwork"]
+
+    config.nntype = resnet["NNType"]
+    config.input_channels = resnet["InputChannels"]
+    config.residual_channels = resnet["ResidualChannels"]
+    config.policy_extract = resnet["PolicyExtract"]
+    config.value_extract = resnet["ValueExtract"]
+    config.input_features = resnet["InputFeatures"]
+
+    stack = resnet["Stack"]
+    for s in stack:
+        config.stack.append(s)
+    return config
+
 def json_loader(filename):
     with open(filename, 'r') as f:
         data = json.load(f)
     return data
 
-def nnparser(json_data):
-    # We assume that every value is valid.
-    nnconfig = NetworkConfig()
-    resnet = json_data["NeuralNetwork"]
+def gather_config(filename):
+    cfg = Config()
+    if filename != None:
+        d = json_loader(filename)
+        cfg = trainparser(d, cfg)
+        cfg = nnparser(d, cfg)
+    return cfg
 
-    nnconfig.nntype = resnet["NNType"]
-    nnconfig.input_channels = resnet["InputChannels"]
-    nnconfig.residual_channels = resnet["ResidualChannels"]
-    nnconfig.policy_extract = resnet["PolicyExtract"]
-    nnconfig.value_extract = resnet["ValueExtract"]
-    nnconfig.input_features = resnet["InputFeatures"]
-
-    stack = resnet["Stack"]
-    for s in stack:
-        nnconfig.stack.append(s)
-    return nnconfig
-
-def gather_networkconfig(filename):
-    d = json_loader(filename)
-    n = nnparser(d)
-    return n

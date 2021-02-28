@@ -28,11 +28,6 @@ __global__ void add_vectors_kernel(T *a, T *b, T *c,
 
     int i = threadIdx.x + blockDim.x * blockIdx.x;
     if (i < size) {
-        // float aVal = 0;
-        // float bVal = 0;
-        // if (a) aVal = (float)(a[i % asize]);
-        // if (b) bVal = (float)(b[i % bsize]);
-
         float aVal = (float)(a[i % asize]);
         float bVal = (float)(b[i % bsize]);
         float cVal = aVal + bVal;
@@ -58,7 +53,6 @@ template <typename T>
 __global__ void add_spatial_kernel(T *a, T *b, T *c,
                                    int asize, int bsize, int size,
                                    int spatial, bool relu) {
-
     int i = threadIdx.x + blockDim.x * blockIdx.x;
     if (i < size) {
         float aVal = (float)(a[i % asize]);
@@ -111,7 +105,6 @@ __global__ void batchNorm_eltwise_kernel(T *data, const float *means, const floa
 template <typename T>
 __global__ void batchNorm_kernel(T *data, const float *means, const float *stddevs,
                                  int N, int C, int spatial, bool relu) {
-
     int index = threadIdx.x + blockDim.x * blockIdx.x;
     int size = N * C * spatial;
     if (index < size) {
@@ -135,7 +128,6 @@ template <typename T>
 void batchnorm(T *data, const float *means, const float *stddevs,
                int batch, int channels, int spatial_size,
                const T *eltwise, bool relu) {
-
     const int total_elements = batch * channels * spatial_size;
     const int kBlockSize = KBLOCKSIZE;
     const int blocks = DivUp(total_elements, kBlockSize);
@@ -190,7 +182,6 @@ __global__ void im2col_kernel(int filter_size, int pad, int C, int H, int W,
 template <typename T>
 void im2col(int filter_size, int channels, int H, int W,
             T *input, T *output) {
-
     const int total_elements = channels * H * W;
     const int kBlockSize = KBLOCKSIZE;
     const int blocks = DivUp(total_elements, kBlockSize);
@@ -231,7 +222,6 @@ void global_avg_pool(T *input, T *output, int batch, int channels, int spatial_s
 template <typename T>
 __global__ void se_scale_kernel(const T *input, const T *se_bias, T *data,
                                 int N, int C, int spatial) {
-
     int index = threadIdx.x + blockDim.x * blockIdx.x;
     int total_elements = N * C * spatial;
     if (index < total_elements) {
@@ -257,7 +247,6 @@ __global__ void se_scale_kernel(const T *input, const T *se_bias, T *data,
 template<typename T>
 void se_scale(const T *input, const T* se_bias, T* data,
                    int batch, int channels, int spatial_size) {
-
     const int total_elements = channels * spatial_size * batch;
     const int kBlockSize = KBLOCKSIZE;
     const int blocks = DivUp(total_elements, kBlockSize);
@@ -270,7 +259,6 @@ void se_scale(const T *input, const T* se_bias, T* data,
 template <typename T>
 __global__ void input_pool_kernel(const T *bias, T *data,
                                   int N, int C, int spatial) {
-
     int index = threadIdx.x + blockDim.x * blockIdx.x;
     int total_elements = N * C * spatial;
     if (index < total_elements) {
@@ -292,7 +280,6 @@ __global__ void input_pool_kernel(const T *bias, T *data,
 template<typename T>
 void input_pool(const T *bias, T *data,
                      int batch, int channels, int spatial_size) {
-
     const int total_elements = batch * channels * spatial_size;
     const int kBlockSize = KBLOCKSIZE;
     const int blocks = DivUp(total_elements, kBlockSize);

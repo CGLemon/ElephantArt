@@ -157,7 +157,6 @@ void init_basic_parameters() {
 }
 
 ArgsParser::ArgsParser(int argc, char** argv) {
-
     auto parser = Utils::CommandParser(argc, argv);
     const auto is_parameter = [](const std::string &param) -> bool {
         if (param.empty()) {
@@ -404,7 +403,7 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 }
 
 void ArgsParser::help() const {
-    Utils::printf<Utils::SYNC>("Argument\n");
+    Utils::printf<Utils::SYNC>("Arguments:\n");
     Utils::printf<Utils::SYNC>("  --help, -h\n");
     Utils::printf<Utils::SYNC>("  --chinese, -ch\n");
     Utils::printf<Utils::SYNC>("  --mode, -m [ascii/ucci]\n");
