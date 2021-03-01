@@ -65,6 +65,7 @@ void Board::reset_board() {
     auto start_position = get_start_position();
     fen2board(start_position);
     m_hash = calc_hash();
+    m_bb_attacks = calc_attacks();
 }
 
 void Board::clear_status() {
@@ -80,34 +81,41 @@ bool Board::fen2board(std::string &fen) {
     // FEN example:
     // rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1
     //
-    // part 1 : position
+    // part 1: position
     // rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR
     //
-    // part 2 : to move
+    // part 2: to move
     // w
     //
-    // part 3 : invalid
+    // part 3: invalid
     // -
     //
-    // part 4 : invalid
+    // part 4: invalid
     // -
     //
-    // part 5 : invalid
+    // part 5: invalid
     // 0
     //
-    // part 6 : move number
+    // part 6: move number
     // 1
 
     auto cnt_stream = std::stringstream{fen};
     const auto cnt = std::distance(std::istream_iterator<std::string>(cnt_stream),
                                    std::istream_iterator<std::string>());
 
+    auto fen_format = std::stringstream{fen};
+    auto fen_stream = std::string{};
+    if (cnt == 1) {
+        fen_format >> fen_stream;
+        if (fen_stream == "startpos") {
+            auto start_position = get_start_position();
+            return fen2board(start_position);
+        }
+    }
+
     if (cnt != 6) {
         return false;
     }
-
-    auto fen_format = std::stringstream{fen};
-    auto fen_stream = std::string{};
 
     auto success = bool{true};
     auto bb_black = BitBoard(0ULL);
@@ -122,7 +130,7 @@ bool Board::fen2board(std::string &fen) {
     auto bb_advisor = BitBoard(0ULL);
     auto bb_cannon = BitBoard(0ULL);
 
-    // part 1 : position
+    // part 1: position
     fen_format >> fen_stream;
     PIECES_CACHE;
     const auto bb_process = [](Types::Vertices &vtx, BitBoard &p_bb, BitBoard &c_bb) {
@@ -131,7 +139,7 @@ bool Board::fen2board(std::string &fen) {
         c_bb |= bb;
     };
     auto vtx = Types::VTX_A9;
-    for (const char &c : fen_stream) {
+    for (const char &c: fen_stream) {
         bool skip = false;
         if (c == blk_pawn) {
             bb_process(vtx, bb_pawn, bb_black);
@@ -187,7 +195,7 @@ bool Board::fen2board(std::string &fen) {
         }
     }
 
-    // part 2 : to move
+    // part 2: to move
     fen_format >> fen_stream;
     auto tomove = Types::INVALID_COLOR;
     if (fen_stream == "w" || fen_stream == "r") {
@@ -198,12 +206,12 @@ bool Board::fen2board(std::string &fen) {
         success = false;
     }
 
-    // part 3-5 : invalid
+    // part 3-5: invalid
     for (int k = 0; k < 3; ++k) {
         fen_format >> fen_stream;
     }
 
-    // part 6 : move number
+    // part 6: move number
     int movenum;
     fen_format >> movenum;
     if (movenum <= 0) {
@@ -228,8 +236,9 @@ bool Board::fen2board(std::string &fen) {
         m_movenum = movenum;
         m_tomove = tomove;
 
-        // Calculate the new hash value. 
+        // Calculate the new hash value and attacks.
         m_hash = calc_hash();
+        m_bb_attacks = calc_attacks();
     }
 
     return success;
@@ -238,7 +247,6 @@ bool Board::fen2board(std::string &fen) {
 std::pair<int, int> Board::get_symmetry(const int x,
                                         const int y,
                                         const int symmetry) {
-
     assert(x >= 0 || x < WIDTH);
     assert(y >= 0 || y < HEIGHT);
     assert(symmetry >= 0 && symmetry < NUM_SYMMETRIES);
@@ -266,8 +274,8 @@ std::pair<int, int> Board::get_symmetry(const int x,
 
 void Board::init_symmetry() {
 
-    for (auto &tables : symmetry_nn_vtx_table) {
-        for (auto &table : tables) {
+    for (auto &tables: symmetry_nn_vtx_table) {
+        for (auto &table: tables) {
             table = Types::NO_VERTEX;
         }
     }
@@ -318,7 +326,6 @@ void Board::init_pawn_attacks() {
 
 // Initialize attack table and magic mask.
 void Board::init_move_pattens() {
-
     init_pawn_attacks();
 
     // advisor attacks
@@ -400,8 +407,8 @@ void Board::init_move_pattens() {
 
 // Initialize the magic numbers.
 void Board::init_magics() {
-
-    // Find valid bitboard.
+    // Some masks may be out of the board (ex. VTX_J0, VTX_J1, ... ,VTX_J8, VTX_J9), or
+    // out of itself legal area. Find them and set invalid.
     const auto set_valid = [](std::array<Magic, NUM_VERTICES> &magics) -> void {
         std::for_each(std::begin(magics), std::end(magics), [](auto &in){
                           if (in.mask != BitBoard(0ULL)) {
@@ -425,6 +432,9 @@ void Board::init_magics() {
         const auto count = Utils::count(mask);
         const auto begin = 0ULL;
         const auto end = 1ULL << count;
+
+        // The original hash table size is enough. But the adding the
+        // addition size may be more easy to find all magic numbers.
         const auto attacksize = 1ULL << (count + addition);
 
         magics[v].shift = 64 - (count + addition);
@@ -442,9 +452,13 @@ void Board::init_magics() {
         auto bit_iterator = Utils::BitIterator((size_t)count);
 
         for (auto b = begin; b < end; ++b) {
+            // Start to generate the magic number.
             if (b == begin) {
+                // Initialize all datas.
                 bit_iterator.set(0ULL);
                 std::fill(std::begin(used), std::end(used), false);
+
+                // TODO: Optimize the magic seed.
                 magics[v].upper_magic = rng.randuint64();
                 magics[v].lower_magic = rng.randuint64();
             }
@@ -457,7 +471,8 @@ void Board::init_magics() {
                     occupancy |= Utils::vertex2bitboard(vtxs[i]);
                 }
             }
-
+            // Reference(attack bitboard) is the targel which we want to be 
+            // generated by magic number. 
             auto reference = generate_reference(center, occupancy);
 
             if (!reference) {
@@ -469,6 +484,9 @@ void Board::init_magics() {
                 magics[v].attacks[index] = reference;
                 used[index] = true;
             } else {
+                // If the slot has been used. Mean the collision was happened. We
+                // need to check if the slot is same as new reference. If they are
+                // different. Fail this time.
                 if (magics[v].attacks[index] != reference) {
                     b = begin-1;
                 }
@@ -519,7 +537,7 @@ void Board::init_magics() {
                                         BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
         auto dirs = {Types::EAST, Types::WEST}; 
-        for (const auto &dir : dirs) {
+        for (const auto &dir: dirs) {
             auto p = center;
             do {
                 p = Utils::shift(dir, p);
@@ -533,7 +551,7 @@ void Board::init_magics() {
                                         BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
         auto dirs = {Types::NORTH, Types::SOUTH}; 
-        for (const auto &dir : dirs) {
+        for (const auto &dir: dirs) {
             auto p = center;
             do {
                 p = Utils::shift(dir, p);
@@ -547,7 +565,7 @@ void Board::init_magics() {
                                         BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
         auto dirs = {Types::EAST, Types::WEST}; 
-        for (const auto &dir : dirs) {
+        for (const auto &dir: dirs) {
             auto p = Utils::shift(dir, center);
             while (Utils::on_board(p) && !(p & occupancy)) {
                 reference |= p;
@@ -567,7 +585,7 @@ void Board::init_magics() {
                                           BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
         auto dirs = {Types::NORTH, Types::SOUTH}; 
-        for (const auto &dir : dirs) {
+        for (const auto &dir: dirs) {
             auto p = Utils::shift(dir, center);
             while (Utils::on_board(p) && !(p & occupancy)) {
                 reference |= p;
@@ -839,7 +857,6 @@ void Board::board_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out, const Mo
 }
 
 std::uint64_t Board::calc_hash(const int symmetry) const {
-
     auto res = Zobrist::zobrist_empty;
 
     for (int y = 0; y < HEIGHT; ++y) {
@@ -855,6 +872,15 @@ std::uint64_t Board::calc_hash(const int symmetry) const {
         res ^= Zobrist::zobrist_redtomove;
     }
     return res;
+}
+
+std::array<BitBoard, 2> Board::calc_attacks() {
+    auto bb_attacks = std::array<BitBoard, 2>{};
+    auto movelist = std::vector<Move>{};
+    bb_attacks[Types::RED] = generate_movelist(Types::RED, movelist);
+    movelist.clear();
+    bb_attacks[Types::BLACK] = generate_movelist(Types::BLACK, movelist);
+    return bb_attacks;
 }
 
 bool Board::is_on_board(const Types::Vertices vtx) {
@@ -957,10 +983,8 @@ BitBoard &Board::get_piece_bitboard_ref(Types::Piece_t pt) {
 
 const auto lambda_separate_bitboarad = [](Types::Vertices vtx,
                                           BitBoard &legal_bitboard,
-                                          std::vector<Move> &movelist) -> int {
-    int cnt = 0;
+                                          std::vector<Move> &movelist) -> void {
     while (legal_bitboard) {
-        ++cnt;
         const auto res = Utils::extract(legal_bitboard);
         assert(res != Types::NO_VERTEX);
 
@@ -968,68 +992,70 @@ const auto lambda_separate_bitboarad = [](Types::Vertices vtx,
         const auto to = res;
         movelist.emplace_back(Move(from, to));
     }
-    return cnt;
 };
 
 template<>
-int Board::generate_move<Types::KING>(Types::Color color, std::vector<Move> &movelist) const {
+BitBoard Board::generate_move<Types::KING>(Types::Color color, std::vector<Move> &movelist) const {
 
     const auto vtx = m_king_vertex[color];
     const auto attack = m_king_attacks[vtx];
     const auto block = attack & m_bb_color[color];
     auto legal_bitboard = attack ^ block;
 
-    auto cnt = lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
-    return cnt;
+    lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+    return attack;
 }
 
 template<>
-int Board::generate_move<Types::PAWN>(Types::Color color, std::vector<Move> &movelist) const {
-    int cnt = 0;
+BitBoard Board::generate_move<Types::PAWN>(Types::Color color, std::vector<Move> &movelist) const {
+    auto attacks = BitBoard(0ULL);
     auto bb_p = m_bb_pawn & m_bb_color[color];
     while (bb_p) {
         const auto vtx = Utils::extract(bb_p);
         const auto attack = m_pawn_attacks[color][vtx];
         const auto block = attack & m_bb_color[color];
         auto legal_bitboard = attack ^ block;
-        cnt += lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+        lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+        attacks |= attack;
     }
-    return cnt;
+    return attacks;
 }
 
 template<>
-int Board::generate_move<Types::ADVISOR>(Types::Color color, std::vector<Move> &movelist) const {
-    int cnt = 0;
+BitBoard Board::generate_move<Types::ADVISOR>(Types::Color color, std::vector<Move> &movelist) const {
+    auto attacks = BitBoard(0ULL);
     auto bb_a = m_bb_advisor & m_bb_color[color];
     while (bb_a) {
         const auto vtx = Utils::extract(bb_a);
         const auto attack = m_advisor_attacks[vtx];
         const auto block = attack & m_bb_color[color];
         auto legal_bitboard = attack ^ block;
-        cnt += lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+        lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+        attacks |= attack;
     }
-    return cnt;
+    return attacks;
 }
 
 template<>
-int Board::generate_move<Types::ELEPHANT>(Types::Color color, std::vector<Move> &movelist) const {
-    int cnt = 0;
+BitBoard Board::generate_move<Types::ELEPHANT>(Types::Color color, std::vector<Move> &movelist) const {
+    auto attacks = BitBoard(0ULL);
     auto bb_e = m_bb_elephant & m_bb_color[color];
     auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
     auto mask = color == Types::RED ? RedSide : BlackSide;
     while (bb_e) {
         const auto vtx = Utils::extract(bb_e);
-        const auto attack = m_elephant_magics[vtx].attack(occupancy);
+        const auto attack = m_elephant_magics[vtx].attack(occupancy) & mask;
         const auto block = attack & m_bb_color[color];
-        auto legal_bitboard = (attack ^ block) & mask;
-        cnt += lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+        auto legal_bitboard = (attack ^ block);
+        lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+        attacks |= attack;
     }
-    return cnt;
+    return attacks;
 }
 
 template<>
-int Board::generate_move<Types::HORSE>(Types::Color color, std::vector<Move> &movelist) const {
-    int cnt = 0;
+BitBoard Board::generate_move<Types::HORSE>(Types::Color color, std::vector<Move> &movelist) const {
+    auto attacks = BitBoard(0ULL);
     auto bb_h = m_bb_horse & m_bb_color[color];
     auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
     while (bb_h) {
@@ -1037,14 +1063,15 @@ int Board::generate_move<Types::HORSE>(Types::Color color, std::vector<Move> &mo
         const auto attack = m_horse_magics[vtx].attack(occupancy);
         const auto block = attack & m_bb_color[color];
         auto legal_bitboard = attack ^ block;
-        cnt += lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+        lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+        attacks |= attack;
     }
-    return cnt;
+    return attacks;
 }
 
 template<>
-int Board::generate_move<Types::ROOK>(Types::Color color, std::vector<Move> &movelist) const {
-    int cnt = 0;
+BitBoard Board::generate_move<Types::ROOK>(Types::Color color, std::vector<Move> &movelist) const {
+    auto attacks = BitBoard(0ULL);
     auto bb_r = m_bb_rook & m_bb_color[color];
     auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
     while (bb_r) {
@@ -1054,16 +1081,18 @@ int Board::generate_move<Types::ROOK>(Types::Color color, std::vector<Move> &mov
         const auto attack = rankattack | fileattack;
         const auto block = attack & m_bb_color[color];
         auto legal_bitboard = attack ^ block;
-        cnt += lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+        lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+        attacks |= attack;
     }
-    return cnt;
+    return attacks;
 }
 
 template<>
-int Board::generate_move<Types::CANNON>(Types::Color color, std::vector<Move> &movelist) const {
-    int cnt = 0;
+BitBoard Board::generate_move<Types::CANNON>(Types::Color color, std::vector<Move> &movelist) const {
+    auto attacks = BitBoard(0ULL);
+    auto opp_color = swap_color(color);
     auto bb_c = m_bb_cannon & m_bb_color[color];
-    auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
+    auto occupancy = m_bb_color[color] | m_bb_color[opp_color];
     while (bb_c) {
         const auto vtx = Utils::extract(bb_c);
         const auto rankattack = m_cannonrank_magics[vtx].attack(occupancy);
@@ -1071,50 +1100,47 @@ int Board::generate_move<Types::CANNON>(Types::Color color, std::vector<Move> &m
         const auto attack = rankattack | fileattack;
         const auto block = attack & m_bb_color[color];
         auto legal_bitboard = attack ^ block;
-        cnt += lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+        lambda_separate_bitboarad(vtx, legal_bitboard, movelist);
+
+        // The cannons can not eat pieces directly.
+        attacks |= (attack & m_bb_color[opp_color]);
     }
-    return cnt;
+    return attacks;
 }
 
-// Generating the all pseudo legal moves to the list.
-int Board::generate_pseudo_movelist(Types::Color color, std::vector<Move> &movelist) const {
 
+// Generating the all legal moves to the list.
+BitBoard Board::generate_movelist(Types::Color color, std::vector<Move> &movelist) const {
     const auto reserve = option<int>("reserve_movelist");
 
     movelist.clear();
     movelist.reserve(reserve);
 
-    int cnt = 0;
+    auto attacks = BitBoard(0ULL);
 
-    cnt += generate_move<Types::PAWN>    (color, movelist);
-    cnt += generate_move<Types::CANNON>  (color, movelist);
-    cnt += generate_move<Types::ROOK>    (color, movelist);
-    cnt += generate_move<Types::HORSE>   (color, movelist);
-    cnt += generate_move<Types::ADVISOR> (color, movelist);
-    cnt += generate_move<Types::ELEPHANT>(color, movelist);
-    cnt += generate_move<Types::KING>    (color, movelist);
+    // We don't remove the moves which may make the king be
+    // killed. Not like the chess, to kill itself move is legal.
+    attacks |= generate_move<Types::PAWN>    (color, movelist);
+    attacks |= generate_move<Types::CANNON>  (color, movelist);
+    attacks |= generate_move<Types::ROOK>    (color, movelist);
+    attacks |= generate_move<Types::HORSE>   (color, movelist);
+    attacks |= generate_move<Types::ADVISOR> (color, movelist);
+    attacks |= generate_move<Types::ELEPHANT>(color, movelist);
+    attacks |= generate_move<Types::KING>    (color, movelist);
 
-    return cnt;
+    if (is_king_face_king()) {
+        const auto from = m_king_vertex[color];
+        const auto to = m_king_vertex[swap_color(color)];
+        const auto move = Move(from, to);
+        movelist.emplace_back(move);
+        attacks |= move.get_to_bitboard();
+    }
+
+    return attacks;
 }
 
-// Generating the all legal moves to the list.
-int Board::generate_movelist(Types::Color color, std::vector<Move> &movelist) {
-    auto cnt = generate_pseudo_movelist(color, movelist);
-    movelist.erase(
-        std::remove_if(std::begin(movelist), std::end(movelist),
-                       [&](const auto &move) {
-                           auto record = do_pseudo_move(move);
-                           auto legal = true;
-                           legal &= !is_king_face_king();
-                           undo_from_pseudo_move(record);
-                           if (!legal) {
-                               --cnt;
-                           }
-                           return !legal;
-                       }),
-        std::end(movelist)
-    );
-    return cnt;
+void Board::set_last_move(Move move) {
+    m_lastmove = move;
 }
 
 void Board::set_to_move(Types::Color color) {
@@ -1127,13 +1153,13 @@ void Board::swap_to_move() {
 }
 
 // Assume the move is legal.
-void Board::do_move(Move move) {
+void Board::do_move_assume_legal(Move move) {
     const auto from = move.get_from();
     const auto to = move.get_to();
     const auto form_bitboard =  move.get_from_bitboard();
     const auto to_bitboard = move.get_to_bitboard();
 
-    // Get the color
+    // Get the color.
     auto color = Types::INVALID_COLOR;
     if (m_bb_color[Types::BLACK] & form_bitboard) {
         color = Types::BLACK;
@@ -1142,11 +1168,11 @@ void Board::do_move(Move move) {
     }
     assert(color == m_tomove);
 
-    // Get the piece type
+    // Get the piece type.
     const auto pt = get_piece_type(from);
     assert(pt != Types::EMPTY_PIECE_T);
 
-    // Eat piece
+    // Eat piece.
     const auto opp_color = swap_color(color);
     m_eaten = m_bb_color[opp_color] & to_bitboard;
 
@@ -1162,7 +1188,7 @@ void Board::do_move(Move move) {
         m_bb_color[opp_color] ^= to_bitboard;
     }
 
-    // Update bitboard
+    // Update bitboard.
     if (pt == Types::KING) {
         assert(m_king_vertex[color] == from);
         m_king_vertex[color] = to;
@@ -1177,105 +1203,34 @@ void Board::do_move(Move move) {
 
     auto p = static_cast<Types::Piece>(pt) + (color == Types::BLACK ? 7 : 0);
 
-    // Update last move
-    m_lastmove = move;
+    // Update last move.
+    set_last_move(move);
 
-    // Update zobrist
+    // Update attacks
+    m_bb_attacks = calc_attacks();
+
+    // Update zobrist.
     update_zobrist(p , from, to);
     if (m_eaten) {
         auto eaten_p = static_cast<Types::Piece>(eaten_pt) + (color == Types::BLACK ? 7 : 0);
         update_zobrist_remove(eaten_p, to);
     } 
 
-    // Swap color
+    // Swap color.
     swap_to_move();
 
-    // Increment move number
+    // Increment move number.
     increment_gameply();
 }
-
-Board::PseudoMoveRecord Board::do_pseudo_move(Move move) {
-    auto record = PseudoMoveRecord{};
-    record.eaten = m_eaten;
-    record.bb_pawn = m_bb_pawn;
-    record.bb_horse = m_bb_horse;
-    record.bb_rook = m_bb_rook;
-    record.bb_elephant = m_bb_elephant;
-    record.bb_advisor = m_bb_advisor;
-    record.bb_cannon = m_bb_cannon;
-    record.king_vertex = m_king_vertex;
-    record.bb_color = m_bb_color;
-
-    const auto from = move.get_from();
-    const auto to = move.get_to();
-    const auto form_bitboard =  move.get_from_bitboard();
-    const auto to_bitboard = move.get_to_bitboard();
-
-    // Get the color
-    auto color = Types::INVALID_COLOR;
-    if (m_bb_color[Types::BLACK] & form_bitboard) {
-        color = Types::BLACK;
-    } else if (m_bb_color[Types::RED] & form_bitboard) {
-        color = Types::RED;
-    }
-    assert(color == m_tomove);
-
-    // Get the piece type
-    const auto pt = get_piece_type(from);
-    assert(pt != Types::EMPTY_PIECE_T);
-
-    // Eat piece
-    const auto opp_color = swap_color(color);
-    m_eaten = m_bb_color[opp_color] & to_bitboard;
-
-    auto eaten_pt = Types::EMPTY_PIECE_T;
-    if (m_eaten) {
-        eaten_pt = get_piece_type(to);
-        if (eaten_pt == Types::KING) {
-            m_king_vertex[opp_color] = Types::NO_VERTEX;
-        } else {
-            auto &ref_bb = get_piece_bitboard_ref(eaten_pt);
-            ref_bb ^= to_bitboard;
-        }
-        m_bb_color[opp_color] ^= to_bitboard;
-    }
-
-    // Update bitboard
-    if (pt == Types::KING) {
-        assert(m_king_vertex[color] == from);
-        m_king_vertex[color] = to;
-    } else {
-        auto &ref_bb = get_piece_bitboard_ref(pt);
-        ref_bb ^= form_bitboard;
-        ref_bb ^= to_bitboard;
-    }
-
-    m_bb_color[color] ^= form_bitboard;
-    m_bb_color[color] ^= to_bitboard;
-
-    return record;
-}
-
-void Board::undo_from_pseudo_move(Board::PseudoMoveRecord record) {
-    m_eaten = record.eaten;
-    m_bb_pawn = record.bb_pawn;
-    m_bb_horse = record.bb_horse;
-    m_bb_rook = record.bb_rook;
-    m_bb_elephant = record.bb_elephant;
-    m_bb_advisor = record.bb_advisor ;
-    m_bb_cannon = record.bb_cannon;
-    m_king_vertex = record.king_vertex;
-    m_bb_color = record.bb_color;
-}
-
 
 bool Board::is_king_face_king() const {
     const auto red_x = get_x(m_king_vertex[Types::RED]);
     const auto black_x = get_x(m_king_vertex[Types::BLACK]);
     if (red_x == black_x) {
+        const auto mask = m_bb_color[Types::RED] | m_bb_color[Types::BLACK];
         const auto file = static_cast<Types::File>(red_x);
         const auto file_bb = Utils::file2bitboard(file);
-        const auto cnt = Utils::count_few(file_bb);
+        const auto cnt = Utils::count_few(file_bb & mask);
         if (cnt == 2) {
             return true;
         }
@@ -1283,78 +1238,15 @@ bool Board::is_king_face_king() const {
     return false;
 }
 
-bool Board::is_checkmate(const Types::Vertices vtx) const {
-    const auto pt = get_piece_type(vtx);
-    if (pt == Types::EMPTY_PIECE_T || 
-            pt == Types::KING ||
-            pt == Types::ELEPHANT ||
-            pt == Types::ADVISOR) {
-        return false;
-    }
+bool Board::is_checkmate(const Types::Color color) const {
+    const auto opp_color = swap_color(color);
+    const auto opp_king = Utils::vertex2bitboard(m_king_vertex[opp_color]);
+    const auto attacks = m_bb_attacks[color];
 
-    const auto at = Utils::vertex2bitboard(vtx);
-    const auto color = m_bb_color[Types::BLACK] & at ? Types::BLACK : Types::RED;
-    const auto opp_king_bb = Utils::vertex2bitboard(m_king_vertex[swap_color(color)]);
-    auto attack = BitBoard{};
-
-    if (pt == Types::PAWN) {
-        attack = m_pawn_attacks[color][vtx];
-    } else if (pt == Types::HORSE) {
-        const auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
-        attack = m_horse_magics[vtx].attack(occupancy);
-    } else if (pt == Types::CANNON) {
-        const auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
-        const auto rankattack = m_cannonrank_magics[vtx].attack(occupancy);
-        const auto fileattack = m_cannonfile_magics[vtx].attack(occupancy);
-        attack = rankattack | fileattack;
-    } else if (pt == Types::ROOK) {
-        const auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
-        const auto rankattack = m_rookrank_magics[vtx].attack(occupancy);
-        const auto fileattack = m_rookfile_magics[vtx].attack(occupancy);
-        attack = rankattack | fileattack;
-    }
-
-    return opp_king_bb & attack;
+    return attacks & opp_king;
 }
 
-bool Board::is_attack(const Types::Vertices vtx) const {
-    auto pt = get_piece_type(vtx);
-    if (pt == Types::EMPTY_PIECE_T) {
-        return false;
-    }
-
-    const auto at = Utils::vertex2bitboard(vtx);
-    const auto color = m_bb_color[Types::BLACK] & at ? Types::BLACK : Types::RED;
-    auto attack = BitBoard{};
-
-    if (pt == Types::KING) {
-        attack = m_king_attacks[vtx];
-    } else if (pt == Types::PAWN) {
-        attack = m_pawn_attacks[color][vtx];
-    } else if (pt == Types::ELEPHANT) {
-        const auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
-        attack = m_elephant_magics[vtx].attack(occupancy);
-    } else if (pt == Types::ADVISOR) {
-         attack = m_advisor_attacks[vtx];
-    } else if (pt == Types::HORSE) {
-        const auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
-        attack = m_horse_magics[vtx].attack(occupancy);
-    } else if (pt == Types::CANNON) {
-        const auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
-        const auto rankattack = m_cannonrank_magics[vtx].attack(occupancy);
-        const auto fileattack = m_cannonfile_magics[vtx].attack(occupancy);
-        attack = rankattack | fileattack;
-    } else if (pt == Types::ROOK) {
-        const auto occupancy = m_bb_color[color] | m_bb_color[swap_color(color)];
-        const auto rankattack = m_rookrank_magics[vtx].attack(occupancy);
-        const auto fileattack = m_rookfile_magics[vtx].attack(occupancy);
-        attack = rankattack | fileattack;
-    }
-
-    return m_bb_color[swap_color(color)] & attack;
-}
-
-bool Board::is_legal(Move move) {
+bool Board::is_legal(Move move) const {
     auto movelist = std::vector<Move>{};
     generate_movelist(get_to_move(), movelist);
     auto success = bool{false};
@@ -1483,4 +1375,9 @@ std::string Board::get_wxfmove() const {
         return move2wxf(lastmove);
     }
     return std::string{"None"};
+}
+
+
+std::array<BitBoard, 2> Board::get_colors() const {
+    return m_bb_color;
 }

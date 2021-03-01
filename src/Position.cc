@@ -19,10 +19,12 @@
 #include "Position.h"
 #include "Zobrist.h"
 
+#include <queue>
 #include <iterator>
 #include <sstream>
 
 void Position::init_game(const int tag) {
+    m_drawmoves = 150;
     m_startboard = 0;
     position_hash = Zobrist::zobrist_positions[tag];
     m_history.clear();
@@ -71,7 +73,10 @@ bool Position::fen(std::string &fen) {
         m_history.resize(current_ply+1);
     }
 
-    m_history[current_ply] = fork_board;
+    if (fork_board->get_hash() != m_history[current_ply]->get_hash()) {
+        m_history[current_ply] = fork_board;
+    }
+
     m_startboard = current_ply;
     board = *m_history[current_ply];
 
@@ -83,7 +88,7 @@ bool Position::is_legal(Move move) {
 }
 
 void Position::do_move_assume_legal(Move move) {
-    board.do_move(move);
+    board.do_move_assume_legal(move);
     push_board();
     if (is_eaten()) {
         m_startboard = get_gameply();
@@ -132,7 +137,7 @@ bool Position::undo() {
 }
 
 bool Position::position(std::string &fen, std::string &moves) {
-    // first : Set the fen.
+    // First: Set the Fen.
     auto fork_board = std::make_shared<Board>(board);
     auto success = fork_board->fen2board(fen);
     auto current_ply = fork_board->get_gameply();
@@ -141,8 +146,8 @@ bool Position::position(std::string &fen, std::string &moves) {
         return false;
     }
 
-    // second : Do moves.
-    auto chain_move = std::vector<Move>{};
+    // Second: Do moves.
+    auto chain_moves = std::queue<Move>{};
     bool moves_success = true;
     auto move_cnt = size_t{0};
 
@@ -154,12 +159,12 @@ bool Position::position(std::string &fen, std::string &moves) {
             const auto move = Board::text2move(move_str);
             if (move.valid()) {
                 if (fork_board->is_legal(move)) {
-                    fork_board->do_move(move);
-                    chain_move.emplace_back(move);
+                    fork_board->do_move_assume_legal(move);
+                    chain_moves.emplace(move);
                 }
             }
 
-            if (++move_cnt != chain_move.size()) {
+            if (++move_cnt != chain_moves.size()) {
                 moves_success = false;
                 break;
             }
@@ -168,8 +173,9 @@ bool Position::position(std::string &fen, std::string &moves) {
 
     if (moves_success) {
         Position::fen(fen);
-        for (auto i = size_t{0}; i < move_cnt; ++i) {
-            do_move_assume_legal(chain_move[i]);
+        while(!chain_moves.empty()) {
+            do_move_assume_legal(chain_moves.front());
+            chain_moves.pop();
         }
 
         current_ply += move_cnt;
@@ -180,11 +186,11 @@ bool Position::position(std::string &fen, std::string &moves) {
     return moves_success;
 }
 
-bool Position::gameover() {
-    return get_winner() != Types::INVALID_COLOR;
+bool Position::gameover(bool searching) {
+    return get_winner(searching) != Types::INVALID_COLOR;
 }
 
-Types::Color Position::get_winner() {
+Types::Color Position::get_winner(bool searching) {
     if (resigned != Types::INVALID_COLOR) {
         if (resigned == Types::EMPTY_COLOR) {
             return Types::EMPTY_COLOR;
@@ -192,17 +198,25 @@ Types::Color Position::get_winner() {
         return Board::swap_color(resigned);
     }
 
-    auto movelist = get_movelist();
-    if (movelist.empty()) {
-        return Board::swap_color(get_to_move());
+    // According Asian Xiangqi Federation rules, if the current
+    // player can eat opponent king. The current player win the
+    // game.
+    const auto to_move = get_to_move();
+    if (!searching && is_checkmate(to_move)) {
+        return to_move;
     }
 
-    const auto kings = board.get_kings();
+    const auto kings = get_kings();
     if (kings[Types::RED] == Types::NO_VERTEX) {
         return Types::BLACK;
     } else if (kings[Types::BLACK] == Types::NO_VERTEX) {
         return Types::RED;
     }
+
+    if (get_movenum() > m_drawmoves) {
+        return Types::EMPTY_COLOR;
+    }
+
     return Types::INVALID_COLOR;
 }
 
@@ -280,7 +294,7 @@ std::pair<int, int> Position::get_repeat() const {
     };
 
     int repeat_cnt = MIN_REPEAT_CNT;
-    for (;repeat_cnt <= buffer_size; ++repeat_cnt) {
+    for (; repeat_cnt <= buffer_size; ++repeat_cnt) {
         for (int offset = repeat_cnt; offset + repeat_cnt < length; offset += repeat_cnt) {
             const auto success = repeat_proccess(boardhash, buffer, offset, repeat_cnt);
             if (success) {
@@ -294,15 +308,20 @@ std::pair<int, int> Position::get_repeat() const {
         }
     }
 
+    assert(repeat <= 2);
     return std::make_pair(repeat, repeat_cnt);
+}
+
+std::array<Types::Vertices, 2> Position::get_kings() const {
+    return board.get_kings();
 }
 
 bool Position::is_eaten() const {
     return board.is_eaten();
 }
 
-bool Position::is_checkmate(const Types::Vertices vtx) const {
-    return board.is_checkmate(vtx);
+bool Position::is_checkmate(const Types::Color color) const {
+    return board.is_checkmate(color);
 }
 
 std::string Position::history_board() const {
@@ -333,4 +352,12 @@ std::string Position::get_fen() const {
 
 std::string Position::get_wxfmove() const {
     return board.get_wxfmove();
+}
+
+int Position::get_draw_moves() const {
+    return m_drawmoves;
+}
+
+void Position::set_draw_moves(int moves) {
+    m_drawmoves = moves < 1 ? 1 : moves;
 }

@@ -22,6 +22,7 @@
 #include "Utils.h"
 #include "config.h"
 #include "Decoder.h"
+#include "Instance.h"
 
 #include <thread>
 #include <algorithm>
@@ -56,9 +57,7 @@ bool UCTNode::expend_children(Network &network,
                               Position &pos,
                               const float min_psa_ratio,
                               const bool is_root) {
-    if (pos.gameover()) {
-        return false;
-    }
+    assert(!pos.gameover(true));
 
     if (!acquire_expanding()) {
         return false;
@@ -74,11 +73,30 @@ bool UCTNode::expend_children(Network &network,
     float legal_accumulate = 0.0f;
 
     auto movelist = pos.get_movelist();
+    const auto kings = pos.get_kings();
     for (const auto &move : movelist) {
-        if (is_root) { /* Do something... */ }
+        if (is_root) {
+            auto fork_pos = std::make_shared<Position>(pos);
+            fork_pos->do_move_assume_legal(move);
+            auto instance = Instance(*fork_pos);
+            auto res = instance.judge();
+            if (res == Instance::UNKNOWN) {
+                continue;
+            }
+        }
 
         const auto maps = Decoder::move2maps(move);
         const auto policy = raw_netlist.policy[maps];
+
+        if (move.get_to() == kings[Board::swap_color(m_color)]) {
+            // We eat opponent's king. Don't need to think
+            // other moves.
+            nodelist.clear();
+            nodelist.emplace_back(policy, maps);
+            legal_accumulate = policy;
+            break;
+        }
+
         nodelist.emplace_back(policy, maps);
         legal_accumulate += policy;
     }

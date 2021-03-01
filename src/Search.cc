@@ -85,7 +85,7 @@ void Search::play_simulation(Position &currpos, UCTNode *const node,
                              UCTNode *const root_node, SearchResult &search_result, int &depth) {
     node->increment_threads();
     if (node->expandable()) {
-        if (currpos.gameover()) {
+        if (currpos.gameover(true)) {
             search_result.from_gameover(currpos);
             node->apply_evals(search_result.nn_evals());
         } else {
@@ -273,7 +273,8 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         auto controller = TimeControl(set.milliseconds,
                                       set.movestogo,
                                       set.increment);
-        controller.set_plies(m_rootposition.get_gameply());
+        controller.set_plies(m_rootposition.get_gameply(),
+                                 (m_rootposition.get_draw_moves()-1) * 2);
 
         auto timer = Utils::Timer{};
         auto limittime = std::numeric_limits<int>::max();

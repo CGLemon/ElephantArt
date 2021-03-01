@@ -41,7 +41,7 @@ public:
     bool do_textmove(std::string move);
 
     bool undo();
-    bool gameover();
+    bool gameover(bool searching);
     bool position(std::string &fen, std::string &moves);
 
     std::vector<Move> get_movelist();
@@ -49,16 +49,19 @@ public:
     Types::Color get_to_move() const;
     int get_movenum() const;
     int get_gameply() const;
+    int get_draw_moves() const;
     Move get_last_move() const;
 
     Types::Piece_t get_piece_type(const Types::Vertices vtx) const;
     Types::Piece get_piece(const Types::Vertices vtx) const;
     std::string get_fen() const;
     std::string get_wxfmove() const;
+
+    void set_draw_moves(int moves);
     
     Board board;
     
-    Types::Color get_winner();
+    Types::Color get_winner(bool searching);
     std::uint64_t get_hash() const;
     std::uint64_t calc_hash(const int symmetry = Board::IDENTITY_SYMMETRY) const;
 
@@ -66,7 +69,7 @@ public:
     std::vector<std::shared_ptr<const Board>>& get_history();
     
     bool is_eaten() const;
-    bool is_checkmate(const Types::Vertices vtx) const;
+    bool is_checkmate(const Types::Color color) const;
     std::string history_board() const;
 
     std::pair<int, int> get_repeat() const;
@@ -74,6 +77,7 @@ public:
 
 private:
     Types::Color resigned{Types::INVALID_COLOR};
+    int m_drawmoves;
 
     std::uint64_t position_hash;
     int m_startboard;

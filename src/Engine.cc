@@ -137,13 +137,16 @@ Engine::Response Engine::position(std::string pos, const int g) {
     auto rep = std::ostringstream{};
     auto parser = Utils::CommandParser(pos);
 
+    auto startpos = false;
     auto fen_idx = -1;
     auto moves_idx = -1;
 
     auto fen = std::string{};
     auto moves = std::string{};
-    
-    if (const auto res = parser.find("fen")) {
+    if (const auto res = parser.find("startpos")) {
+        fen_idx = res->idx-1;
+        startpos = true;
+    } else if (const auto res = parser.find("fen")) {
         fen_idx = res->idx;
     }
 
@@ -151,7 +154,7 @@ Engine::Response Engine::position(std::string pos, const int g) {
         moves_idx = res->idx;
     }
     
-    if (fen_idx != -1) {
+    if (fen_idx != -1 || startpos) {
         if (moves_idx != -1) {
             fen = parser.get_slice(fen_idx+1, moves_idx)->str;
             moves = parser.get_commands(moves_idx+1)->str;
@@ -299,13 +302,13 @@ Engine::Response Engine::selfplay(const int g) {
     auto p = get_position(g); 
     auto s = get_search(g);
     auto t = get_train(g);
-    while (!p->gameover()) {
+    while (!p->gameover(true)) {
         display();
         const auto move = s->uct_move();
         const auto success = p->do_move(move);
         assert(success);
     }
-    const auto winner = p->get_winner();
+    const auto winner = p->get_winner(false);
     assert(winner != Types::INVALID_COLOR);
     if (winner == Types::BLACK) {
         rep << "Black is winner";

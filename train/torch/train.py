@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 import pytorch_lightning as pl
 import numpy as np
+from symmetry import *
 
 from nnprocess import NNProcess
 from chunkparser import ChunkParser
@@ -22,6 +23,9 @@ class DataSet():
         self.input_channels = cfg.input_channels
         self.input_features = cfg.input_features
         self.policy_map = cfg.policy_map
+        self.symm_table = Symmetry(self.xsize, self.ysize)
+        if self.cfg.debugVerbose:
+            self.symm_table.dump()
 
     def get_x(self, idx):
         return idx % self.xsize
@@ -37,7 +41,7 @@ class DataSet():
         pol = np.zeros(self.policy_map * self.ysize * self.xsize)
         wdl = np.zeros(3)
         stm = np.zeros(1)
-
+        symm = np.random.randint(4, size=1)[0]
         # input planes
         for i in range(7):
             start = data.ACCUMULATE[i]
@@ -45,22 +49,27 @@ class DataSet():
             for n in range(num):
                 cp_idx = data.current_pieces[start + n]
                 if cp_idx != -1:
+                    cp_idx = self.symm_table.get_transfer(cp_idx, symm)
                     x = self.get_x(cp_idx)
                     y = self.get_y(cp_idx)
                     input_planes[i][y][x] = 1
                     
                 op_idx = data.other_pieces[start + n]
                 if op_idx != -1:
+                    op_idx = self.symm_table.get_transfer(op_idx, symm)
                     x = self.get_x(op_idx)
                     y = self.get_y(op_idx)
                     input_planes[i+7][y][x] = 1
 
         if data.last_from != -1:
-            fx = self.get_x(data.last_from)
-            fy = self.get_y(data.last_from)
+            last_from =  self.symm_table.get_transfer(data.last_from, symm)
+            fx = self.get_x(last_from)
+            fy = self.get_y(last_from)
             input_planes[14][fy][fx] = 1
-            tx = self.get_x(data.last_to)
-            ty = self.get_y(data.last_to)
+
+            last_to =  self.symm_table.get_transfer(data.last_to, symm)
+            tx = self.get_x(last_to)
+            ty = self.get_y(last_to)
             input_planes[15][ty][tx] = 1
 
         if data.tomove == 1:
@@ -77,7 +86,11 @@ class DataSet():
 
         # probabilities
         for idx, p in zip(data.policyindex, data.probabilities):
-            pol[idx] = p
+            planesize = self.xsize * self.ysize
+            p_idx = idx // planesize
+            map_idx = idx & planesize
+            map_idx =  self.symm_table.get_transfer(map_idx, symm)
+            pol[p_idx * planesize + map_idx] = p
             
         # winrate
         stm = data.result

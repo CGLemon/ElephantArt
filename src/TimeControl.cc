@@ -54,13 +54,7 @@ int TimeControl::get_limittime() const {
 }
 
 int TimeControl::get_estimated_plies() const {
-    if (m_plies < 30) {
-        return 120 - m_plies;
-    }
-    int basic = 80; 
-    float ratio = float(basic) / float(m_plies);
-    int estimated = basic + (1 - ratio) * 10.f - m_plies;
-    return estimated;
+    return m_maxplies;
 }
 
 void TimeControl::set_score(const int score) {
@@ -71,7 +65,8 @@ void TimeControl::set_lagbuffer(const int milliseconds) {
     m_lagbuffer = milliseconds > 0 ? milliseconds : 0;
 }
 
-void TimeControl::set_plies(const int plies) {
+void TimeControl::set_plies(const int plies, const int draw_plies) {
+    m_maxplies = draw_plies;
     m_plies = plies > 0 ? plies : 0;
 }
 

@@ -73,9 +73,9 @@ public:
     std::uint64_t get_hash() const;
     Move get_last_move() const;
     std::array<Types::Vertices, 2> get_kings() const;
+    std::array<BitBoard, 2> get_colors() const;
 
-    int generate_pseudo_movelist(Types::Color color, std::vector<Move> &movelist) const;
-    int generate_movelist(Types::Color color, std::vector<Move> &movelist);
+    BitBoard generate_movelist(Types::Color color, std::vector<Move> &movelist) const;
 
     static bool is_on_board(const Types::Vertices vtx);
 
@@ -97,17 +97,17 @@ public:
     static Move text2move(std::string text);
     
     std::string get_wxfmove() const;
-    
+
+    void set_last_move(Move m);
     void set_to_move(Types::Color color);
     void swap_to_move();
     void increment_gameply();
     void decrement_gameply();
 
-    void do_move(Move move);
-    bool is_legal(Move move);
+    void do_move_assume_legal(Move move);
+    bool is_legal(Move move) const;
     bool is_eaten() const;
-    bool is_attack(const Types::Vertices vtx) const;
-    bool is_checkmate(const Types::Vertices vtx) const;
+    bool is_checkmate(const Types::Color color) const;
 
 private:
     #define P_  Types::R_PAWN
@@ -173,13 +173,13 @@ private:
 
         bool valid;
 
-        std::uint64_t index(BitBoard occupied) const {
+        inline std::uint64_t index(BitBoard occupied) const {
             auto mark = occupied & mask;
             return (mark.get_upper() * upper_magic +
                         mark.get_lower() * lower_magic) >> shift;
         }
 
-        BitBoard attack(BitBoard occupied) const {
+        inline BitBoard attack(BitBoard occupied) const {
             const auto idx = index(occupied);
             assert(idx <= limit && valid);
             return attacks[idx];
@@ -207,6 +207,7 @@ private:
     BitBoard &get_piece_bitboard_ref(Types::Piece_t pt);
 
     std::array<BitBoard, 2> m_bb_color;
+    std::array<BitBoard, 2> m_bb_attacks;
 
     BitBoard m_bb_pawn;
     BitBoard m_bb_horse;
@@ -219,20 +220,6 @@ private:
 
     Types::Color m_tomove;
 
-    struct PseudoMoveRecord {
-        std::array<BitBoard, 2> bb_color;
-        BitBoard bb_pawn;
-        BitBoard bb_horse;
-        BitBoard bb_rook;
-        BitBoard bb_elephant;
-        BitBoard bb_advisor;
-        BitBoard bb_cannon;
-        std::array<Types::Vertices, 2> king_vertex;
-        bool eaten;
-    };
-
-    PseudoMoveRecord do_pseudo_move(Move move);
-    void undo_from_pseudo_move(PseudoMoveRecord record);
     bool is_king_face_king() const;
 
     int m_movenum;
@@ -243,13 +230,15 @@ private:
     std::uint64_t m_hash;
 
     void clear_status();
-    template<Types::Piece_t> int generate_move(Types::Color color, std::vector<Move> &movelist) const;
+    template<Types::Piece_t> BitBoard generate_move(Types::Color color, std::vector<Move> &movelist) const;
     template<Types::Language> void piece_stream(std::ostream &out, const int x, const int y) const;
     template<Types::Language> void info_stream(std::ostream &out) const;
 
     void update_zobrist(Types::Piece p, Types::Vertices form, Types::Vertices to);
     void update_zobrist_remove(Types::Piece p, Types::Vertices vtx);
     void update_zobrist_tomove(Types::Color old_color, Types::Color new_color);
+
+    std::array<BitBoard, 2> calc_attacks();
 };
 
 inline Types::Vertices Board::get_vertex(const int x, const int y) {

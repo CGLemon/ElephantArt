@@ -145,7 +145,6 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         lambda_syntax_not_understood(parser, 1);
         out << m_ascii_engine->selfplay();
     } else if (const auto res = parser.find("position", 0)) {
-        lambda_syntax_not_understood(parser, 1);
         auto pos = parser.get_commands(1)->str;
         out << m_ascii_engine->position(pos);
     } else if (const auto res = parser.find("printf-pgn", 0)) {
