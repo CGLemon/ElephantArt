@@ -63,8 +63,7 @@ bool UCTNode::expend_children(Network &network,
         return false;
     }
 
-    const auto raw_netlist =
-        network.get_output(&pos, Network::Ensemble::RANDOM_SYMMETRY);
+    const auto raw_netlist = network.get_output(&pos);
 
     m_color = pos.get_to_move();
     link_nn_output(raw_netlist, m_color);

@@ -169,17 +169,13 @@ Engine::Response Engine::position(std::string pos, const int g) {
     return rep.str();
 }
 
-Engine::Response Engine::raw_nn(const int symmetry, const int g) {
+Engine::Response Engine::raw_nn(const int g) {
     auto rep = std::ostringstream{};
     auto pres = option<int>("float_precision");
-    if (symmetry < 0 || symmetry >= 4) {
-        rep << "Illegal symmetry";
-        return rep.str();
-    }
-
+    auto max_index = 0;
     auto timer = Utils::Timer{};
     auto &p = *get_position(g);
-    auto nnout = m_network->get_output(&p, Network::DIRECT, symmetry);
+    auto nnout = m_network->get_output(&p);
     auto microsecond = timer.get_duration_microseconds();
     for (int p = 0; p < POLICYMAP; ++p) {
         rep << "map probabilities: " << p+1 << std::endl;
@@ -190,11 +186,18 @@ Engine::Response Engine::raw_nn(const int symmetry, const int g) {
                     << std::setprecision(pres)
                     << nnout.policy[idx + p * Board::INTERSECTIONS]
                     << " ";
+                if (nnout.policy[idx + p * Board::INTERSECTIONS] > nnout.policy[max_index]) {
+                    max_index = idx + p * Board::INTERSECTIONS;
+                }
             }
             rep << std::endl;
         }
         rep << std::endl;
     }
+    rep << "max " << max_index << " probability: " << std::setprecision(pres) << nnout.policy[max_index] << std::endl;
+    auto m = Decoder::maps2move(max_index);
+    rep << "max move: " << m.to_string() << std::endl << std::endl;
+
     rep << "wdl probabilities ( win / draw / loss ): " << std::endl;
     for (int v = 0; v < 3; ++v) {
         rep << nnout.winrate_misc[v] << " ";
@@ -211,14 +214,10 @@ Engine::Response Engine::raw_nn(const int symmetry, const int g) {
     return rep.str();
 }
 
-Engine::Response Engine::input_planes(const int symmetry, const int g) {
+Engine::Response Engine::input_planes(const int g) {
     auto rep = std::ostringstream{};
-    if (symmetry < 0 || symmetry >= 4) {
-        rep << "Illegal symmetry";
-        return rep.str();
-    }
     const auto &p = *get_position(g);
-    const auto input_planes = Model::gather_planes(&p, symmetry);
+    const auto input_planes = Model::gather_planes(&p);
     for (int p = 0; p < INPUT_CHANNELS; ++p) {
         rep << "planes: " << p+1 << std::endl;
         for (int y = 0; y < Board::HEIGHT; ++y) {

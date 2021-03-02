@@ -173,7 +173,7 @@ Move Search::nn_direct_move() {
     m_rootposition = m_position;
     auto analysis = std::vector<std::pair<float, int>>();
     auto acc = 0.0f;
-    auto eval = m_network.get_output(&m_rootposition, Network::Ensemble::RANDOM_SYMMETRY);
+    auto eval = m_network.get_output(&m_rootposition);
     for (int m = 0; m < POLICYMAP * Board::INTERSECTIONS; ++m) {
         if (!Decoder::maps_valid(m)) {
             continue;

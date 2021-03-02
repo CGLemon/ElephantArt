@@ -29,7 +29,7 @@
 #include "Utils.h"
 
 static constexpr auto INPUT_FEATURES = 4;
-static constexpr auto INPUT_STATUS = 4;
+static constexpr auto INPUT_STATUS = 2;
 static constexpr auto INPUT_MOVES = 1;
 static constexpr auto INPUT_CHANNELS = INPUT_MOVES * 14 + INPUT_STATUS;
 
@@ -141,8 +141,7 @@ struct Model {
         virtual bool valid() = 0;
     };
     
-    static std::vector<float> gather_planes(const Position *const pos,
-                                            const int symmetry);
+    static std::vector<float> gather_planes(const Position *const pos);
     static std::vector<float> gather_features(const Position *const pos);
 
     static void load_weights(const std::string &filename,
@@ -173,7 +172,6 @@ struct Model {
     static NNResult get_result(std::vector<float> &policy,
                                std::vector<float> &value,
                                const float p_softmax_temp,
-                               const float v_softmax_temp,
-                               const int symmetry);
+                               const float v_softmax_temp);
 };
 #endif

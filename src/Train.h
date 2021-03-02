@@ -50,9 +50,7 @@ struct DataCollection {
     int version;
     int movenum;
     int gameply;
-    int repeat;
-    int last_from_move;
-    int last_to_move;
+    int repetitions;
 
     std::array<float, Board::INTERSECTIONS * INPUT_CHANNELS> input_planes;
     std::array<float, INPUT_FEATURES> input_features;

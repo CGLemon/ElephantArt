@@ -1,7 +1,7 @@
 {
     "NeuralNetwork" : {
         "NNType": "Residual",
-        "InputChannels": 18,
+        "InputChannels": 16,
         "InputFeatures": 4,
         "ResidualChannels": 256,
         "PolicyExtract": 256,
@@ -16,13 +16,13 @@
 
     "Train" : {
         "GPUs": null,
-        "Epochs": 100,
+        "Epochs": null,
         "Workers": null,
-        "BatchSize": 32,
+        "BatchSize": 1,
         "LearningRate": 0.001,
         "WeightDecay": 0.001,
-        "TrainDirectory": "test",
-        "ValidationDirectory": "test",
-        "TestDirectory": "test"
+        "TrainDirectory": "train-dir",
+        "ValidationDirectory": "val-dir",
+        "TestDirectory": "test-dir"
     } 
 }

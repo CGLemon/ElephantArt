@@ -30,8 +30,6 @@ class Network {
 public:
     ~Network();
 
-    enum Ensemble { NONE, DIRECT, RANDOM_SYMMETRY /* , AVERAGE */ };
-
     using Netresult = NNResult;
     using PolicyMapsPair = std::pair<float, int>;
 
@@ -40,8 +38,6 @@ public:
     void reload_weights(const std::string &weightsfile);
 
     Netresult get_output(const Position *const position,
-                         const Ensemble ensemble,
-                         const int symmetry = -1,
                          const bool read_cache = true,
                          const bool write_cache = true);
 
@@ -54,15 +50,11 @@ public:
 
 private:
     static constexpr auto INTERSECTIONS = Board::INTERSECTIONS;
-    static constexpr auto NUM_SYMMETRIES = Board::NUM_SYMMETRIES;
-    static constexpr auto IDENTITY_SYMMETRY = Board::IDENTITY_SYMMETRY;
 
     bool probe_cache(const Position *const position,
-                     Network::Netresult &result,
-                     const int symmetry = -1);
+                     Network::Netresult &result);
 
-    Netresult get_output_internal(const Position *const position,
-                                  const int symmetry);
+    Netresult get_output_internal(const Position *const position);
   
     Netresult get_output_form_cache(const Position *const position);
 

@@ -63,7 +63,7 @@ public:
     
     Types::Color get_winner(bool searching);
     std::uint64_t get_hash() const;
-    std::uint64_t calc_hash(const int symmetry = Board::IDENTITY_SYMMETRY) const;
+    std::uint64_t calc_hash() const;
 
     const std::shared_ptr<const Board> get_past_board(const int p) const;
     std::vector<std::shared_ptr<const Board>>& get_history();
@@ -72,7 +72,7 @@ public:
     bool is_checkmate(const Types::Color color) const;
     std::string history_board() const;
 
-    std::pair<int, int> get_repeat() const;
+    std::pair<int, int> get_repetitions() const;
     std::array<Types::Vertices, 2> get_kings() const;
 
 private:

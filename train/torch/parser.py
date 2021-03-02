@@ -8,15 +8,14 @@ def cover(args, cfg):
         cfg.miscVerbose = True
     if args.verbose >= 2:
         cfg.debugVerbose = True
-    if args.json == None:
-        args.dummy = True
 
 def main(args, cfg):
     train_loader = DataModule(cfg)
     Net = Network(cfg)
 
-    trainer = pl.Trainer(gpus=cfg.gpus, max_epochs=cfg.epochs)
-    trainer.fit(Net, train_loader)
+    if args.dummy != True:
+        trainer = pl.Trainer(gpus=cfg.gpus, max_epochs=cfg.epochs)
+        trainer.fit(Net, train_loader)
 
     if args.output != None:
         Net.save_pt(args.output + ".pt")
@@ -24,7 +23,7 @@ def main(args, cfg):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dummy", help="Not to do the main run", action="store_true")
+    parser.add_argument("-d", "--dummy", help="Genrating the dummy network.", action="store_true")
     parser.add_argument("-j", "--json", help="The json file name", type=str)
     parser.add_argument("-v", "--verbose", help="", type=int, choices=[0, 1, 2], default=0)
     parser.add_argument("-o", "--output", help="", type=str)
@@ -36,5 +35,5 @@ if __name__ == "__main__":
     if cfg.miscVerbose:
         dump_dependent_version()
 
-    if args.dummy != True:
+    if args.json != None:
         main(args, cfg)

@@ -42,18 +42,7 @@ public:
 
     static constexpr auto INTERSECTIONS = BITBOARD_INTERSECTIONS;
 
-    static constexpr auto NUM_SYMMETRIES = 4;
-
-    static constexpr auto IDENTITY_SYMMETRY = 0;
-
-    static std::array<std::array<int, INTERSECTIONS>, NUM_SYMMETRIES> symmetry_nn_idx_table;
-
-    static std::array<std::array<Types::Vertices, NUM_VERTICES>, NUM_SYMMETRIES> symmetry_nn_vtx_table;
-
     void reset_board();
-    static std::pair<int, int> get_symmetry(const int x,
-                                            const int y,
-                                            const int symmetry);
 
     static Types::Vertices get_vertex(const int x, const int y);
     static int get_index(const int x, const int y);
@@ -87,7 +76,7 @@ public:
 
     bool fen2board(std::string &fen);
 
-    std::uint64_t calc_hash(const int symmetry = IDENTITY_SYMMETRY) const;
+    std::uint64_t calc_hash() const;
 
     static constexpr std::array<Types::Direction, 8> m_dirs =
         {Types::NORTH,      Types::EAST,       Types::SOUTH,      Types::WEST,
@@ -201,7 +190,6 @@ private:
     static void init_pawn_attacks();
     static void init_move_pattens();
     static void init_magics();
-    static void init_symmetry();
     static void dump_memory();
 
     BitBoard &get_piece_bitboard_ref(Types::Piece_t pt);

@@ -21,12 +21,12 @@
 Instance::Instance(Position &position) : m_position(position) {}
 
 Instance::Result Instance::judge() {
-    auto repeat = m_position.get_repeat();
-    if (repeat.first < 2) {
+    auto repetitions = m_position.get_repetitions();
+    if (repetitions.first < 2) {
         return NONE;
     }
 
-    auto &history = m_position.get_history();
+    // auto &history = m_position.get_history();
 
     return UNKNOWN;
 }

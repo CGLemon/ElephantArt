@@ -131,16 +131,8 @@ void Network::set_playouts(const int playouts) {
 }
 
 bool Network::probe_cache(const Position *const position,
-                          Network::Netresult &result,
-                          const int symmetry) {
-
-    bool success = false;
-    if (symmetry == -1 || symmetry == IDENTITY_SYMMETRY) {
-        success = m_cache.lookup(position->get_hash(), result);
-    } else {
-        success = m_cache.lookup(position->calc_hash(symmetry), result);
-    }
-    return success;
+                          Network::Netresult &result) {
+    return m_cache.lookup(position->get_hash(), result);
 }
 
 void dummy_forward(std::vector<float> &policy,
@@ -169,14 +161,11 @@ void dummy_forward(std::vector<float> &policy,
     }
 }
 
-Network::Netresult Network::get_output_internal(const Position *const position,
-                                                const int symmetry) {
-    assert(symmetry >= 0 && symmetry < NUM_SYMMETRIES);
-
+Network::Netresult Network::get_output_internal(const Position *const position) {
     auto policy_out = std::vector<float>(POLICYMAP * INTERSECTIONS);
     auto winrate_out = std::vector<float>(WINRATELAYER);
 
-    auto input_planes = Model::gather_planes(position, symmetry);
+    auto input_planes = Model::gather_planes(position);
     auto input_features = Model::gather_features(position) ;
     if (m_forward->valid()) {
         m_forward->forward(input_planes, input_features, policy_out, winrate_out);
@@ -189,42 +178,27 @@ Network::Netresult Network::get_output_internal(const Position *const position,
     const auto result = Model::get_result(policy_out,
                                           winrate_out,
                                           option<float>("softmax_pol_temp"),
-                                          option<float>("softmax_wdl_temp"),
-                                          symmetry);
+                                          option<float>("softmax_wdl_temp"));
 
     return result;
 }
 
 Network::Netresult
 Network::get_output(const Position *const position,
-                    const Ensemble ensemble,
-                    const int symmetry,
                     const bool read_cache,
                     const bool write_cache) {
 
     Netresult result;
 
-    if (read_cache && symmetry == -1) {
+    if (read_cache) {
         if (probe_cache(position, result)) {
             return result;
         }
     }
 
-    if (ensemble == NONE) {
-        assert(symmetry == -1);
-        result = get_output_internal(position, IDENTITY_SYMMETRY);
-    } else if (ensemble == DIRECT) {
-        assert(symmetry >= 0 && symmetry < NUM_SYMMETRIES);
-        result = get_output_internal(position, symmetry);
-    } else {
-        assert(ensemble == RANDOM_SYMMETRY);
-        assert(symmetry == -1);
-        auto rng = Random<random_t::XoroShiro128Plus>::get_Rng();
-        const auto rand_sym = rng.randfix<NUM_SYMMETRIES>();
-        result = get_output_internal(position, rand_sym);
-    }
+    result = get_output_internal(position);
 
-    if (write_cache && symmetry == -1) {
+    if (write_cache) {
         m_cache.insert(position->get_hash(), result);
     }
     return result;

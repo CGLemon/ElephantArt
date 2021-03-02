@@ -10,15 +10,14 @@ FIXED_DATA_VERSION = 1
  ------- Inputs data -------
  L2  - L8 : Current player pieces Index
  L9  - L15: Other player pieces Index
- L16 - L17: last move
- L18      : Current Player
- L19      : Game plies 
- L20      : Repeat conut
+ L16      : Current Player
+ L17      : Game plies 
+ L18      : Repetitions
  
  ------- Prediction data -------
- L21      : Probabilities
- L22      : Which piece go to move
- L23      : Result
+ L19      : Probabilities
+ L20      : Which piece go to move
+ L21      : Result
 
 '''
 class PiecesIndex:
@@ -52,9 +51,7 @@ class Data(PiecesIndex):
 
         self.tomove = None
         self.plies = 0
-        self.repeat = 0
-        self.last_from = 0
-        self.last_to = 0
+        self.repetitions = 0
 
         self.policyindex = []
         self.probabilities = []
@@ -68,8 +65,7 @@ class Data(PiecesIndex):
         print(" ".join(str(out) for out in self.other_pieces))
         print("Tomove: {}".format(self.tomove))
         print("Plies: {}".format(self.plies))
-        print("Repeat: {}".format(self.repeat))
-        print("Last Move: from {}, to {}".format(self.last_from, self.last_to))
+        print("Repetitions: {}".format(self.repetitions))
         print("Probabilities:")
         for idx, p in zip(self.policyindex, self.probabilities):
             print("({}: {}), ".format(idx, p), end="")
@@ -93,31 +89,27 @@ class Data(PiecesIndex):
             for i in range(len(p)):
                 self.other_pieces[start+i] = int(p[i])
         elif linecnt == 15:
-            self.last_from = int(readline)
-        elif linecnt == 16:
-            self.last_to = int(readline)
-        elif linecnt == 17:
             self.tomove = int(readline)
-        elif linecnt == 18:
+        elif linecnt == 16:
             self.plies = int(readline)
-        elif linecnt == 19:
-            self.repeat = int(readline)
-        elif linecnt == 20:
+        elif linecnt == 17:
+            self.repetitions = int(readline)
+        elif linecnt == 18:
             p = readline.split()
             for i in range(len(p)):
                 if i % 2 == 0:
                     self.policyindex.append(int(p[i]))
                 elif i % 2 == 1:
                     self.probabilities.append(float(p[i]))
-        elif linecnt == 21:
+        elif linecnt == 19:
             self.move = readline.rstrip("\n")
-        elif linecnt == 22:
+        elif linecnt == 20:
             self.result = int(readline)
 
     @staticmethod
     def get_datalines(version):
         if version == 1:
-            return 23
+            return 21
         return 0
 
 class ChunkParser:
@@ -138,7 +130,8 @@ class ChunkParser:
         if self.cfg.debugVerbose:
             print("linesparser sccueess")
 
-        self.buffer.append(data)
+        buf, size = self.pack_v1(data)
+        self.buffer.append((buf, size))
 
         return True
 
@@ -146,47 +139,78 @@ class ChunkParser:
         int_symbol = "i"
 
         # current player pieces
-        inputs_fmt = str(data.TOTAL_NUMBER) + int_symbol
+        fmt = str(data.TOTAL_NUMBER) + int_symbol
 
         # other player pieces
-        inputs_fmt += str(data.TOTAL_NUMBER) + int_symbol
+        fmt += str(data.TOTAL_NUMBER) + int_symbol
 
-        # inputs misc(last from move, last to move, current player, plies, repeat)
-        inputs_fmt += str(5) + int_symbol
-        print(inputs_fmt)
-        inputs_misc = [data.last_from, data.last_to, data.tomove, data.plies, data.repeat]
-        inputs = struct.pack(inputs_fmt, data.current_pieces, data.other_pieces, inputs_misc)
+        # inputs misc(current player, plies, repetitions)
+        fmt += str(3) + int_symbol
+        misc = [data.tomove, data.plies, data.repetitions]
 
         # probabilities
-        size = len(data.probabilities)
-        pred_fmt = str(size) + int_symbol + str(size) + "f"
+        probsize = len(data.probabilities)
+        fmt += str(probsize) + int_symbol + str(probsize) + "f"
 
         # piece to go
-        pred_fmt += "1c"
+        fmt += "c"
 
         # result
-        pred_fmt += str(1) + int_symbol
+        fmt += int_symbol
+        data.move = bytes(data.move, "utf-8")
+        buf = struct.pack(fmt, *data.current_pieces, *data.other_pieces, *misc, *data.policyindex, *data.probabilities, data.move, data.result)
 
-        pred = struct.pack(pred_fmt, data.probabilities, data.policyindex, data.move, data.result)
+        return buf, probsize
 
-        fmt = [inputs_fmt, pred_fmt]
-        mem = [struct.calcsize(inputs_fmt), struct.calcsize(pred_fmt)]
-
-        return inputs, pred, fmt, mem
-
-    def unpack_v1(self, inputs, pred, fmt):
+    def unpack_v1(self, buf, probsize):
         data = Data()
+        int_symbol = "i"
 
-        data.current_pieces, data.other_pieces, inputs_misc = struct.unpack(fmt[0], inputs)
-        data.last_from = inputs_misc[0]
-        data.last_to = inputs_misc[1]
-        data.tomove = inputs_misc[2]
-        data.plies = inputs_misc[3]
-        data.repeat = inputs_misc[4]
+        # current player pieces
+        fmt = str(data.TOTAL_NUMBER) + int_symbol
 
-        data.probabilities, data.policyindex, data.move, data.result = struct.unpack(fmt[1], pred)
+        # other player pieces
+        fmt += str(data.TOTAL_NUMBER) + int_symbol
 
-        return daat
+        # inputs misc(current player, plies, repetitions)
+        fmt += str(3) + int_symbol
+
+        # probabilities
+        fmt += str(probsize) + int_symbol + str(probsize) + "f"
+
+        # piece to go
+        fmt += "c"
+
+        # result
+        fmt += int_symbol
+
+
+        unpacked = struct.unpack(fmt, buf)
+        
+        offset = 0
+        data.current_pieces = unpacked[offset : offset+16]
+
+        offset += 16
+        data.other_pieces = unpacked[offset : offset+16]
+
+        offset += 16
+        data.tomove = unpacked[offset]
+        data.plies = unpacked[offset+1]
+        data.repetitions = unpacked[offset+2]
+
+        offset += 3
+        data.policyindex = unpacked[offset : offset+probsize]
+
+        offset += probsize
+        data.probabilities = unpacked[offset : offset+probsize]
+
+        offset += probsize
+        data.move = unpacked[offset]
+        data.result = unpacked[offset+1]
+
+        assert offset+2 == len(unpacked), ""
+
+        return data
 
     def run(self):
         datalines = Data.get_datalines(FIXED_DATA_VERSION);
@@ -198,15 +222,16 @@ class ChunkParser:
                 while True:
                     if self.linesparser(datalines, f) == False:
                         break
+
+        if self.cfg.debugVerbose:
+            self.dump()
             
     def dump(self):
-        for b in self.buffer:
-            b.dump()
+        for b, s in self.buffer:
+            data = self.unpack_v1(b, s)
+            data.dump()
             print()
         print("----------------------------------------------------------")
-        for b in self.ttbuffer:
-            b.dump()
-            print()
 
     def __getitem__(self, idx):
         return self.buffer[idx]

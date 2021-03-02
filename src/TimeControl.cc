@@ -54,7 +54,7 @@ int TimeControl::get_limittime() const {
 }
 
 int TimeControl::get_estimated_plies() const {
-    return m_maxplies;
+    return m_maxplies - m_plies;
 }
 
 void TimeControl::set_score(const int score) {

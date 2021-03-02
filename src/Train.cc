@@ -27,13 +27,12 @@ void vector_stream(const std::vector<T> arr, std::ostream &out) {
     std::for_each(std::begin(arr), std::end(arr),
                [&, cnt = size_t{0}, size = arr.size()](auto element) mutable {
                    out << element;
-                   if (++cnt == size) {
-                       Utils::strip_stream(out, 1);
-                   } else {
+                   if (++cnt != size) {
                        Utils::space_stream(out, 1);
                    }
                }
     );
+    Utils::strip_stream(out, 1);
 }
 
 void DataCollection::out_stream(std::ostream &out) {
@@ -44,15 +43,14 @@ void DataCollection::out_stream(std::ostream &out) {
  * ------- Inputs data -------
  * L2  - L8 : Current player pieces Index
  * L9  - L15: Other player pieces Index
- * L16 - L17: last move
- * L18      : Current Player
- * L19      : Game plies 
- * L20      : Repeat conut
+ * L16      : Current Player
+ * L17      : Game plies 
+ * L18      : Repetitions
  *
  * ------- Prediction data -------
- * L21      : Probabilities
- * L22      : Which piece go to move
- * L23      : Result
+ * L19      : Probabilities
+ * L20      : Which piece go to move
+ * L21      : Result
  *
  */
 
@@ -78,18 +76,14 @@ void DataCollection::out_stream(std::ostream &out) {
         vector_stream(past.kings[Board::swap_color(to_move)], out);
     }
 
-    // last move
-    out << last_from_move << std::endl;
-    out << last_to_move << std::endl;
-
     // to move
     out << (to_move == Types::RED ? 1 : 0) << std::endl;
 
     // plies
     out << gameply << std::endl;
 
-    // repeat
-    out << repeat << std::endl;
+    // repetitions
+    out << repetitions << std::endl;
 
     // probabilities
     const auto p_s = probabilities.size();
@@ -217,7 +211,7 @@ void proccess_inputs(Position &pos, DataCollection &data) {
     const auto to_move = pos.get_to_move();
     data.to_move = to_move;
 
-    const auto inputs = Model::gather_planes(&pos, Board::IDENTITY_SYMMETRY);
+    const auto inputs = Model::gather_planes(&pos);
     assert(inputs.size() == data.input_planes.size());
     std::copy(std::begin(inputs), std::end(inputs), std::begin(data.input_planes));
 
@@ -227,18 +221,7 @@ void proccess_inputs(Position &pos, DataCollection &data) {
 
     data.movenum = pos.get_movenum();
     data.gameply = pos.get_gameply();
-    data.repeat = pos.get_repeat().first;
-
-    const auto lastmove = pos.get_last_move();
-    if (lastmove.valid()) {
-        const auto from = Board::get_xy(lastmove.get_from());
-        const auto to = Board::get_xy(lastmove.get_to());
-        data.last_from_move = Board::get_index(from.first, from.second);
-        data.last_to_move = Board::get_index(to.first, to.second);
-    } else {
-        data.last_from_move = -1;
-        data.last_to_move = -1;
-    }
+    data.repetitions = pos.get_repetitions().first;
 }
 
 void Train::gather_probabilities(UCTNode &node, Position &pos) {

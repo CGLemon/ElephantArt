@@ -236,8 +236,8 @@ std::uint64_t Position::get_hash() const {
     return board.get_hash() ^ position_hash;
 }
 
-std::uint64_t Position::calc_hash(const int symmetry) const {
-    return board.calc_hash(symmetry) ^ position_hash;
+std::uint64_t Position::calc_hash() const {
+    return board.calc_hash() ^ position_hash;
 }
 
 Move Position::get_last_move() const {
@@ -258,22 +258,22 @@ const std::shared_ptr<const Board> Position::get_past_board(const int p) const {
     return m_history[ply - p];
 }
 
-std::pair<int, int> Position::get_repeat() const {
-    constexpr auto MIN_REPEAT_CNT = 4; 
+std::pair<int, int> Position::get_repetitions() const {
+    static constexpr auto MIN_REPETITIONS_CNT = 4; 
     const auto endboard = get_gameply();
     const auto startboard = m_startboard;
     const auto length = endboard - startboard + 1;
 
     assert(length >= 1);
-    if (length <= 2 * MIN_REPEAT_CNT - 1) {
-        return std::make_pair(0, MIN_REPEAT_CNT);
+    if (length <= 2 * MIN_REPETITIONS_CNT - 1) {
+        return std::make_pair(0, MIN_REPETITIONS_CNT);
     }
 
     const auto buffer_size = length/2;
     auto boardhash = std::vector<std::uint64_t>(length);
     auto buffer = std::vector<std::uint64_t>(buffer_size);
-    auto repeat = 0;
-    assert(buffer_size >= MIN_REPEAT_CNT);
+    auto repetitions = 0;
+    assert(buffer_size >= MIN_REPETITIONS_CNT);
 
     for (int i = 0; i < length; ++i) {
         boardhash[i] = m_history[endboard-i]->get_hash();
@@ -282,9 +282,9 @@ std::pair<int, int> Position::get_repeat() const {
                   std::begin(boardhash) + buffer_size,
                   std::begin(buffer));
 
-    const auto repeat_proccess = [](std::vector<std::uint64_t> &bd_hash,
-                                    std::vector<std::uint64_t> &bf,
-                                    const int offset, const int cnt) -> bool {
+    const auto repetitions_proccess = [](std::vector<std::uint64_t> &bd_hash,
+                                         std::vector<std::uint64_t> &bf,
+                                         const int offset, const int cnt) -> bool {
         for (int i = 0; i < cnt; ++i) {
             if (bd_hash[i + offset] != bf[i]) {
                 return false;
@@ -293,23 +293,23 @@ std::pair<int, int> Position::get_repeat() const {
         return true;
     };
 
-    int repeat_cnt = MIN_REPEAT_CNT;
-    for (; repeat_cnt <= buffer_size; ++repeat_cnt) {
-        for (int offset = repeat_cnt; offset + repeat_cnt < length; offset += repeat_cnt) {
-            const auto success = repeat_proccess(boardhash, buffer, offset, repeat_cnt);
+    int repetitions_cnt = MIN_REPETITIONS_CNT;
+    for (; repetitions_cnt <= buffer_size; ++repetitions_cnt) {
+        for (int offset = repetitions_cnt; offset + repetitions_cnt < length; offset += repetitions_cnt) {
+            const auto success = repetitions_proccess(boardhash, buffer, offset, repetitions_cnt);
             if (success) {
-                repeat++;
+                repetitions++;
             } else {
                 break;
             }
         }
-        if (repeat > 0) {
+        if (repetitions > 0) {
             break;
         }
     }
 
-    assert(repeat <= 2);
-    return std::make_pair(repeat, repeat_cnt);
+    assert(repetitions <= 2);
+    return std::make_pair(repetitions, repetitions_cnt);
 }
 
 std::array<Types::Vertices, 2> Position::get_kings() const {

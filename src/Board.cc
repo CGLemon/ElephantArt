@@ -28,9 +28,6 @@ constexpr std::array<Types::Piece, Board::NUM_VERTICES> Board::START_VERTICES;
 
 constexpr std::array<Types::Direction, 8> Board::m_dirs;
 
-std::array<std::array<int, Board::INTERSECTIONS>, Board::NUM_SYMMETRIES> Board::symmetry_nn_idx_table;
-std::array<std::array<Types::Vertices, Board::NUM_VERTICES>, Board::NUM_SYMMETRIES> Board::symmetry_nn_vtx_table;
-
 std::array<std::array<BitBoard, Board::NUM_VERTICES>, 2> Board::m_pawn_attacks;
 std::array<BitBoard, Board::NUM_VERTICES> Board::m_advisor_attacks;
 std::array<BitBoard, Board::NUM_VERTICES> Board::m_king_attacks;
@@ -242,55 +239,6 @@ bool Board::fen2board(std::string &fen) {
     }
 
     return success;
-}
-
-std::pair<int, int> Board::get_symmetry(const int x,
-                                        const int y,
-                                        const int symmetry) {
-    assert(x >= 0 || x < WIDTH);
-    assert(y >= 0 || y < HEIGHT);
-    assert(symmetry >= 0 && symmetry < NUM_SYMMETRIES);
-
-    int idx_x = x;
-    int idx_y = y;
-
-    static constexpr auto MIRROR_WIDTH = WIDTH - 1;
-    static constexpr auto MIRROR_HEIGHT = HEIGHT - 1;
-
-    if ((symmetry & 2) != 0) {
-        idx_x = MIRROR_WIDTH - idx_x;
-    }
-
-    if ((symmetry & 1) != 0) {
-        idx_y = MIRROR_HEIGHT - idx_y;
-    }
-
-    assert(idx_x >= 0 && idx_x < WIDTH);
-    assert(idx_y >= 0 && idx_y < HEIGHT);
-    assert(symmetry != IDENTITY_SYMMETRY || (x == idx_x && y == idx_y));
-
-    return {idx_x, idx_y};
-}
-
-void Board::init_symmetry() {
-
-    for (auto &tables: symmetry_nn_vtx_table) {
-        for (auto &table: tables) {
-            table = Types::NO_VERTEX;
-        }
-    }
-
-    for (auto s = size_t{0}; s < NUM_SYMMETRIES; ++s) {
-        for (int idx = 0; idx < INTERSECTIONS; ++idx) {
-            const auto x = idx % WIDTH;
-            const auto y = idx / WIDTH;
-            const auto res = get_symmetry(x, y, s);
-            symmetry_nn_idx_table[s][idx] = get_index(res.first, res.second);
-
-            const auto vtx = get_vertex(x, y);
-            symmetry_nn_vtx_table[s][vtx] = get_vertex(res.first, res.second);
-        }
-    }
 }
 
 void Board::init_pawn_attacks() {
@@ -654,7 +602,6 @@ void Board::dump_memory() {
 void Board::pre_initialize() {
     init_move_pattens();
     init_magics();
-    init_symmetry();
     dump_memory();
 }
 
@@ -856,15 +803,15 @@ void Board::board_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out, const Mo
     info_stream<Types::TRADITIONAL_CHINESE>(out);
 }
 
-std::uint64_t Board::calc_hash(const int symmetry) const {
+std::uint64_t Board::calc_hash() const {
     auto res = Zobrist::zobrist_empty;
 
     for (int y = 0; y < HEIGHT; ++y) {
         for (int x = 0; x < WIDTH; ++x) {
-            const auto svtx = symmetry_nn_vtx_table[symmetry][get_vertex(x, y)];
-            const auto pis = get_piece(svtx);
-            if (is_on_board(svtx)) {
-                res ^= Zobrist::zobrist[pis][svtx];
+            const auto vtx = get_vertex(x, y);
+            const auto pis = get_piece(vtx);
+            if (is_on_board(vtx)) {
+                res ^= Zobrist::zobrist[pis][vtx];
             } 
         }
     }

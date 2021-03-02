@@ -2,7 +2,6 @@ import torch
 import torch.nn.functional as F
 import pytorch_lightning as pl
 import numpy as np
-from symmetry import *
 
 from nnprocess import NNProcess
 from chunkparser import ChunkParser
@@ -23,9 +22,6 @@ class DataSet():
         self.input_channels = cfg.input_channels
         self.input_features = cfg.input_features
         self.policy_map = cfg.policy_map
-        self.symm_table = Symmetry(self.xsize, self.ysize)
-        if self.cfg.debugVerbose:
-            self.symm_table.dump()
 
     def get_x(self, idx):
         return idx % self.xsize
@@ -34,14 +30,15 @@ class DataSet():
         return idx // self.xsize
 
     def __getitem__(self, idx):
-        data = self.parser[idx]
+        b, s = self.parser[idx]
+        data = self.parser.unpack_v1(b, s)
+
         input_planes = np.zeros((self.input_channels, self.ysize, self.xsize))
         input_features = np.zeros(self.input_features)
 
         pol = np.zeros(self.policy_map * self.ysize * self.xsize)
         wdl = np.zeros(3)
         stm = np.zeros(1)
-        symm = np.random.randint(4, size=1)[0]
         # input planes
         for i in range(7):
             start = data.ACCUMULATE[i]
@@ -49,48 +46,31 @@ class DataSet():
             for n in range(num):
                 cp_idx = data.current_pieces[start + n]
                 if cp_idx != -1:
-                    cp_idx = self.symm_table.get_transfer(cp_idx, symm)
                     x = self.get_x(cp_idx)
                     y = self.get_y(cp_idx)
                     input_planes[i][y][x] = 1
                     
                 op_idx = data.other_pieces[start + n]
                 if op_idx != -1:
-                    op_idx = self.symm_table.get_transfer(op_idx, symm)
                     x = self.get_x(op_idx)
                     y = self.get_y(op_idx)
                     input_planes[i+7][y][x] = 1
 
-        if data.last_from != -1:
-            last_from =  self.symm_table.get_transfer(data.last_from, symm)
-            fx = self.get_x(last_from)
-            fy = self.get_y(last_from)
-            input_planes[14][fy][fx] = 1
-
-            last_to =  self.symm_table.get_transfer(data.last_to, symm)
-            tx = self.get_x(last_to)
-            ty = self.get_y(last_to)
-            input_planes[15][ty][tx] = 1
-
         if data.tomove == 1:
-            input_planes[16][:] = 1
-
-        input_planes[17][:] = 1
+            input_planes[14][:] = 1
+        else:
+            input_planes[15][:] = 1
 
         # input features
         input_features[0] = data.plies / 30
-        if data.repeat >= 1:
+        if data.repetitions >= 1:
             input_features[2] = 1
-        if data.repeat >= 2:
+        if data.repetitions >= 2:
             input_features[3] = 1
 
         # probabilities
         for idx, p in zip(data.policyindex, data.probabilities):
-            planesize = self.xsize * self.ysize
-            p_idx = idx // planesize
-            map_idx = idx & planesize
-            map_idx =  self.symm_table.get_transfer(map_idx, symm)
-            pol[p_idx * planesize + map_idx] = p
+            pol[idx] = p
             
         # winrate
         stm = data.result
@@ -159,28 +139,22 @@ class Network(NNProcess, pl.LightningModule):
         pol_loss = cross_entropy(pred_pol, target_pol)
         wdl_loss = cross_entropy(pred_wdl, target_wdl)
         stm_loss = F.mse_loss(pred_stm.squeeze(), target_stm.squeeze())
-
         return pol_loss, wdl_loss, stm_loss
-
 
     def training_step(self, batch, batch_idx):
         planes, features, target_pol, target_wdl, target_stm = batch
         pred_pol, pred_wdl, pred_stm = self(planes, features)
-
         pol_loss, wdl_loss, stm_loss = self.compute_loss((pred_pol, pred_wdl, pred_stm), (target_pol, target_wdl, target_stm))
         loss = pol_loss + wdl_loss + stm_loss
-
         self.log("train_loss", loss, prog_bar=True)
         self.log_dict(
             {
                 "train_pol_loss": pol_loss,
                 "train_wdl_loss": wdl_loss,
                 "train_stm_loss": stm_loss,
-                #"train_acc": self.train_accuracy(pred_pol, target_pol),
             }
         )
-        return pol_loss + wdl_loss + stm_loss
-
+        return loss
 
     def validation_step(self, batch, batch_idx):
         planes, features, target_pol, target_wdl, target_stm = batch
@@ -193,7 +167,6 @@ class Network(NNProcess, pl.LightningModule):
                 "val_pol_loss": pol_loss,
                 "val_wdl_loss": wdl_loss,
                 "val_stm_loss": stm_loss,
-                #"val_acc": self.val_accuracy(pred_pol, target_pol),
             }
         )
 
@@ -208,10 +181,8 @@ class Network(NNProcess, pl.LightningModule):
                 "test_pol_loss": pol_loss,
                 "test_wdl_loss": wdl_loss,
                 "test_stm_loss": stm_loss,
-                #"test_acc": self.test_accuracy(pred_pol, target_pol),
             }
         )
-
 
     def configure_optimizers(self):
         adam_opt = torch.optim.Adam(

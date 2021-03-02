@@ -103,15 +103,13 @@ void Desc::LinearLayer::load_size(int is, int os, bool check) {
 
 void fill_piece_planes(const std::shared_ptr<const Board> board,
                        std::vector<float>::iterator red,
-                       std::vector<float>::iterator black,
-                       const int symmetry) {
+                       std::vector<float>::iterator black) {
     
     for (auto idx = size_t{0}; idx < Board::INTERSECTIONS; ++idx) {
-        const auto sym_idx = Board::symmetry_nn_idx_table[symmetry][idx];
-        const auto sym_x = sym_idx % Board::WIDTH;
-        const auto sym_y = sym_idx / Board::WIDTH;
-        const auto sym_vtx = Board::get_vertex(sym_x, sym_y);
-        const auto pis = board->get_piece(sym_vtx);
+        const auto x = idx % Board::WIDTH;
+        const auto y = idx / Board::WIDTH;
+        const auto vtx = Board::get_vertex(x, y);
+        const auto pis = board->get_piece(vtx);
         
         if (static_cast<int>(pis) <  7) {
             red[static_cast<int>(pis) * Board::INTERSECTIONS + idx] = static_cast<float>(true);
@@ -122,19 +120,16 @@ void fill_piece_planes(const std::shared_ptr<const Board> board,
     }
 }
 
-std::vector<float> Model::gather_planes(const Position *const pos,
-                                        const int symmetry) {
+std::vector<float> Model::gather_planes(const Position *const pos) {
 
-    constexpr auto MOVES_PLANES = INPUT_MOVES * 14;
-    constexpr auto STATUS_PLANES = INPUT_STATUS;
-    static_assert(INPUT_CHANNELS == MOVES_PLANES + STATUS_PLANES, "");
-    static_assert(INPUT_CHANNELS == 18, "");
+    static constexpr auto MOVES_PLANES = INPUT_MOVES * 14;
+    static constexpr auto STATUS_PLANES = INPUT_STATUS;
+    assert(INPUT_CHANNELS == MOVES_PLANES + STATUS_PLANES);
+    assert(INPUT_CHANNELS == 16);
 
     // planes |  1 -  7 | Current player picee position.
     // planes |  8 - 14 | Next player picee position.
-    // planes | 15 - 16 | Last move.
-    // planes |   17    | Is red or not.
-    // planes |   18    | Always one.
+    // planes | 15 - 16 | Is red or not.
 
     auto input_data = std::vector<float>(INPUT_CHANNELS * Board::INTERSECTIONS, 0.0f);
     auto color = pos->get_to_move();
@@ -155,29 +150,20 @@ std::vector<float> Model::gather_planes(const Position *const pos,
             const auto board = pos->get_past_board(p);
             fill_piece_planes(board,
                               red_iterator,
-                              blk_iterator,
-                              symmetry);
+                              blk_iterator);
         }
         std::advance(red_iterator, 7 * Board::INTERSECTIONS);
         std::advance(blk_iterator, 7 * Board::INTERSECTIONS);
     }
 
     auto status_iterator = std::begin(input_data) + INPUT_MOVES * 14 * Board::INTERSECTIONS;
-    // plane 15 - 16
-    const auto lastmove = pos->get_last_move();
-    if (lastmove.valid()) {
-        const auto from = Board::get_xy(lastmove.get_from());
-        const auto to = Board::get_xy(lastmove.get_to());
-        status_iterator[Board::get_index(from.first, from.second)] = static_cast<float>(true);
-        status_iterator[Board::INTERSECTIONS + Board::get_index(to.first, to.second)] = static_cast<float>(true);
-    }
 
-    std::advance(status_iterator, 2 * Board::INTERSECTIONS);
     // plane 17 - 18
+    auto middle = status_iterator + Board::INTERSECTIONS;
     if (color == Types::RED) {
-        std::fill(status_iterator, std::end(input_data), 1.f);
+        std::fill(status_iterator, middle, 1.f);
     } else {
-        std::fill(status_iterator+Board::INTERSECTIONS, std::end(input_data), 1.f);
+        std::fill(middle, std::end(input_data), 1.f);
     }
     std::advance(status_iterator, 2 * Board::INTERSECTIONS);
     assert(status_iterator == std::end(input_data));
@@ -187,13 +173,13 @@ std::vector<float> Model::gather_planes(const Position *const pos,
 
 std::vector<float> Model::gather_features(const Position *const pos) {
     // feature 1 : Game plies.
-    // feature 2 : Fair remaining plies. (Not yet)
-    // feature 3 : Repeat one.
-    // feature 4 : Repeat two.
+    // feature 2 : (Not yet)
+    // feature 3 : repetitions one.
+    // feature 4 : repetitions two.
 
     auto input_features = std::vector<float>(INPUT_FEATURES, 0.0f);
     const auto ply = pos->get_gameply();
-    const auto rpt = pos->get_repeat();
+    const auto rpt = pos->get_repetitions();
     input_features[0] = static_cast<float>(ply)/30.f;
     input_features[1] = 0;
     if (rpt.first >= 1) {
@@ -584,16 +570,14 @@ void Model::fill_weights(std::istream &weights_file,
 NNResult Model::get_result(std::vector<float> &policy,
                            std::vector<float> &value,
                            const float p_softmax_temp,
-                           const float v_softmax_temp,
-                           const int symmetry) {
+                           const float v_softmax_temp) {
     NNResult result;
 
     // Probabilities
     const auto probabilities = Activation::Softmax(policy, p_softmax_temp);
     for (auto p = size_t{0}; p < POLICYMAP; ++p) {
         for (auto idx = size_t{0}; idx < Board::INTERSECTIONS; ++idx) {
-            const auto sym_idx = Board::symmetry_nn_idx_table[symmetry][idx];
-            result.policy[sym_idx + p * Board::INTERSECTIONS] =
+            result.policy[idx + p * Board::INTERSECTIONS] =
                 probabilities[idx + p * Board::INTERSECTIONS];
         }
     }

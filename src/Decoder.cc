@@ -43,7 +43,7 @@ void Decoder::initialize() {
                                const int to_y) -> void {
         auto& move = policymaps_moves[m_offset];
         if (in_boundary(to_x, to_y)) {
-            const auto to_vtx = static_cast<Types::Vertices>(Board::get_vertex(to_x, to_y));
+            const auto to_vtx = Board::get_vertex(to_x, to_y);
             move = Move(from_vtx, to_vtx);
             assert(move.is_ok());
         } else {
