@@ -69,12 +69,12 @@ void Board::clear_status() {
     m_tomove = Types::RED;
     m_gameply = 0;
     m_movenum = 1;
-    m_eaten = false;
+    m_capture = false;
     m_lastmove = Move{};
+    set_repetitions(0, 0);
 }
 
 bool Board::fen2board(std::string &fen) {
-
     // FEN example:
     // rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1
     //
@@ -641,12 +641,12 @@ void Board::info_stream<Types::ASCII>(std::ostream &out) const {
         out << "color error!";
     }
 
-    out << ", WXF : " << get_wxfmove();
-    out << ", Last move : " << get_last_move().to_string();
-    out << ", Ply number : " << get_gameply();
-    out << ", Hash : " << std::hex << get_hash() << std::dec;
+    out << ", WXF: " << get_wxfstring(get_last_move());
+    out << ", Last move: " << get_last_move().to_string();
+    out << ", Ply number: " << get_gameply();
+    out << ", Hash: " << std::hex << get_hash() << std::dec;
 
-    out << ",\n Fen : ";
+    out << ",\n Fen: ";
     fen_stream(out);
     out << "}" << std::endl;
 }
@@ -662,7 +662,7 @@ void Board::info_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out) const {
         out << "color error!";
     }
 
-    out << ", WXF : " << get_wxfmove();
+    out << ", WXF : " << get_wxfstring(get_last_move());
     out << "，上一手棋 ：" << get_last_move().to_string();
     out << "，第 " << get_gameply() << " 手棋";
     out << "，哈希 ：" << std::hex << get_hash() << std::dec;
@@ -702,6 +702,12 @@ void Board::fen_stream(std::ostream &out) const {
     m_tomove == Types::RED ? out << "w" : out << "b";
 
     out << " - - 0 " << get_movenum();
+}
+
+std::string Board::get_fenstring() const {
+    auto out = std::ostringstream{};
+    fen_stream(out);
+    return out.str();
 }
 
 template<>
@@ -1095,6 +1101,11 @@ void Board::set_to_move(Types::Color color) {
     m_tomove = color;
 }
 
+void Board::set_repetitions(int repetitions, int cycle_length) {
+    m_repetitions = repetitions;
+    m_cycle_length = cycle_length;
+}
+
 void Board::swap_to_move() {
     set_to_move(swap_color(m_tomove));
 }
@@ -1113,23 +1124,23 @@ void Board::do_move_assume_legal(Move move) {
     } else if (m_bb_color[Types::RED] & form_bitboard) {
         color = Types::RED;
     }
-    assert(color == m_tomove);
+    assert(color == get_to_move());
 
     // Get the piece type.
     const auto pt = get_piece_type(from);
     assert(pt != Types::EMPTY_PIECE_T);
 
-    // Eat piece.
+    // Capture piece.
     const auto opp_color = swap_color(color);
-    m_eaten = m_bb_color[opp_color] & to_bitboard;
+    m_capture = m_bb_color[opp_color] & to_bitboard;
 
-    auto eaten_pt = Types::EMPTY_PIECE_T;
-    if (m_eaten) {
-        eaten_pt = get_piece_type(to);
-        if (eaten_pt == Types::KING) {
+    auto capture_pt = Types::EMPTY_PIECE_T;
+    if (is_capture()) {
+        capture_pt = get_piece_type(to);
+        if (capture_pt == Types::KING) {
             m_king_vertex[opp_color] = Types::NO_VERTEX;
         } else {
-            auto &ref_bb = get_piece_bitboard_ref(eaten_pt);
+            auto &ref_bb = get_piece_bitboard_ref(capture_pt);
             ref_bb ^= to_bitboard;
         }
         m_bb_color[opp_color] ^= to_bitboard;
@@ -1158,9 +1169,9 @@ void Board::do_move_assume_legal(Move move) {
 
     // Update zobrist.
     update_zobrist(p , from, to);
-    if (m_eaten) {
-        auto eaten_p = static_cast<Types::Piece>(eaten_pt) + (color == Types::BLACK ? 7 : 0);
-        update_zobrist_remove(eaten_p, to);
+    if (is_capture()) {
+        auto capture_p = static_cast<Types::Piece>(capture_pt) + (color == Types::BLACK ? 7 : 0);
+        update_zobrist_remove(capture_p, to);
     } 
 
     // Swap color.
@@ -1185,7 +1196,7 @@ bool Board::is_king_face_king() const {
     return false;
 }
 
-bool Board::is_checkmate(const Types::Color color) const {
+bool Board::is_check(const Types::Color color) const {
     const auto opp_color = swap_color(color);
     const auto opp_king = Utils::vertex2bitboard(m_king_vertex[opp_color]);
     const auto attacks = m_bb_attacks[color];
@@ -1251,8 +1262,8 @@ void Board::decrement_gameply() {
     m_movenum = ((--m_gameply)/2) + 1;
 }
 
-bool Board::is_eaten() const {
-    return m_eaten;
+bool Board::is_capture() const {
+    return m_capture;
 }
 
 std::array<Types::Vertices, 2> Board::get_kings() const {
@@ -1279,52 +1290,24 @@ Move Board::get_last_move() const {
     return m_lastmove;
 }
 
-std::string Board::get_wxfmove() const {
-    auto lastmove = get_last_move();
-    if (lastmove.valid()) {
-        const auto move2wxf = [this](Move move){
-            auto out = std::ostringstream{};
-            const auto from = move.get_from();
-            const auto to = move.get_to();
-            const auto tomove = get_to_move();
-            const auto color = swap_color(tomove);
-
-            auto from_xy = get_xy(from);
-            auto to_xy = get_xy(to);
-
-            if (color == Types::BLACK) {
-                from_xy.first = WIDTH - from_xy.first;
-                from_xy.second = HEIGHT - from_xy.second;
-                to_xy.first = WIDTH - to_xy.first;
-                to_xy.second = HEIGHT - to_xy.second;
-            } else {
-                from_xy.first = from_xy.first + 1;
-                from_xy.second = from_xy.second + 1;
-                to_xy.first = to_xy.first + 1;
-                to_xy.second = to_xy.second + 1;
-            }
-
-            const auto pis = get_piece(to);
-            piece_stream<Types::ASCII>(out, pis);
-            if (to_xy.second == from_xy.second) {
-                out << from_xy.first
-                        << "."
-                        << to_xy.first;
-            } else {
-                out << from_xy.second
-                        << (to_xy.second - from_xy.second > 0 ? "+" : "-")
-                        << to_xy.second;
-            }
-            
-            return out.str();
-        };
-
-        return move2wxf(lastmove);
-    }
-    return std::string{"None"};
+int Board::get_repetitions() const {
+    return m_repetitions;
 }
 
+int Board::get_cycle_length() const {
+    return m_cycle_length;
+}
 
 std::array<BitBoard, 2> Board::get_colors() const {
     return m_bb_color;
+}
+
+std::string Board::get_wxfstring(Move m) {
+    // Not complete yet.
+
+    return std::string{"None"};
+}
+
+std::string Board::get_iccsstring(Move m) {
+    return m.to_iccs();
 }

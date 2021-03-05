@@ -182,10 +182,10 @@ std::vector<float> Model::gather_features(const Position *const pos) {
     const auto rpt = pos->get_repetitions();
     input_features[0] = static_cast<float>(ply)/30.f;
     input_features[1] = 0;
-    if (rpt.first >= 1) {
+    if (rpt >= 1) {
         input_features[2] = static_cast<float>(true);
     }
-    if (rpt.first >= 2) {
+    if (rpt >= 2) {
         input_features[3] = static_cast<float>(true);
     }
 

@@ -63,12 +63,15 @@ public:
     Move get_last_move() const;
     std::array<Types::Vertices, 2> get_kings() const;
     std::array<BitBoard, 2> get_colors() const;
+    int get_repetitions() const;
+    int get_cycle_length() const;
 
     BitBoard generate_movelist(Types::Color color, std::vector<Move> &movelist) const;
 
     static bool is_on_board(const Types::Vertices vtx);
 
     void fen_stream(std::ostream &out) const;
+    std::string get_fenstring() const;
 
     template<Types::Language> void board_stream(std::ostream &out, const Move lastmove) const;
     template<Types::Language> void dump_board(const Move lastmove) const;
@@ -85,8 +88,10 @@ public:
     static void pre_initialize();
     static Move text2move(std::string text);
     
-    std::string get_wxfmove() const;
+    static std::string get_wxfstring(Move m);
+    static std::string get_iccsstring(Move m);
 
+    void set_repetitions(int repetitions, int cycle_length);
     void set_last_move(Move m);
     void set_to_move(Types::Color color);
     void swap_to_move();
@@ -95,8 +100,8 @@ public:
 
     void do_move_assume_legal(Move move);
     bool is_legal(Move move) const;
-    bool is_eaten() const;
-    bool is_checkmate(const Types::Color color) const;
+    bool is_capture() const;
+    bool is_check(const Types::Color color) const;
 
 private:
     #define P_  Types::R_PAWN
@@ -212,8 +217,11 @@ private:
 
     int m_movenum;
     int m_gameply;
-    bool m_eaten;
+    bool m_capture;
     Move m_lastmove;
+
+    int m_cycle_length;
+    int m_repetitions;
 
     std::uint64_t m_hash;
 

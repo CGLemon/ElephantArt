@@ -124,15 +124,6 @@ Engine::Response Engine::do_textmove(std::string move, const int g) {
     return rep.str();
 }
 
-Engine::Response Engine::undo_move(const int g) {
-    auto rep = std::ostringstream{};
-    auto success = get_position(g)->undo();
-    if (!success) {
-        rep << "Fail to undo move";
-    }
-    return rep.str();
-}
-
 Engine::Response Engine::position(std::string pos, const int g) {
     auto rep = std::ostringstream{};
     auto parser = Utils::CommandParser(pos);

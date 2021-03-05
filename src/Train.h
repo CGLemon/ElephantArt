@@ -50,7 +50,9 @@ struct DataCollection {
     int version;
     int movenum;
     int gameply;
+    int moves_remaning;
     int repetitions;
+    int moves_left{0};
 
     std::array<float, Board::INTERSECTIONS * INPUT_CHANNELS> input_planes;
     std::array<float, INPUT_FEATURES> input_features;
@@ -80,13 +82,14 @@ public:
     void clear_buffer();
 
 private:
+    bool handle() const;
     int get_version() const;
     void push_buffer(DataCollection &data);
 
     using Step = std::shared_ptr<DataCollection>;
     std::list<Step> m_buffer;
     int m_counter;
-
+    bool m_lock;
 };
 
 #endif

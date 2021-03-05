@@ -68,28 +68,46 @@ bool UCTNode::expend_children(Network &network,
     m_color = pos.get_to_move();
     link_nn_output(raw_netlist, m_color);
 
+    auto inferior_moves = std::vector<Network::PolicyMapsPair>{};
     auto nodelist = std::vector<Network::PolicyMapsPair>{};
     float legal_accumulate = 0.0f;
+    float inferior_legal = 0.0f;
 
     auto movelist = pos.get_movelist();
     const auto kings = pos.get_kings();
-    for (const auto &move : movelist) {
+    for (const auto &move: movelist) {
+        const auto maps = Decoder::move2maps(move);
+        const auto policy = raw_netlist.policy[maps];
+
         if (is_root) {
             auto fork_pos = std::make_shared<Position>(pos);
             fork_pos->do_move_assume_legal(move);
             auto instance = Instance(*fork_pos);
             auto res = instance.judge();
             if (res == Instance::UNKNOWN) {
+                // It is unknown result. we don't need to consider it if we have
+                // other choice. But if not, we will add inferior moves to the
+                // node list.
+                inferior_legal += policy;
+                inferior_moves.emplace_back(policy, maps);
+                continue;
+            } else if (res == Instance::LOSE) {
+                // If we are lose. Don't need to consider this move.
+                continue;
+            } else if (res == Instance::DRAW) {
+                // Do nothing.
+            }
+
+            if (fork_pos->is_check(Board::swap_color(m_color))) {
                 continue;
             }
+
+
+            // TODO: Probe continuous check until checkmate.
         }
 
-        const auto maps = Decoder::move2maps(move);
-        const auto policy = raw_netlist.policy[maps];
-
         if (move.get_to() == kings[Board::swap_color(m_color)]) {
-            // We eat opponent's king. Don't need to think
-            // other moves.
+            // We eat opponent's king. Don't need to consider other moves.
             nodelist.clear();
             nodelist.emplace_back(policy, maps);
             legal_accumulate = policy;
@@ -100,13 +118,26 @@ bool UCTNode::expend_children(Network &network,
         legal_accumulate += policy;
     }
 
+    if (nodelist.empty()) {
+        if (inferior_moves.empty()) {
+            // We are already lose. Pick a random move to the list.
+            const auto &move = movelist[0];
+            const auto maps = Decoder::move2maps(move);
+            const auto policy = raw_netlist.policy[maps];
+            nodelist.emplace_back(policy, maps);
+        } else {
+            legal_accumulate = inferior_legal;
+            nodelist = inferior_moves;
+        }
+    }
+
     if (legal_accumulate > 0.0f) {
-        for (auto &node : nodelist) {
+        for (auto &node: nodelist) {
             node.first /= legal_accumulate;
         }
     } else {
         const auto cnt = static_cast<float>(nodelist.size());
-        for (auto &node : nodelist) {
+        for (auto &node: nodelist) {
             node.first = 1.0f / cnt;
         }
     }
@@ -118,7 +149,6 @@ bool UCTNode::expend_children(Network &network,
 }
 
 void UCTNode::link_nodelist(std::vector<Network::PolicyMapsPair> &nodelist, float min_psa_ratio) {
-
     std::stable_sort(std::rbegin(nodelist), std::rend(nodelist));
 
     const float min_psa = nodelist[0].first * min_psa_ratio;
@@ -479,14 +509,10 @@ void UCTNode::update(std::shared_ptr<UCTNodeEvals> evals) {
     Utils::atomic_add(m_accumulated_draws, evals->draw);
 }
 
-void UCTNode::dirichlet_noise(const float epsilon, const float alpha) {
+std::vector<float> UCTNode::apply_dirichlet_noise(const float epsilon, const float alpha) {
     auto child_cnt = m_children.size();
     auto dirichlet_buffer = std::vector<float>(child_cnt);
     auto gamma = std::gamma_distribution<float>(alpha, 1.0f);
-    // for (auto i = size_t{0}; i < child_cnt; i++) {
-    //     const auto gen = gamma(Random<random_t::XoroShiro128Plus>::get_Rng());
-    //     dirichlet_buffer.emplace_back(gen);
-    // }
 
     std::generate(std::begin(dirichlet_buffer), std::end(dirichlet_buffer),
                       [&gamma] () { return gamma(Random<random_t::XoroShiro128Plus>::get_Rng()); });
@@ -497,7 +523,8 @@ void UCTNode::dirichlet_noise(const float epsilon, const float alpha) {
     // If the noise vector sums to 0 or a denormal, then don't try to
     // normalize.
     if (sample_sum < std::numeric_limits<float>::min()) {
-        return;
+        std::fill(std::begin(dirichlet_buffer), std::end(dirichlet_buffer), 0.0f);
+        return dirichlet_buffer;
     }
 
     for (auto &v : dirichlet_buffer) {
@@ -514,14 +541,17 @@ void UCTNode::dirichlet_noise(const float epsilon, const float alpha) {
         policy = policy * (1 - epsilon) + epsilon * eta_a;
         node->set_policy(policy);
     }
+    return dirichlet_buffer;
 }
 
 UCTNodeEvals UCTNode::prepare_root_node(Network &network,
-                                        Position &position) {
+                                        Position &position,
+                                        std::vector<float> &dirichlet) {
     const auto noise = parameters()->dirichlet_noise;
     const auto is_root = true;
     const auto success = expend_children(network, position, 0.0f, is_root);
     const auto had_childen = has_children();
+    dirichlet.clear();
     assert(success && had_childen);
 
     if (success && had_childen) {
@@ -532,7 +562,7 @@ UCTNodeEvals UCTNode::prepare_root_node(Network &network,
             const auto factor = parameters()->dirichlet_factor;
             const auto init = parameters()->dirichlet_init;
             const auto alpha = init * factor / static_cast<float>(legal_move);
-            dirichlet_noise(epsilon, alpha);
+            dirichlet = apply_dirichlet_noise(epsilon, alpha);
         }
     }
 

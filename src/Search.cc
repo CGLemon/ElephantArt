@@ -121,7 +121,7 @@ Move Search::uct_move() {
     auto info = SearchInformation{};
     auto setting = SearchSetting{};
     think(setting, &info);
-    // Wait the thread's running finish.
+    // Wait the thread running finish.
     m_threadGroup->wait_all();
 
     return info.move;
@@ -141,7 +141,12 @@ void Search::prepare_uct() {
 
     set_playouts(0);
     set_running(true);
-    m_rootnode->prepare_root_node(m_network, m_rootposition);
+
+    // TODO: According to "Accelerating Self-Play Learning in Go",
+    //       implement policy target pruning to improve probabilities.
+    auto dirichlet = std::vector<float>{};
+
+    m_rootnode->prepare_root_node(m_network, m_rootposition, dirichlet);
     const auto nn_eval = m_rootnode->get_node_evals();
     m_rootnode->update(std::make_shared<UCTNodeEvals>(nn_eval));
 
@@ -252,8 +257,12 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
     m_rootposition = m_position;
 
     const auto uct_worker = [&]() -> void {
+        // Waiting, until main thread searching.
+        while (m_running_threads.load() < 1 && is_running()) {
+            std::this_thread::yield();
+        }
         increment_threads();
-        do {
+        while(is_running()) {
             auto depth = 0;
             auto currpos = std::make_unique<Position>(m_rootposition);
             auto result = SearchResult{};
@@ -261,7 +270,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
             if (result.valid()) {
                 increment_playouts();
             }
-        } while(is_running());
+        };
         decrement_threads();
     };
 
@@ -274,11 +283,23 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
                                       set.movestogo,
                                       set.increment);
         controller.set_plies(m_rootposition.get_gameply(),
-                                 (m_rootposition.get_draw_moves()-1) * 2);
+                                 m_rootposition.get_max_moves() * 2 - 1);
 
         auto timer = Utils::Timer{};
         auto limittime = std::numeric_limits<int>::max();
-        do {
+
+        prepare_uct();
+        {
+            // Stop it if preparing uct is time out.  
+            if (!set.ponder) {
+                limittime = controller.get_limittime();
+            }
+            const auto elapsed = timer.get_duration_milliseconds();
+            set_running(!stop_thinking(elapsed, limittime));
+        }
+
+        increment_threads();
+        while(is_running()) {
             auto depth = 0;
             auto currpos = std::make_unique<Position>(m_rootposition);
             auto result = SearchResult{};
@@ -311,7 +332,8 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
                 Utils::printf<Utils::SYNC>("info depth %d time %d nodes %d score %d pv %s\n",
                                                maxdepth, elapsed, nodes, int(score), pv.c_str());
             }
-        } while(is_running());
+        }
+        decrement_threads();
 
         // Waiting, until all threads finish searching.
         while (m_running_threads.load() != 0) {
@@ -338,8 +360,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         }
         clear_nodes();
     };
-
-    prepare_uct();
+    set_running(true);
     m_threadGroup->add_task(main_worker);
     m_threadGroup->add_tasks(m_parameters->threads-1, uct_worker);
 }

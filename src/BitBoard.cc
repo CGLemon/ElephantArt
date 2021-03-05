@@ -105,6 +105,33 @@ std::string Move::to_string() const {
     return out.str();
 }
 
+std::string Move::to_iccs() const {
+    if (!valid()) {
+        return std::string{"None"};
+    }
+
+    const auto lambda_parser = [](Types::Vertices vtx) -> std::string {
+        auto lambda_out = std::ostringstream{};
+        const auto v = static_cast<int>(vtx);
+        const auto x = v % BITBOARD_SHIFT;
+        const auto y = v / BITBOARD_SHIFT;
+
+        lambda_out << static_cast<char>(x + 65);
+        lambda_out << y;
+
+        return lambda_out.str();
+    };
+
+    const auto from = get_from();
+    const auto to = get_to();
+ 
+    auto out = std::ostringstream{};
+    out << lambda_parser(from);
+    out << "-";
+    out << lambda_parser(to);
+    return out.str();
+}
+
 bool Move::hit(BitBoard &b) const {
     if (!valid() || !is_ok()) {
         return false;

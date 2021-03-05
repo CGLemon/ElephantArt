@@ -126,7 +126,6 @@ inline static BitBoard reset_ls1b(BitBoard b) {
 }
 
 inline static Types::Vertices lsb(BitBoard b) {
-
     /*
      * bitScanForward
      * @author Martin Läuter (1997)
@@ -249,6 +248,7 @@ public:
     bool is_ok() const;
 
     std::string to_string() const;
+    std::string to_iccs() const;
 
     static constexpr std::uint16_t INVALID = std::uint16_t(Types::NO_VERTEX) +
                                                  (std::uint16_t(Types::NO_VERTEX) << 8);

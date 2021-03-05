@@ -19,6 +19,7 @@
 #include "Train.h"
 #include "config.h"
 #include "Decoder.h"
+#include "Utils.h"
 
 #include <algorithm>
 
@@ -44,13 +45,15 @@ void DataCollection::out_stream(std::ostream &out) {
  * L2  - L8 : Current player pieces Index
  * L9  - L15: Other player pieces Index
  * L16      : Current Player
- * L17      : Game plies 
- * L18      : Repetitions
+ * L17      : Game plies
+ * L18      : Max moves left
+ * L19      : Repetitions
  *
  * ------- Prediction data -------
- * L19      : Probabilities
- * L20      : Which piece go to move
- * L21      : Result
+ * L20      : Probabilities
+ * L21      : Which piece go to move
+ * L22      : Moves left
+ * L23      : Result
  *
  */
 
@@ -82,6 +85,9 @@ void DataCollection::out_stream(std::ostream &out) {
     // plies
     out << gameply << std::endl;
 
+    // max moves left
+    out << moves_remaning << std::endl;
+
     // repetitions
     out << repetitions << std::endl;
 
@@ -102,8 +108,10 @@ void DataCollection::out_stream(std::ostream &out) {
     }
 
     // piece to go  
-    Board::piece_stream<Types::ASCII>(out, static_cast<Types::Piece>(piece));
-    Utils::strip_stream(out, 1);
+    out << static_cast<int>(piece) << std::endl;
+
+    // moves left
+    out << moves_left << std::endl;
 
     // result
     if (winner == Types::INVALID_COLOR) {
@@ -121,6 +129,7 @@ void DataCollection::out_stream(std::ostream &out) {
 
 Train::Train() {
     m_counter = 0;
+    m_lock = false;
 }
 
 Types::Piece_t maps2piece(int maps, Position &pos) {
@@ -136,27 +145,29 @@ void proccess_probabilities(UCTNode &node, DataCollection &data, int min_cutoff)
     assert(data.probabilities.empty());
 
     const auto children = node.get_children();
-    auto temp = std::vector<std::pair<int, int>>{};
+    auto buf = std::vector<std::pair<int, int>>{};
 
-    for (const auto &child : children) {
-        const auto maps = child->get()->get_maps();
-        const auto visits = child->get()->get_visits();
+    for (const auto &child: children) {
+        const auto node = child->get();
+        const auto maps = node->get_maps();
+        const auto visits = node->get_visits();
         if (visits > min_cutoff) {
-            temp.emplace_back(maps, visits);
+            buf.emplace_back(maps, visits);
         }
     }
 
-    if (temp.empty()) {
+    if (buf.empty()) {
+        // If we cut off all children, don't try to cut off next time.
         assert(min_cutoff != 0);
         proccess_probabilities(node, data, 0);
         return;
     }
 
-    const auto acc_visits = std::accumulate(std::begin(temp), std::end(temp), 0,
+    const auto acc_visits = std::accumulate(std::begin(buf), std::end(buf), 0,
                                 [](int init, std::pair<int, int> x) { return init + x.second; }
                             );
 
-    for (const auto &x : temp) {
+    for (const auto &x: buf) {
         const auto maps = x.first;
         const auto visits = x.second;
         const auto probability = static_cast<float>(visits) / static_cast<float>(acc_visits);
@@ -221,11 +232,25 @@ void proccess_inputs(Position &pos, DataCollection &data) {
 
     data.movenum = pos.get_movenum();
     data.gameply = pos.get_gameply();
-    data.repetitions = pos.get_repetitions().first;
+    data.moves_remaning = pos.get_max_moves() * 2 - 1 - data.gameply;
+    data.repetitions = pos.get_repetitions();
+}
+
+bool Train::handle() const {
+    if (m_lock) {
+        Utils::printf<Utils::AUTO>("It don't allow push new data.\n");
+        Utils::printf<Utils::AUTO>("Please dump the buffer first. (hint. dump-collection)\n");
+        return false;
+    }
+
+    if (!option<bool>("collect")) {
+        return false;
+    }
+    return true;
 }
 
 void Train::gather_probabilities(UCTNode &node, Position &pos) {
-    if (!option<bool>("collect")) return;
+    if (!handle()) return;
 
     auto data = DataCollection{};
     data.version = get_version();
@@ -241,7 +266,7 @@ void Train::gather_probabilities(UCTNode &node, Position &pos) {
 }
 
 void Train::gather_move(Move move, Position &pos) {
-    if (!option<bool>("collect")) return;
+    if (!handle()) return;
 
     auto data = DataCollection{};
     data.version = get_version();
@@ -259,15 +284,20 @@ void Train::gather_move(Move move, Position &pos) {
 void Train::gather_winner(Types::Color color) {
     if (!option<bool>("collect")) return;
 
-    for (const auto &data : m_buffer) {
+    const auto plies = m_buffer.back()->gameply;
+    for (const auto &data: m_buffer) {
         assert(data->winner == Types::INVALID_COLOR);
         data->winner = color;
+        data->moves_left = plies - data->gameply;
+        assert(data->moves_left >= 0);
     }
+    m_lock = true;
+    // We don't allow push new data until the buffer had been clear.
 }
 
 
 void Train::data_stream(std::ostream &out) {
-    for (const auto &data : m_buffer) {
+    for (const auto &data: m_buffer) {
         data->out_stream(out);
     }
 }
@@ -311,5 +341,6 @@ void Train::clear_buffer() {
         m_buffer.pop_front();
         m_counter--;
     }
+    m_lock = false;
     assert(m_counter == 0);
 }

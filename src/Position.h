@@ -40,7 +40,6 @@ public:
     void do_move_assume_legal(Move move);
     bool do_textmove(std::string move);
 
-    bool undo();
     bool gameover(bool searching);
     bool position(std::string &fen, std::string &moves);
 
@@ -49,15 +48,14 @@ public:
     Types::Color get_to_move() const;
     int get_movenum() const;
     int get_gameply() const;
-    int get_draw_moves() const;
+    int get_max_moves() const;
     Move get_last_move() const;
 
     Types::Piece_t get_piece_type(const Types::Vertices vtx) const;
     Types::Piece get_piece(const Types::Vertices vtx) const;
     std::string get_fen() const;
-    std::string get_wxfmove() const;
 
-    void set_draw_moves(int moves);
+    void set_max_moves(int moves);
     
     Board board;
     
@@ -68,16 +66,19 @@ public:
     const std::shared_ptr<const Board> get_past_board(const int p) const;
     std::vector<std::shared_ptr<const Board>>& get_history();
     
-    bool is_eaten() const;
-    bool is_checkmate(const Types::Color color) const;
+    bool is_capture() const;
+    bool is_check(const Types::Color color) const;
     std::string history_board() const;
 
-    std::pair<int, int> get_repetitions() const;
+    int get_repetitions() const;
+    int get_cycle_length() const;
     std::array<Types::Vertices, 2> get_kings() const;
 
 private:
+    void compute_repetitions();
+
     Types::Color resigned{Types::INVALID_COLOR};
-    int m_drawmoves;
+    int m_maxmoves;
 
     std::uint64_t position_hash;
     int m_startboard;

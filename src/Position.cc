@@ -18,13 +18,14 @@
 
 #include "Position.h"
 #include "Zobrist.h"
+#include "Instance.h"
 
 #include <queue>
 #include <iterator>
 #include <sstream>
 
 void Position::init_game(const int tag) {
-    m_drawmoves = 150;
+    set_max_moves(150);
     m_startboard = 0;
     position_hash = Zobrist::zobrist_positions[tag];
     m_history.clear();
@@ -49,36 +50,21 @@ void Position::do_resigned() {
 
 void Position::push_board() {
     m_history.emplace_back(std::make_shared<const Board>(board));
-    assert(get_gameply() == (int)m_history.size()-1);
 }
 
 bool Position::fen(std::string &fen) {
     auto fork_board = std::make_shared<Board>(board);
     auto success = fork_board->fen2board(fen);
-    auto current_ply = fork_board->get_gameply();
 
     if (!success) {
         return false;
-    } 
-
-    if (current_ply > get_gameply()) {
-        auto fill_board = std::make_shared<Board>(board);
-        while ((int)m_history.size() <= current_ply) {
-            fill_board->increment_gameply();
-            fill_board->swap_to_move();
-            m_history.emplace_back(std::make_shared<const Board>(*fill_board));
-        }
-        assert(fill_board->get_gameply() == (int)m_history.size()-1);
-    } else {
-        m_history.resize(current_ply+1);
     }
 
-    if (fork_board->get_hash() != m_history[current_ply]->get_hash()) {
-        m_history[current_ply] = fork_board;
-    }
+    m_history.clear();
+    m_startboard = 0;
 
-    m_startboard = current_ply;
-    board = *m_history[current_ply];
+    board = *fork_board;
+    push_board();
 
     return true;
 }
@@ -90,9 +76,10 @@ bool Position::is_legal(Move move) {
 void Position::do_move_assume_legal(Move move) {
     board.do_move_assume_legal(move);
     push_board();
-    if (is_eaten()) {
-        m_startboard = get_gameply();
+    if (is_capture()) {
+        m_startboard = m_history.size() - 1;
     }
+    compute_repetitions();
 }
 
 bool Position::do_move(Move move) {
@@ -121,32 +108,16 @@ std::vector<Move> Position::get_movelist() {
     return movelist;
 }
 
-bool Position::undo() {
-    const auto ply = get_gameply();
-    if (ply == 0) {
-        return false;
-    }
-
-    m_history.resize(ply);
-    board = *m_history[ply - 1];
-
-    assert(get_gameply() == ply-1);
-    assert(get_gameply() == (int)m_history.size()-1);
-
-    return true;
-}
-
 bool Position::position(std::string &fen, std::string &moves) {
     // First: Set the Fen.
     auto fork_board = std::make_shared<Board>(board);
     auto success = fork_board->fen2board(fen);
-    auto current_ply = fork_board->get_gameply();
 
     if (!success) {
         return false;
     }
 
-    // Second: Do moves.
+    // Second: Scan the moves.
     auto chain_moves = std::queue<Move>{};
     bool moves_success = true;
     auto move_cnt = size_t{0};
@@ -177,10 +148,7 @@ bool Position::position(std::string &fen, std::string &moves) {
             do_move_assume_legal(chain_moves.front());
             chain_moves.pop();
         }
-
-        current_ply += move_cnt;
-        assert(get_gameply() == current_ply);
-        assert(get_gameply() == (int)m_history.size()-1);
+        assert(m_history.size() == move_cnt + 1);
     }
 
     return moves_success;
@@ -202,7 +170,7 @@ Types::Color Position::get_winner(bool searching) {
     // player can eat opponent king. The current player win the
     // game.
     const auto to_move = get_to_move();
-    if (!searching && is_checkmate(to_move)) {
+    if (!searching && is_check(to_move)) {
         return to_move;
     }
 
@@ -213,7 +181,20 @@ Types::Color Position::get_winner(bool searching) {
         return Types::RED;
     }
 
-    if (get_movenum() > m_drawmoves) {
+    if (get_movenum() > m_maxmoves) {
+        return Types::EMPTY_COLOR;
+    }
+
+    auto instance = Instance(*this);
+    auto res = instance.judge();
+    if (res == Instance::DRAW) {
+        return Types::EMPTY_COLOR;
+    } else if (res == Instance::LOSE) {
+        return Board::swap_color(to_move);
+    } else if (res == Instance::UNKNOWN) {
+        // The program has no idea what the result is. Maybe the opponent 
+        // is lose, or draw. But we are so gentle. We simply think that the 
+        // result is draw. No consider lose result.
         return Types::EMPTY_COLOR;
     }
 
@@ -253,75 +234,47 @@ Types::Piece Position::get_piece(const Types::Vertices vtx) const {
 }
 
 const std::shared_ptr<const Board> Position::get_past_board(const int p) const {
-    const auto ply = get_gameply();
-    assert(0 <= p && p <= ply);
-    return m_history[ply - p];
+    const auto size = m_history.size();
+    assert(0 <= p && p <= (int)size - 1);
+    return m_history[size - p - 1];
 }
 
-std::pair<int, int> Position::get_repetitions() const {
-    static constexpr auto MIN_REPETITIONS_CNT = 4; 
-    const auto endboard = get_gameply();
-    const auto startboard = m_startboard;
-    const auto length = endboard - startboard + 1;
+void Position::compute_repetitions() {
+    int cycle_length = 0;
+    int repetitions = 0;
+    const auto current_hash = board.get_hash();
+    const auto size = m_history.size();
 
-    assert(length >= 1);
-    if (length <= 2 * MIN_REPETITIONS_CNT - 1) {
-        return std::make_pair(0, MIN_REPETITIONS_CNT);
-    }
-
-    const auto buffer_size = length/2;
-    auto boardhash = std::vector<std::uint64_t>(length);
-    auto buffer = std::vector<std::uint64_t>(buffer_size);
-    auto repetitions = 0;
-    assert(buffer_size >= MIN_REPETITIONS_CNT);
-
-    for (int i = 0; i < length; ++i) {
-        boardhash[i] = m_history[endboard-i]->get_hash();
-    }
-    std::copy(std::begin(boardhash),
-                  std::begin(boardhash) + buffer_size,
-                  std::begin(buffer));
-
-    const auto repetitions_proccess = [](std::vector<std::uint64_t> &bd_hash,
-                                         std::vector<std::uint64_t> &bf,
-                                         const int offset, const int cnt) -> bool {
-        for (int i = 0; i < cnt; ++i) {
-            if (bd_hash[i + offset] != bf[i]) {
-                return false;
-            }
-        }
-        return true;
-    };
-
-    int repetitions_cnt = MIN_REPETITIONS_CNT;
-    for (; repetitions_cnt <= buffer_size; ++repetitions_cnt) {
-        for (int offset = repetitions_cnt; offset + repetitions_cnt < length; offset += repetitions_cnt) {
-            const auto success = repetitions_proccess(boardhash, buffer, offset, repetitions_cnt);
-            if (success) {
-                repetitions++;
-            } else {
-                break;
-            }
-        }
-        if (repetitions > 0) {
+    for (int idx = size - 3; idx >= m_startboard; idx -= 2) {
+        const auto hash = m_history[idx]->get_hash();
+        if (hash == current_hash) {
+            cycle_length = size - idx - 1;
+            repetitions = 1 + m_history[idx]->get_repetitions();
             break;
         }
     }
+    assert(cycle_length % 2 == 0);
+    board.set_repetitions(repetitions, cycle_length);
+}
 
-    assert(repetitions <= 2);
-    return std::make_pair(repetitions, repetitions_cnt);
+int Position::get_repetitions() const {
+    return board.get_repetitions();
+}
+
+int Position::get_cycle_length() const {
+    return board.get_cycle_length();
 }
 
 std::array<Types::Vertices, 2> Position::get_kings() const {
     return board.get_kings();
 }
 
-bool Position::is_eaten() const {
-    return board.is_eaten();
+bool Position::is_capture() const {
+    return board.is_capture();
 }
 
-bool Position::is_checkmate(const Types::Color color) const {
-    return board.is_checkmate(color);
+bool Position::is_check(const Types::Color color) const {
+    return board.is_check(color);
 }
 
 std::string Position::history_board() const {
@@ -350,14 +303,10 @@ std::string Position::get_fen() const {
     return out.str();
 }
 
-std::string Position::get_wxfmove() const {
-    return board.get_wxfmove();
+int Position::get_max_moves() const {
+    return m_maxmoves;
 }
 
-int Position::get_draw_moves() const {
-    return m_drawmoves;
-}
-
-void Position::set_draw_moves(int moves) {
-    m_drawmoves = moves < 1 ? 1 : moves;
+void Position::set_max_moves(int moves) {
+    m_maxmoves = moves < 1 ? 1 : moves;
 }

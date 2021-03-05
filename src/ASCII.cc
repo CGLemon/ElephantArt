@@ -89,10 +89,6 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         const auto move = parser.get_command(1)->str;
         const auto ascii_out = m_ascii_engine->do_textmove(move);
         out << ascii_out << std::endl;
-    } else if (const auto res = parser.find("undo", 0)) {
-        lambda_syntax_not_understood(parser, 1);
-        const auto ascii_out = m_ascii_engine-> undo_move();
-        out << ascii_out << std::endl;
     } else if (const auto res = parser.find("raw-nn", 0)) {
         lambda_syntax_not_understood(parser, 1);
         out << m_ascii_engine->raw_nn();

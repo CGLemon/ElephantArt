@@ -17,17 +17,32 @@
 */
 
 #include "Position.h"
+#include "BitBoard.h"
+#include "Types.h"
 
 #include <fstream>
 #include <iostream>
 #include <string>
 
+struct PGNFormat {
+    using ColorMovePair = std::pair<Types::Color, Move>;
+    Types::Color result{Types::INVALID_COLOR};
+
+    std::unordered_map<std::string, std::string> properties;
+
+    std::string start_fen;
+
+    std::vector<ColorMovePair> moves;
+};
+
 class PGNParser {
 public:
-    void save_pgn(std::string filename, Position &pos);
-    void pgn_stream(std::ostream &out, Position &pos);
+    enum Format_t { WXF, ICCS };
+
+    void save_pgn(std::string filename, Position &pos, Format_t fmt = ICCS);
+    void pgn_stream(std::ostream &out, Position &pos, Format_t fmt = ICCS);
 
 private:
-    std::string from_position(Position &pos) const;
-    
+    std::string from_position(Position &pos, Format_t fmt) const;
+    PGNFormat position_to_pgnformat(Position &pos, Format_t fmt) const;
 };

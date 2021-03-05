@@ -11,15 +11,18 @@ FIXED_DATA_VERSION = 1
  L2  - L8 : Current player pieces Index
  L9  - L15: Other player pieces Index
  L16      : Current Player
- L17      : Game plies 
- L18      : Repetitions
+ L17      : Game plies
+ L18      : Max moves left
+ L19      : Repetitions
  
  ------- Prediction data -------
- L19      : Probabilities
- L20      : Which piece go to move
- L21      : Result
+ L20      : Probabilities
+ L21      : Which piece go to move
+ L22      : Moves left
+ L23      : Result
 
 '''
+
 class PiecesIndex:
     def __init__(self):
         # According to ElephantArt Engine, the pieces sequence follow
@@ -51,11 +54,13 @@ class Data(PiecesIndex):
 
         self.tomove = None
         self.plies = 0
+        self.moves_remaning = 0
         self.repetitions = 0
 
         self.policyindex = []
         self.probabilities = []
         self.move = None
+        self.moves_left = 0
         self.result = None
 
     def dump(self):
@@ -65,12 +70,14 @@ class Data(PiecesIndex):
         print(" ".join(str(out) for out in self.other_pieces))
         print("Tomove: {}".format(self.tomove))
         print("Plies: {}".format(self.plies))
+        print("Max moves left: {}".format(self.moves_remaning))
         print("Repetitions: {}".format(self.repetitions))
         print("Probabilities:")
         for idx, p in zip(self.policyindex, self.probabilities):
             print("({}: {}), ".format(idx, p), end="")
         print()
         print("Moved Piece: {}".format(self.move))
+        print("Moves left: {}".format(self.moves_left))
         print("Result: {}".format(self.result))
 
     # Only support version one.
@@ -93,23 +100,28 @@ class Data(PiecesIndex):
         elif linecnt == 16:
             self.plies = int(readline)
         elif linecnt == 17:
-            self.repetitions = int(readline)
+            self.moves_remaning = int(readline)
+
         elif linecnt == 18:
+            self.repetitions = int(readline)
+        elif linecnt == 19:
             p = readline.split()
             for i in range(len(p)):
                 if i % 2 == 0:
                     self.policyindex.append(int(p[i]))
                 elif i % 2 == 1:
                     self.probabilities.append(float(p[i]))
-        elif linecnt == 19:
-            self.move = readline.rstrip("\n")
         elif linecnt == 20:
+            self.move = int(readline)
+        elif linecnt == 21:
+            self.moves_left = int(readline)   
+        elif linecnt == 22:
             self.result = int(readline)
 
     @staticmethod
     def get_datalines(version):
         if version == 1:
-            return 21
+            return 23
         return 0
 
 class ChunkParser:
@@ -145,20 +157,19 @@ class ChunkParser:
         fmt += str(data.TOTAL_NUMBER) + int_symbol
 
         # inputs misc(current player, plies, repetitions)
-        fmt += str(3) + int_symbol
-        misc = [data.tomove, data.plies, data.repetitions]
+        fmt += str(4) + int_symbol
+        inputs_misc = [data.tomove, data.plies, data.moves_remaning, data.repetitions]
 
         # probabilities
         probsize = len(data.probabilities)
         fmt += str(probsize) + int_symbol + str(probsize) + "f"
 
-        # piece to go
-        fmt += "c"
+        # predict misc(piece to go, moves left, result)
+        fmt += str(3) + int_symbol
+        preds_misc = [data.move, data.moves_left, data.result]
 
-        # result
-        fmt += int_symbol
-        data.move = bytes(data.move, "utf-8")
-        buf = struct.pack(fmt, *data.current_pieces, *data.other_pieces, *misc, *data.policyindex, *data.probabilities, data.move, data.result)
+
+        buf = struct.pack(fmt, *data.current_pieces, *data.other_pieces, *inputs_misc, *data.policyindex, *data.probabilities, *preds_misc)
 
         return buf, probsize
 
@@ -172,43 +183,42 @@ class ChunkParser:
         # other player pieces
         fmt += str(data.TOTAL_NUMBER) + int_symbol
 
-        # inputs misc(current player, plies, repetitions)
-        fmt += str(3) + int_symbol
+        # inputs misc(current player, plies, max moves left, repetitions)
+        fmt += str(4) + int_symbol
 
         # probabilities
         fmt += str(probsize) + int_symbol + str(probsize) + "f"
 
-        # piece to go
-        fmt += "c"
-
-        # result
-        fmt += int_symbol
-
+        # predict misc(piece to go, moves left, result)
+        fmt += str(3) + int_symbol
 
         unpacked = struct.unpack(fmt, buf)
         
         offset = 0
+
         data.current_pieces = unpacked[offset : offset+16]
+        offset += data.TOTAL_NUMBER
 
-        offset += 16
         data.other_pieces = unpacked[offset : offset+16]
+        offset += data.TOTAL_NUMBER
 
-        offset += 16
         data.tomove = unpacked[offset]
         data.plies = unpacked[offset+1]
-        data.repetitions = unpacked[offset+2]
+        data.moves_remaning = unpacked[offset+2]
+        data.repetitions = unpacked[offset+3]
+        offset += 4
 
-        offset += 3
         data.policyindex = unpacked[offset : offset+probsize]
-
         offset += probsize
+
         data.probabilities = unpacked[offset : offset+probsize]
-
         offset += probsize
-        data.move = unpacked[offset]
-        data.result = unpacked[offset+1]
 
-        assert offset+2 == len(unpacked), ""
+        data.move = unpacked[offset]
+        data.moves_left = unpacked[offset+1]
+        data.result = unpacked[offset+2]
+
+        assert offset+3 == len(unpacked), ""
 
         return data
 

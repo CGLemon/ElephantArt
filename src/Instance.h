@@ -22,9 +22,7 @@
 
 class Instance {
 public:
-    enum Result {
-        NONE = 0, DRAW, UNKNOWN
-    };
+    enum Result { NONE = 0, DRAW, LOSE, UNKNOWN };
 
     Instance(Position &position);
 

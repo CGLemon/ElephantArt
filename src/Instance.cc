@@ -18,15 +18,43 @@
 
 #include "Instance.h"
 
+#include <cassert>
+
 Instance::Instance(Position &position) : m_position(position) {}
 
 Instance::Result Instance::judge() {
-    auto repetitions = m_position.get_repetitions();
-    if (repetitions.first < 2) {
+    const auto repetitions = m_position.get_repetitions();
+    const auto cycle_length = m_position.get_cycle_length();
+
+    if (repetitions < 2) {
         return NONE;
     }
 
-    // auto &history = m_position.get_history();
+    assert(repetitions != 3);
+
+    auto &history = m_position.get_history();
+    const auto to_move = m_position.get_to_move();
+
+    if (m_position.is_check(to_move)) {
+        auto perpetual_check = true;
+        for (int i = 0; i < cycle_length; i+=2) {
+            auto &board = history[history.size() - 0 - 1];
+            assert(to_move == board->get_to_move());
+
+            if (!board->is_check(to_move)) {
+                perpetual_check = false;
+                break;
+            }
+        }
+        if (perpetual_check) {
+            // This is perpetual check case. We lose the game.
+            return LOSE;
+        }
+    }
+
+
+    // Perpetual pursuit
+
 
     return UNKNOWN;
 }
