@@ -121,11 +121,11 @@ void fill_piece_planes(const std::shared_ptr<const Board> board,
 }
 
 std::vector<float> Model::gather_planes(const Position *const pos) {
-
     static constexpr auto MOVES_PLANES = INPUT_MOVES * 14;
     static constexpr auto STATUS_PLANES = INPUT_STATUS;
-    assert(INPUT_CHANNELS == MOVES_PLANES + STATUS_PLANES);
-    assert(INPUT_CHANNELS == 16);
+
+    static_assert(INPUT_CHANNELS == MOVES_PLANES + STATUS_PLANES, "");
+    static_assert(INPUT_CHANNELS == 16, "");
 
     // planes |  1 -  7 | Current player picee position.
     // planes |  8 - 14 | Next player picee position.
@@ -141,8 +141,8 @@ std::vector<float> Model::gather_planes(const Position *const pos) {
         std::advance(blk_iterator, (INPUT_MOVES * 7) * Board::INTERSECTIONS);
     }
 
-    const auto ply = pos->get_gameply();
-    const auto past_moves = std::min(INPUT_MOVES, ply+1);
+    const auto maxsize = pos->get_historysize();
+    const auto past_moves = std::min(INPUT_MOVES, maxsize);
     
     // plane 1-7 and 8-14
     for (auto p = 0; p < INPUT_MOVES; ++p) {
@@ -181,7 +181,7 @@ std::vector<float> Model::gather_features(const Position *const pos) {
     const auto ply = pos->get_gameply();
     const auto rpt = pos->get_repetitions();
     input_features[0] = static_cast<float>(ply)/30.f;
-    input_features[1] = 0;
+    input_features[1] = 1;
     if (rpt >= 1) {
         input_features[2] = static_cast<float>(true);
     }

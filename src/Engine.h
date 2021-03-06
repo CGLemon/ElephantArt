@@ -57,6 +57,7 @@ public:
     Response ponderhit(const int g = DEFUALT_POSITION);
     Response selfplay(const int g = DEFUALT_POSITION);
     Response printf_pgn(std::string filename = "NO_FILE_NAME", const int g = DEFUALT_POSITION);
+    Response load_pgn(std::string filename, const int g = DEFUALT_POSITION);
 private:
     int clamp(const int g) const;
 

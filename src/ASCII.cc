@@ -140,6 +140,13 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
             const auto filename = parser.get_command(1)->str;
             out << m_ascii_engine->printf_pgn(filename);
         }
+    } else if (const auto res = parser.find("load-pgn", 0)) {
+        lambda_syntax_not_understood(parser, 2);
+        const auto cnt = parser.get_count();
+        if (cnt >= 2) {
+            const auto filename = parser.get_command(1)->str;
+            out << m_ascii_engine->load_pgn(filename);
+        }
     } else {
         auto commands = parser.get_commands();
         out << "Unknown command: " << commands->str;

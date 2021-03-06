@@ -63,6 +63,7 @@ class DataSet():
 
         # input features
         input_features[0] = data.plies / 30
+        input_features[1] = 1
         if data.repetitions >= 1:
             input_features[2] = 1
         if data.repetitions >= 2:

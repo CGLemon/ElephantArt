@@ -24,7 +24,9 @@
 #include <iostream>
 #include <string>
 
-struct PGNFormat {
+struct PGNRecorder {
+    enum Format_t { WXF, ICCS };
+
     using ColorMovePair = std::pair<Types::Color, Move>;
     Types::Color result{Types::INVALID_COLOR};
 
@@ -33,16 +35,21 @@ struct PGNFormat {
     std::string start_fen;
 
     std::vector<ColorMovePair> moves;
+
+    Format_t format;
 };
 
 class PGNParser {
 public:
-    enum Format_t { WXF, ICCS };
+    void savepgn(std::string filename, Position &pos, PGNRecorder::Format_t fmt = PGNRecorder::ICCS) const;
+    void pgn_stream(std::ostream &out, Position &pos, PGNRecorder::Format_t fmt = PGNRecorder::ICCS) const;
 
-    void save_pgn(std::string filename, Position &pos, Format_t fmt = ICCS);
-    void pgn_stream(std::ostream &out, Position &pos, Format_t fmt = ICCS);
+    void loadpgn(std::string filename, Position &pos) const;
+    void gather_pgnlist(std::string filename, std::vector<PGNRecorder> &pgns) const;
 
 private:
-    std::string from_position(Position &pos, Format_t fmt) const;
-    PGNFormat position_to_pgnformat(Position &pos, Format_t fmt) const;
+    std::string get_pgnstring(PGNRecorder pgn) const;
+    PGNRecorder from_position(Position &pos, PGNRecorder::Format_t fmt) const;
+
+    void from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgns) const;
 };

@@ -307,6 +307,10 @@ int Position::get_max_moves() const {
     return m_maxmoves;
 }
 
+int Position::get_historysize() const {
+    return static_cast<int>(m_history.size());
+}
+
 void Position::set_max_moves(int moves) {
     m_maxmoves = moves < 1 ? 1 : moves;
 }

@@ -1,7 +1,9 @@
 import glob
 import struct
 
-FIXED_DATA_VERSION = 1
+# Now the version is zero. This is experiment version. We don't
+# promise that the data format will same in the future. 
+FIXED_DATA_VERSION = 0
 
 '''
 ------- claiming -------
@@ -120,7 +122,7 @@ class Data(PiecesIndex):
 
     @staticmethod
     def get_datalines(version):
-        if version == 1:
+        if version == 0:
             return 23
         return 0
 

@@ -1064,11 +1064,6 @@ BitBoard Board::generate_move<Types::CANNON>(Types::Color color, std::vector<Mov
 
 // Generating the all legal moves to the list.
 BitBoard Board::generate_movelist(Types::Color color, std::vector<Move> &movelist) const {
-    const auto reserve = option<int>("reserve_movelist");
-
-    movelist.clear();
-    movelist.reserve(reserve);
-
     auto attacks = BitBoard(0ULL);
 
     // We don't remove the moves which may make the king be

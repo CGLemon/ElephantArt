@@ -48,6 +48,7 @@ public:
     Types::Color get_to_move() const;
     int get_movenum() const;
     int get_gameply() const;
+    int get_historysize() const;
     int get_max_moves() const;
     Move get_last_move() const;
 

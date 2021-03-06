@@ -20,6 +20,7 @@
 #include "config.h"
 #include "Decoder.h"
 #include "Utils.h"
+#include "PGNParser.h"
 
 #include <algorithm>
 
@@ -58,6 +59,8 @@ void DataCollection::out_stream(std::ostream &out) {
  */
 
     // version
+    // Now the version is zero. This is experiment version. We don't
+    // promise that the data format will same in the future. 
     out << version << std::endl;
 
     // pieces Index
@@ -270,6 +273,7 @@ void Train::gather_move(Move move, Position &pos) {
 
     auto data = DataCollection{};
     data.version = get_version();
+
     const auto maps = Decoder::move2maps(move);
     data.probabilities.emplace_back(maps, 1.0f);
 
@@ -322,8 +326,31 @@ void Train::save_data(std::string filename, bool append) {
     }
 }
 
+void Train::supervised(std::string pgnfile, std::string datafile) {
+    auto pgns = std::vector<PGNRecorder>{};
+    auto parser = PGNParser{};
+
+    parser.gather_pgnlist(pgnfile, pgns);
+    auto pos = std::make_shared<Position>();
+    for (auto &pgn: pgns) {
+        if (pgn.result == Types::INVALID_COLOR) {
+            continue;
+        }
+        pos->init_game(0);
+        pos->fen(pgn.start_fen);
+
+        for (const auto &pair: pgn.moves) {
+            auto move = pair.second;
+            gather_move(move, *pos);
+            pos->do_move_assume_legal(move);
+        }
+        gather_winner(pgn.result);
+        save_data(datafile, true);
+    }
+}
+
 int Train::get_version() const {
-    return 1;
+    return 0;
 }
 
 void Train::push_buffer(DataCollection &data) {

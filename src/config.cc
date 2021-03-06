@@ -81,7 +81,6 @@ void init_options_map() {
     options_map["log_file"] << Utils::Option::setoption(NO_LOG_FILE_NAME);
 
     options_map["num_games"] << Utils::Option::setoption(1, 32, 1);
-    options_map["reserve_movelist"] << Utils::Option::setoption(60);
 
     options_map["softmax_pol_temp"] << Utils::Option::setoption(1.0f);
     options_map["softmax_wdl_temp"] << Utils::Option::setoption(1.0f);

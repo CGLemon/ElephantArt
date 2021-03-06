@@ -80,6 +80,7 @@ public:
     void data_stream(std::ostream &out);
 
     void clear_buffer();
+    void supervised(std::string pgnfile, std::string datafile);
 
 private:
     bool handle() const;
