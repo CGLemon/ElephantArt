@@ -166,7 +166,7 @@ void CPUBackend::forward(const std::vector<float> &planes,
 }
 
 void CPUBackend::destroy() {
-    // Do nothing
+    // Do nothing.
 }
 
 void CPUBackend::release() {

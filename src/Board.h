@@ -88,7 +88,7 @@ public:
     static void pre_initialize();
     static Move text2move(std::string text);
     
-    static std::string get_wxfstring(Move m);
+    std::string get_wxfstring(Move m) const;
     static std::string get_iccsstring(Move m);
 
     void set_repetitions(int repetitions, int cycle_length);

@@ -27,7 +27,7 @@ std::array<bool, POLICYMAP * Board::INTERSECTIONS> Decoder::policymaps_valid;
 std::unordered_map<std::uint16_t, int> Decoder::moves_map;
 
 void Decoder::initialize() {
-    const auto in_boundary = [&](const int x, const int y) -> bool {
+    const auto in_boundary = [](const int x, const int y) -> bool {
         if (x < 0 || x >= Board::WIDTH) {
             return false;
         }
@@ -55,7 +55,7 @@ void Decoder::initialize() {
     std::fill(std::begin(policymaps_moves), std::end(policymaps_moves), Move{});
     std::fill(std::begin(policymaps_valid), std::end(policymaps_valid), true);
  
-    // planes |  1 - 18 | file moves
+    // planes 1 - 18: file moves
     for (int p = 0; p < 18; ++p) {
         for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
             const auto x = Board::get_x(v);
@@ -78,7 +78,7 @@ void Decoder::initialize() {
         }
     }
 
-    // planes | 19 - 34 | rank moves
+    // planes 19 - 34: rank moves
     for (int p = 0; p < 16; ++p) {
         for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
             const auto x = Board::get_x(v);
@@ -100,7 +100,7 @@ void Decoder::initialize() {
         }
     }
     
-    // planes | 35 - 42 | horse moves
+    // planes 35 - 42: horse moves
     for (int p = 0; p < 8; ++p) {
         for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
             const auto x = Board::get_x(v);
@@ -122,7 +122,7 @@ void Decoder::initialize() {
         }
     }
     
-    // planes | 43 - 46 | advisor moves
+    // planes 43 - 46: advisor moves
     for (int p = 0; p < 4; ++p) {
         for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
             const auto x = Board::get_x(v);
@@ -143,7 +143,7 @@ void Decoder::initialize() {
         }
     }
     
-    // planes | 47 - 50 | elephant moves
+    // planes 47 - 50: elephant moves
     for (int p = 0; p < 4; ++p) {
         for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
             const auto x = Board::get_x(v);

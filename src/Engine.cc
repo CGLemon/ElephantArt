@@ -327,6 +327,13 @@ Engine::Response Engine::printf_pgn(std::string filename, const int g) {
     return rep.str();
 }
 
+Engine::Response Engine::supervised(std::string filename, std::string outname, const int g) {
+    auto rep = std::ostringstream{};
+    auto t = get_train(g);
+    t->supervised(filename, outname);
+    return rep.str();
+}
+
 Engine::Response Engine::load_pgn(std::string filename, const int g) {
     auto rep = std::ostringstream{};
     auto parser = PGNParser{};

@@ -118,6 +118,8 @@ std::string PGNParser::get_pgnstring(PGNRecorder pgn) const {
     stream_helper(pgn, "FEN", pgnstream);
     stream_helper(pgn, "Format", pgnstream);
 
+    auto pos = std::make_shared<Position>();
+    pos->init_game(0);
     auto fmt = pgn.format;
     auto cnt = 1;
     for (auto idx = size_t{0}; idx < pgn.moves.size();) {
@@ -131,10 +133,11 @@ std::string PGNParser::get_pgnstring(PGNRecorder pgn) const {
 
         auto m1 = pair.second;
         if (fmt == PGNRecorder::WXF) {
-            pgnstream << Board::get_wxfstring(m1);
+            pgnstream << pos->get_wxfstring(m1);
         } else if (fmt == PGNRecorder::ICCS) {
             pgnstream << Board::get_iccsstring(m1);
         }
+        pos->do_move_assume_legal(m1);
 
         if (c1 == Types::BLACK) {
             pgnstream << std::endl;
@@ -150,10 +153,11 @@ std::string PGNParser::get_pgnstring(PGNRecorder pgn) const {
         pair = pgn.moves[idx++];
         auto m2 = pair.second;
         if (fmt == PGNRecorder::WXF) {
-            pgnstream << Board::get_wxfstring(m2);
+            pgnstream << pos->get_wxfstring(m2);
         } else if (fmt == PGNRecorder::ICCS) {
             pgnstream << Board::get_iccsstring(m2);
         }
+        pos->do_move_assume_legal(m2);
         pgnstream << std::endl;
     }
 
@@ -336,7 +340,7 @@ void PGNParser::from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgn
                 } else if (pgn->properties["Format"] == "ICCS") {
                     pgn->format = PGNRecorder::ICCS;
                 } else {
-                   ERROR_HANDLE(pos->fen(pgn->start_fen), "Illegal Format")
+                    ERROR_HANDLE(pos->fen(pgn->start_fen), "Illegal Format")
                 }
 
                 pgn->start_fen = pgn->properties["FEN"];
@@ -345,13 +349,13 @@ void PGNParser::from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgn
                 if (pgn->properties["Result"] == "1-0") {
                     pgn->result = Types::RED;
                 } else if (pgn->properties["Result"] == "0-1") {
-                   pgn->result = Types::BLACK;
+                    pgn->result = Types::BLACK;
                 } else if (pgn->properties["Result"] == "1/2-1/2") {
-                   pgn->result = Types::EMPTY_COLOR;
+                    pgn->result = Types::EMPTY_COLOR;
                 } else if (pgn->properties["Result"] == "*") {
-                   pgn->result = Types::INVALID_COLOR;
+                    pgn->result = Types::INVALID_COLOR;
                 } else {
-                   ERROR_HANDLE(false, "Illegal Result Format")
+                    ERROR_HANDLE(false, "Illegal Result Format")
                 }
             }
             temp_stream << c;
@@ -359,7 +363,9 @@ void PGNParser::from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgn
         }
     }
 
+#undef NOT_SUPPORT_HANDLE
 #undef ERROR_HANDLE
+
     if (pgn) {
         pgns.emplace_back(*pgn);
     }

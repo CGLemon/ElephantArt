@@ -115,7 +115,7 @@ public:
     ENABLE_INCR_OPERATORS_ON(Rank)
 
     enum Language : int {
-        ASCII = 0, TRADITIONAL_CHINESE
+        ASCII = 0, CHINESE
     };
 };
 

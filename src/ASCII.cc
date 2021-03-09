@@ -147,6 +147,14 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
             const auto filename = parser.get_command(1)->str;
             out << m_ascii_engine->load_pgn(filename);
         }
+    } else if (const auto res = parser.find("supervised", 0)) {
+        lambda_syntax_not_understood(parser, 3);
+        const auto cnt = parser.get_count();
+        if (cnt >= 3) {
+            const auto filename = parser.get_command(1)->str;
+            const auto outname = parser.get_command(1)->str;
+            out << m_ascii_engine->supervised(filename, outname);
+        }
     } else {
         auto commands = parser.get_commands();
         out << "Unknown command: " << commands->str;

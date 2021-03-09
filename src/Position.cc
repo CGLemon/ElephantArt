@@ -18,7 +18,7 @@
 
 #include "Position.h"
 #include "Zobrist.h"
-#include "Instance.h"
+#include "Repetition.h"
 
 #include <queue>
 #include <iterator>
@@ -36,8 +36,8 @@ void Position::init_game(const int tag) {
 
 void Position::display() const {
     const auto lastmove = get_last_move();
-    if (option<bool>("using_traditional_chinese")) {
-        board.dump_board<Types::TRADITIONAL_CHINESE>(lastmove);
+    if (option<bool>("using_chinese")) {
+        board.dump_board<Types::CHINESE>(lastmove);
     } else {
         board.dump_board<Types::ASCII>(lastmove);
     }
@@ -99,6 +99,26 @@ bool Position::do_textmove(std::string smove) {
     }
     return false;
 }
+
+bool Position::undo_move() {
+    const auto size = m_history.size();
+    assert(size >= 1);
+    if (size == 1) {
+        return false;
+    }
+    m_history.resize(size-1);
+    board = *m_history[size-2];
+    return true;
+}
+
+bool Position::undo_move(int moves_age) {
+    auto success = true;
+    for (int i = 0; i < moves_age; ++i) {
+        success &= undo_move();
+    }
+    return success;
+}
+
 
 std::vector<Move> Position::get_movelist() {
     auto movelist = std::vector<Move>{};
@@ -185,13 +205,13 @@ Types::Color Position::get_winner(bool searching) {
         return Types::EMPTY_COLOR;
     }
 
-    auto instance = Instance(*this);
-    auto res = instance.judge();
-    if (res == Instance::DRAW) {
+    auto rep = Repetition(*this);
+    auto res = rep.judge();
+    if (res == Repetition::DRAW) {
         return Types::EMPTY_COLOR;
-    } else if (res == Instance::LOSE) {
+    } else if (res == Repetition::LOSE) {
         return Board::swap_color(to_move);
-    } else if (res == Instance::UNKNOWN) {
+    } else if (res == Repetition::UNKNOWN) {
         // The program has no idea what the result is. Maybe the opponent 
         // is lose, or draw. But we are so gentle. We simply think that the 
         // result is draw. No consider lose result.
@@ -283,8 +303,8 @@ std::string Position::history_board() const {
     for (const auto &board : m_history) {
         const auto lastmove = board->get_last_move();
         out << "Board Index : " << ++idx << std::endl;
-        if (option<bool>("using_traditional_chinese")) {
-            board->board_stream<Types::TRADITIONAL_CHINESE>(out, lastmove);
+        if (option<bool>("using_chinese")) {
+            board->board_stream<Types::CHINESE>(out, lastmove);
         } else {
             board->board_stream<Types::ASCII>(out, lastmove);
         }
@@ -295,6 +315,10 @@ std::string Position::history_board() const {
 
 std::vector<std::shared_ptr<const Board>>& Position::get_history() {
     return m_history;
+}
+
+std::string Position::get_wxfstring(Move m) const {
+    return get_wxfstring(m);
 }
 
 std::string Position::get_fen() const {

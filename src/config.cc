@@ -131,7 +131,7 @@ void init_options_map() {
     options_map["red_advisor_en"] << Utils::Option::setoption('A');
     options_map["red_king_en"] << Utils::Option::setoption('K');
 
-    options_map["using_traditional_chinese"] << Utils::Option::setoption(false);
+    options_map["using_chinese"] << Utils::Option::setoption(false);
     options_map["black_pawn_ch"] << Utils::Option::setoption("卒");
     options_map["black_horse_ch"] << Utils::Option::setoption("馬");
     options_map["black_cannon_ch"] << Utils::Option::setoption("砲");
@@ -193,7 +193,7 @@ ArgsParser::ArgsParser(int argc, char** argv) {
     }
 
     if (const auto res = parser.find({"--chinese", "-ch"})) {
-        set_option("using_traditional_chinese", true);
+        set_option("using_chinese", true);
         parser.remove_command(res->idx);
     }
 

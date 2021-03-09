@@ -618,7 +618,7 @@ void Board::piece_stream<Types::ASCII>(std::ostream &out, Types::Piece p) {
 }
 
 template<>
-void Board::piece_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out, Types::Piece p) {
+void Board::piece_stream<Types::CHINESE>(std::ostream &out, Types::Piece p) {
     using STR = std::string;
     p == Types::R_PAWN      ? out << option<STR>("red_pawn_ch")     : p == Types::B_PAWN      ? out << option<STR>("black_pawn_ch")     :
     p == Types::R_CANNON    ? out << option<STR>("red_cannon_ch")   : p == Types::B_CANNON    ? out << option<STR>("black_cannon_ch")   :
@@ -641,7 +641,6 @@ void Board::info_stream<Types::ASCII>(std::ostream &out) const {
         out << "color error!";
     }
 
-    out << ", WXF: " << get_wxfstring(get_last_move());
     out << ", Last move: " << get_last_move().to_string();
     out << ", Ply number: " << get_gameply();
     out << ", Hash: " << std::hex << get_hash() << std::dec;
@@ -652,7 +651,7 @@ void Board::info_stream<Types::ASCII>(std::ostream &out) const {
 }
 
 template<>
-void Board::info_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out) const {
+void Board::info_stream<Types::CHINESE>(std::ostream &out) const {
     out << "{";
     if (m_tomove == Types::RED) {
         out << "下一手 ：紅方";
@@ -662,7 +661,6 @@ void Board::info_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out) const {
         out << "color error!";
     }
 
-    out << ", WXF : " << get_wxfstring(get_last_move());
     out << "，上一手棋 ：" << get_last_move().to_string();
     out << "，第 " << get_gameply() << " 手棋";
     out << "，哈希 ：" << std::hex << get_hash() << std::dec;
@@ -763,7 +761,7 @@ void Board::board_stream<Types::ASCII>(std::ostream &out, const Move lastmove) c
 }
 
 template<>
-void Board::board_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out, const Move lastmove) const {
+void Board::board_stream<Types::CHINESE>(std::ostream &out, const Move lastmove) const {
     const auto to_vertex = lastmove.get_to();
     for (int y = 0; y < HEIGHT; ++y) {
         Utils::space_stream(out, 1);
@@ -789,7 +787,7 @@ void Board::board_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out, const Mo
             } else {
                 out << " ";
             }
-            piece_stream<Types::TRADITIONAL_CHINESE>(out, coordinate_x, coordinate_y);
+            piece_stream<Types::CHINESE>(out, coordinate_x, coordinate_y);
         }
         if (mark) {
             mark = false;
@@ -806,7 +804,7 @@ void Board::board_stream<Types::TRADITIONAL_CHINESE>(std::ostream &out, const Mo
     out << "    a    b    c    d    e    f    g    h    i";
     Utils::strip_stream(out, 2);
 
-    info_stream<Types::TRADITIONAL_CHINESE>(out);
+    info_stream<Types::CHINESE>(out);
 }
 
 std::uint64_t Board::calc_hash() const {
@@ -1109,7 +1107,7 @@ void Board::swap_to_move() {
 void Board::do_move_assume_legal(Move move) {
     const auto from = move.get_from();
     const auto to = move.get_to();
-    const auto form_bitboard =  move.get_from_bitboard();
+    const auto form_bitboard = move.get_from_bitboard();
     const auto to_bitboard = move.get_to_bitboard();
 
     // Get the color.
@@ -1297,10 +1295,117 @@ std::array<BitBoard, 2> Board::get_colors() const {
     return m_bb_color;
 }
 
-std::string Board::get_wxfstring(Move m) {
-    // Not complete yet.
+std::string Board::get_wxfstring(Move move) const {
+    // We assune that it is not a variant.
+    if (!is_legal(move)) {
+        return std::string{"None"};
+    }
+    auto out = std::ostringstream{};
 
-    return std::string{"None"};
+    auto redside = get_to_move() == Types::RED;
+    const auto from_x = redside ? get_x(move.get_from()) : WIDTH  - get_x(move.get_from()) - 1;
+    const auto from_y = redside ? get_y(move.get_from()) : HEIGHT - get_y(move.get_from()) - 1;
+    const auto to_x = redside ? get_x(move.get_to()) : WIDTH  - get_x(move.get_to()) - 1;
+    const auto to_y = redside ? get_y(move.get_to()) : HEIGHT - get_y(move.get_to()) - 1;
+
+    const auto file = static_cast<Types::File>(from_x);
+    const auto file_bb = Utils::file2bitboard(file);
+
+    // const auto x_dis = to_x - from_x;
+    const auto y_dis = to_y - from_y;
+
+    const auto pt = get_piece_type(move.get_from());
+    piece_stream<Types::ASCII>(out, static_cast<Types::Piece>(pt));
+
+    if (pt == Types::KING || pt == Types::ADVISOR || pt == Types::ELEPHANT) {
+        out << from_x + 1;
+    } else if (pt == Types::HORSE || pt == Types::ROOK || pt == Types::CANNON) {
+        const auto ref_bb = pt == Types::HORSE ? m_bb_horse :
+                                pt == Types::ROOK ? m_bb_rook : m_bb_cannon;
+        auto occupancy = ref_bb & m_bb_color[get_to_move()] & file_bb;
+        const auto cnt = Utils::count_few(occupancy);
+        assert(cnt == 1 || cnt == 2);
+
+        if (cnt == 1) {
+            out << from_x + 1;
+        } else if (cnt == 2){
+            auto low_vtx = Utils::extract(occupancy);
+            auto high_vtx = Utils::extract(occupancy);
+            if (!redside) {
+                std::swap(low_vtx, high_vtx);
+            }
+            move.get_to() == high_vtx ? out << '+' : out << '.';
+        }
+    } else if (pt == Types::PAWN) {
+        auto temp = std::vector<int>{};
+        auto p_cnt = 0;
+        auto p_occ = BitBoard(0ULL);
+        for (auto ff = Types::FILE_A; ff < Types::FILE_J; ++ff) {
+            const auto ff_bb = Utils::file2bitboard(file);
+            auto occupancy = m_bb_pawn & m_bb_color[get_to_move()] & ff_bb;
+            const auto cnt = Utils::count_few(occupancy);
+            if (cnt >= 2) {
+                temp.emplace_back(cnt);
+            }
+            if (ff == file) {
+                p_cnt = cnt;
+                p_occ = occupancy;
+            }
+        }
+
+        if (p_cnt >= 2) {
+            auto num = 0;
+            while (p_occ) {
+                num++;
+                if (move.get_from() == Utils::extract(p_occ)) {
+                    break;
+                }
+            }
+
+            if (!redside) {
+                num = p_cnt - num + 1;
+            }
+
+            auto tempout = std::ostringstream{};
+
+            if (p_cnt == 2) {
+                num == p_cnt ? tempout << '+' : tempout << '.';
+            } else if (p_cnt == 3) {
+                num == p_cnt ? tempout << '+' :
+                    num == p_cnt-1 ? tempout << '-' : tempout << '.';
+            } else {
+                num == p_cnt ? tempout << '+' : tempout << static_cast<char>(97 + (p_cnt - num));
+            }
+
+            if (temp.size() >= 2) {
+                out = std::ostringstream{};
+                out << from_x + 1;
+            }
+
+            out << tempout.str();
+
+        } else {
+            out << from_x + 1;
+        }
+    } 
+
+    if (pt == Types::PAWN || pt == Types::CANNON || pt == Types::ROOK || pt == Types::PAWN) {
+        if (y_dis == 0) {
+            out << '.' << to_x + 1;
+        } else if (y_dis > 0) {
+            out << '+'<< y_dis;
+        } else if (y_dis < 0) {
+            out << '-' << -y_dis;
+        }
+    } else if (pt == Types::ADVISOR || pt == Types::ELEPHANT || pt == Types::HORSE) {
+        if (y_dis > 0) {
+            out << '+' << to_x + 1;
+        } else {
+            out << '-' << to_x + 1;
+        }
+    }
+
+    return out.str();
 }
 
 std::string Board::get_iccsstring(Move m) {

@@ -40,6 +40,9 @@ public:
     void do_move_assume_legal(Move move);
     bool do_textmove(std::string move);
 
+    bool undo_move();
+    bool undo_move(int moves_age);
+
     bool gameover(bool searching);
     bool position(std::string &fen, std::string &moves);
 
@@ -71,6 +74,7 @@ public:
     bool is_check(const Types::Color color) const;
     std::string history_board() const;
 
+    std::string get_wxfstring(Move m) const;
     int get_repetitions() const;
     int get_cycle_length() const;
     std::array<Types::Vertices, 2> get_kings() const;

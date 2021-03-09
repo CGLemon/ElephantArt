@@ -22,7 +22,7 @@
 #include "Utils.h"
 #include "config.h"
 #include "Decoder.h"
-#include "Instance.h"
+#include "Repetition.h"
 
 #include <thread>
 #include <algorithm>
@@ -82,19 +82,19 @@ bool UCTNode::expend_children(Network &network,
         if (is_root) {
             auto fork_pos = std::make_shared<Position>(pos);
             fork_pos->do_move_assume_legal(move);
-            auto instance = Instance(*fork_pos);
-            auto res = instance.judge();
-            if (res == Instance::UNKNOWN) {
+            auto rep = Repetition(*fork_pos);
+            auto res = rep.judge();
+            if (res == Repetition::UNKNOWN) {
                 // It is unknown result. we don't need to consider it if we have
                 // other choice. But if not, we will add inferior moves to the
                 // node list.
                 inferior_legal += policy;
                 inferior_moves.emplace_back(policy, maps);
                 continue;
-            } else if (res == Instance::LOSE) {
+            } else if (res == Repetition::LOSE) {
                 // If we are lose. Don't need to consider this move.
                 continue;
-            } else if (res == Instance::DRAW) {
+            } else if (res == Repetition::DRAW) {
                 // Do nothing.
             }
 
@@ -103,7 +103,7 @@ bool UCTNode::expend_children(Network &network,
             }
 
 
-            // TODO: Probe continuous check until checkmate.
+            // TODO: Probe forced checkmate sequences.
         }
 
         if (move.get_to() == kings[Board::swap_color(m_color)]) {

@@ -16,21 +16,20 @@
     along with ElephantArt.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef INSTANCE_H_INCLUDE
-#define INSTANCE_H_INCLUDE
+#ifndef REPETITION_H_INCLUDE
+#define REPETITION_H_INCLUDE
 #include "Position.h"
 
-class Instance {
+class Repetition {
 public:
     enum Result { NONE = 0, DRAW, LOSE, UNKNOWN };
 
-    Instance(Position &position);
+    Repetition(Position &position);
 
     Result judge();
 
 private:
-    Position m_position;
-
+    Position &m_position;
 };
 
 #endif
