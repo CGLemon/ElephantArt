@@ -47,7 +47,7 @@ void DataCollection::out_stream(std::ostream &out) {
  * L9  - L15: Other player pieces Index
  * L16      : Current Player
  * L17      : Game plies
- * L18      : Max moves left
+ * L18      : Fifty-Rule ply left
  * L19      : Repetitions
  *
  * ------- Prediction data -------
@@ -88,8 +88,8 @@ void DataCollection::out_stream(std::ostream &out) {
     // plies
     out << gameply << std::endl;
 
-    // max moves left
-    out << moves_remaning << std::endl;
+    // fifty-rule ply left
+    out << rule50_remaining << std::endl;
 
     // repetitions
     out << repetitions << std::endl;
@@ -235,7 +235,7 @@ void proccess_inputs(Position &pos, DataCollection &data) {
 
     data.movenum = pos.get_movenum();
     data.gameply = pos.get_gameply();
-    data.moves_remaning = pos.get_max_moves() * 2 - 1 - data.gameply;
+    data.rule50_remaining = pos.get_rule50_ply_left();
     data.repetitions = pos.get_repetitions();
 }
 

@@ -32,7 +32,6 @@ public:
     int playouts;
     int random_min_visits;
 
-    bool using_traditional_chinese;
     bool dirichlet_noise;
     bool ponder;
     bool collect;

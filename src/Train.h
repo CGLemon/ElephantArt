@@ -50,7 +50,7 @@ struct DataCollection {
     int version;
     int movenum;
     int gameply;
-    int moves_remaning;
+    int rule50_remaining;
     int repetitions;
     int moves_left{0};
 

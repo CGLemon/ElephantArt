@@ -265,7 +265,11 @@ Engine::Response Engine::nn_direct_move(const int g) {
 
 Engine::Response Engine::uct_move(const int g) {
     auto rep = std::ostringstream{};
-    const auto p = get_position(g); 
+    const auto p = get_position(g);
+    if (p->gameover(true)) {
+        return rep.str();
+    }
+
     const auto s = get_search(g);
 
     const auto move = s->uct_move();

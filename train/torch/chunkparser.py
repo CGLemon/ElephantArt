@@ -14,7 +14,7 @@ FIXED_DATA_VERSION = 0
  L9  - L15: Other player pieces Index
  L16      : Current Player
  L17      : Game plies
- L18      : Max moves left
+ L18      : Fifty-Rule ply left
  L19      : Repetitions
  
  ------- Prediction data -------
@@ -56,7 +56,7 @@ class Data(PiecesIndex):
 
         self.tomove = None
         self.plies = 0
-        self.moves_remaning = 0
+        self.rule50_remaining = 0
         self.repetitions = 0
 
         self.policyindex = []
@@ -72,7 +72,7 @@ class Data(PiecesIndex):
         print(" ".join(str(out) for out in self.other_pieces))
         print("Tomove: {}".format(self.tomove))
         print("Plies: {}".format(self.plies))
-        print("Max moves left: {}".format(self.moves_remaning))
+        print("Fifty-Rule ply left: {}".format(self.rule50_remaining))
         print("Repetitions: {}".format(self.repetitions))
         print("Probabilities:")
         for idx, p in zip(self.policyindex, self.probabilities):
@@ -102,7 +102,7 @@ class Data(PiecesIndex):
         elif linecnt == 16:
             self.plies = int(readline)
         elif linecnt == 17:
-            self.moves_remaning = int(readline)
+            self.rule50_remaining = int(readline)
 
         elif linecnt == 18:
             self.repetitions = int(readline)
@@ -160,7 +160,7 @@ class ChunkParser:
 
         # inputs misc(current player, plies, repetitions)
         fmt += str(4) + int_symbol
-        inputs_misc = [data.tomove, data.plies, data.moves_remaning, data.repetitions]
+        inputs_misc = [data.tomove, data.plies, data.rule50_remaining, data.repetitions]
 
         # probabilities
         probsize = len(data.probabilities)
@@ -206,7 +206,7 @@ class ChunkParser:
 
         data.tomove = unpacked[offset]
         data.plies = unpacked[offset+1]
-        data.moves_remaning = unpacked[offset+2]
+        data.rule50_remaining = unpacked[offset+2]
         data.repetitions = unpacked[offset+3]
         offset += 4
 

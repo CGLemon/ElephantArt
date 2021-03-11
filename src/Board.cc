@@ -69,6 +69,7 @@ void Board::clear_status() {
     m_tomove = Types::RED;
     m_gameply = 0;
     m_movenum = 1;
+    m_rule50_ply = 0;
     m_capture = false;
     m_lastmove = Move{};
     set_repetitions(0, 0);
@@ -643,6 +644,7 @@ void Board::info_stream<Types::ASCII>(std::ostream &out) const {
 
     out << ", Last move: " << get_last_move().to_string();
     out << ", Ply number: " << get_gameply();
+    out << ", Fifty-Rule ply: " << get_rule50_ply();
     out << ", Hash: " << std::hex << get_hash() << std::dec;
 
     out << ",\n Fen: ";
@@ -663,6 +665,7 @@ void Board::info_stream<Types::CHINESE>(std::ostream &out) const {
 
     out << "，上一手棋 ：" << get_last_move().to_string();
     out << "，第 " << get_gameply() << " 手棋";
+    out << ", 無吃子 " << get_rule50_ply() << " 手棋";
     out << "，哈希 ：" << std::hex << get_hash() << std::dec;
 
     out << "，\n Fen ：";
@@ -736,6 +739,7 @@ void Board::board_stream<Types::ASCII>(std::ostream &out, const Move lastmove) c
             } else {
                 out << " ";
             }
+
             if (coordinate_vtx == from_vertex) {
                 out << "*";
             } else {
@@ -1172,6 +1176,12 @@ void Board::do_move_assume_legal(Move move) {
 
     // Increment move number.
     increment_gameply();
+
+    // Increment rule50 ply.
+    increment_rule50_ply();
+    if (is_capture()) {
+        set_rule50_ply(0);
+    }
 }
 
 bool Board::is_king_face_king() const {
@@ -1255,6 +1265,14 @@ void Board::decrement_gameply() {
     m_movenum = ((--m_gameply)/2) + 1;
 }
 
+void Board::increment_rule50_ply() {
+    ++m_rule50_ply;
+}
+
+void Board::set_rule50_ply(const int ply) {
+    m_rule50_ply = ply;
+}
+
 bool Board::is_capture() const {
     return m_capture;
 }
@@ -1289,6 +1307,14 @@ int Board::get_repetitions() const {
 
 int Board::get_cycle_length() const {
     return m_cycle_length;
+}
+
+int Board::get_rule50_ply() const  {
+    return m_rule50_ply;
+}
+
+int Board::get_rule50_ply_left() const  {
+    return 100 - m_rule50_ply;
 }
 
 std::array<BitBoard, 2> Board::get_colors() const {

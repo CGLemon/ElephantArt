@@ -27,16 +27,21 @@ class ForcedCheckmate {
 public:
     ForcedCheckmate(Position &position);
 
-    Move run();
+    Move find_checkmate();
+    Move find_checkmate(std::vector<Move> &movelist);
+    bool is_opp_checkmate();
+    bool is_opp_checkmate(std::vector<Move> &movelist);
 
 private:
     bool checkmate_search(Position &currentpos,
-                          std::vector<std::uint64_t> &buf, int depth) const;
+                          std::vector<std::uint64_t> &buf, int depth, int nodes) const;
     bool uncheckmate_search(Position &currentpos,
-                            std::vector<std::uint64_t> &buf, int depth) const;
+                            std::vector<std::uint64_t> &buf, int depth, int nodes) const;
     Position &m_rootpos;
     Types::Color m_color;
     int m_relaxed_move;
+    int m_maxdepth;
+    float m_factor;
 };
 
 #endif

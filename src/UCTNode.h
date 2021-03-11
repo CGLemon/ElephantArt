@@ -161,6 +161,8 @@ private:
     void inflate(std::shared_ptr<UCTNodePointer> child);
     void release(std::shared_ptr<UCTNodePointer> child);
 
+    void set_result(Types::Color color);
+
     enum Status : std::uint8_t {
         INVALID,  // INVALID means that the node is illegal.
         PRUNED,

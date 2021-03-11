@@ -173,15 +173,16 @@ std::vector<float> Model::gather_planes(const Position *const pos) {
 
 std::vector<float> Model::gather_features(const Position *const pos) {
     // feature 1 : Game plies.
-    // feature 2 : (Not yet)
+    // feature 2 : Fifty-Rule ply left.
     // feature 3 : repetitions one.
     // feature 4 : repetitions two.
 
     auto input_features = std::vector<float>(INPUT_FEATURES, 0.0f);
     const auto ply = pos->get_gameply();
     const auto rpt = pos->get_repetitions();
+    const auto r50_left = pos->get_rule50_ply_left();
     input_features[0] = static_cast<float>(ply)/30.f;
-    input_features[1] = 1;
+    input_features[1] = static_cast<float>(r50_left)/30.f;
     if (rpt >= 1) {
         input_features[2] = static_cast<float>(true);
     }

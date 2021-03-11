@@ -255,6 +255,9 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
 
     m_threadGroup->wait_all();
     m_rootposition = m_position;
+    if (m_rootposition.gameover(true)) {
+        return;
+    }
 
     const auto uct_worker = [&]() -> void {
         // Waiting, until main thread searching.
@@ -283,7 +286,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
                                       set.movestogo,
                                       set.increment);
         controller.set_plies(m_rootposition.get_gameply(),
-                                 m_rootposition.get_max_moves() * 2 - 1);
+                                 m_rootposition.get_rule50_ply_left());
 
         auto timer = Utils::Timer{};
         auto limittime = std::numeric_limits<int>::max();

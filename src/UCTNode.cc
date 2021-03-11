@@ -23,6 +23,7 @@
 #include "config.h"
 #include "Decoder.h"
 #include "Repetition.h"
+#include "ForcedCheckmate.h"
 
 #include <thread>
 #include <algorithm>
@@ -75,10 +76,20 @@ bool UCTNode::expend_children(Network &network,
 
     auto movelist = pos.get_movelist();
     const auto kings = pos.get_kings();
+
+    // Probe forced checkmate sequences.
+    auto forced = ForcedCheckmate(pos);
+    auto ch_move = forced.find_checkmate(movelist);
+    if (ch_move.valid()) {
+        nodelist.emplace_back(1.0f, Decoder::move2maps(ch_move));
+        legal_accumulate = 1.0f;
+        movelist.clear();
+        set_result(m_color);
+    }
+
     for (const auto &move: movelist) {
         const auto maps = Decoder::move2maps(move);
         const auto policy = raw_netlist.policy[maps];
-
         if (is_root) {
             auto fork_pos = std::make_shared<Position>(pos);
             fork_pos->do_move_assume_legal(move);
@@ -101,9 +112,6 @@ bool UCTNode::expend_children(Network &network,
             if (fork_pos->is_check(Board::swap_color(m_color))) {
                 continue;
             }
-
-
-            // TODO: Probe forced checkmate sequences.
         }
 
         if (move.get_to() == kings[Board::swap_color(m_color)]) {
@@ -186,6 +194,22 @@ void UCTNode::link_nn_output(const Network::Netresult &raw_netlist,
     m_red_stmeval = stmeval;
     m_red_winloss = wl;
     m_draw = draw;
+}
+
+void UCTNode::set_result(Types::Color color) {
+    if (color == Types::RED) {
+        m_red_stmeval = 1;
+        m_red_winloss = 1;
+        m_draw = 0;
+    } else if (color == Types::BLACK) {
+        m_red_stmeval = 0;
+        m_red_winloss = 0;
+        m_draw = 0;
+    } else if (color == Types::EMPTY_COLOR) {
+        m_red_stmeval = 0.5;
+        m_red_winloss = 0.5;
+        m_draw = 1;
+    }
 }
 
 const std::vector<std::shared_ptr<UCTNode::UCTNodePointer>> &UCTNode::get_children() const {
@@ -800,7 +824,7 @@ void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off)
         const auto draw = child->get_draw();
         const auto move = Decoder::maps2move(maps);
         const auto pv_string = move.to_string() + " " + pv_to_srting(child);
-        const auto visit_ratio = static_cast<float>(visits) / parentvisits;
+        const auto visit_ratio = static_cast<float>(visits) / (parentvisits - 1); // One is root visit.
         Utils::printf<Utils::STATIC>("  %4s -> %7d (WL: %5.2f%%) (V: %5.2f%%) (LCB: %5.2f%%) (D: %5.2f%%) (P: %5.2f%%) (N: %5.2f%%) ", 
                                          move.to_string().c_str(),
                                          visits,

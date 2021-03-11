@@ -59,9 +59,10 @@ Repetition::Result Repetition::judge() {
     }
 
     auto forced = ForcedCheckmate(m_position);
-    auto fmove = forced.run();
+    auto ch_move = forced.find_checkmate();
+
     int forced_cnt = 0;
-    if (fmove.valid()) {
+    if (ch_move.valid()) {
         auto pos_fork = std::make_shared<Position>(m_position);
         ++forced_cnt;
         for (int i = 1; i < cycle_length; i+=2) {
@@ -70,7 +71,7 @@ Repetition::Result Repetition::judge() {
             assert(to_move == board->get_to_move());
 
             auto pforced = ForcedCheckmate(*pos_fork);
-            if (pforced.run().valid()) {
+            if (pforced.find_checkmate().valid()) {
                 ++forced_cnt;
             }
         }
@@ -79,9 +80,7 @@ Repetition::Result Repetition::judge() {
         }
     }
 
-
     // Perpetual pursuit
-
 
     return UNKNOWN;
 }

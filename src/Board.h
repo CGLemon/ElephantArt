@@ -65,6 +65,8 @@ public:
     std::array<BitBoard, 2> get_colors() const;
     int get_repetitions() const;
     int get_cycle_length() const;
+    int get_rule50_ply() const;
+    int get_rule50_ply_left() const;
 
     BitBoard generate_movelist(Types::Color color, std::vector<Move> &movelist) const;
 
@@ -95,8 +97,6 @@ public:
     void set_last_move(Move m);
     void set_to_move(Types::Color color);
     void swap_to_move();
-    void increment_gameply();
-    void decrement_gameply();
 
     void do_move_assume_legal(Move move);
     bool is_legal(Move move) const;
@@ -197,6 +197,12 @@ private:
     static void init_magics();
     static void dump_memory();
 
+    void increment_gameply();
+    void decrement_gameply();
+
+    void increment_rule50_ply();
+    void set_rule50_ply(const int ply);
+
     BitBoard &get_piece_bitboard_ref(Types::Piece_t pt);
 
     std::array<BitBoard, 2> m_bb_color;
@@ -222,6 +228,7 @@ private:
 
     int m_cycle_length;
     int m_repetitions;
+    int m_rule50_ply;
 
     std::uint64_t m_hash;
 

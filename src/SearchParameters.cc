@@ -43,6 +43,4 @@ void SearchParameters::reset() {
     dirichlet_epsilon  = option<float>("dirichlet_epsilon");
     dirichlet_factor   = option<float>("dirichlet_factor");
     dirichlet_init     = option<float>("dirichlet_init");
-
-    using_traditional_chinese = option<bool>("using_traditional_chinese");
 }

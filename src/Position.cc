@@ -25,7 +25,6 @@
 #include <sstream>
 
 void Position::init_game(const int tag) {
-    set_max_moves(150);
     m_startboard = 0;
     position_hash = Zobrist::zobrist_positions[tag];
     m_history.clear();
@@ -75,11 +74,11 @@ bool Position::is_legal(Move move) {
 
 void Position::do_move_assume_legal(Move move) {
     board.do_move_assume_legal(move);
+    compute_repetitions();
     push_board();
     if (is_capture()) {
         m_startboard = m_history.size() - 1;
     }
-    compute_repetitions();
 }
 
 bool Position::do_move(Move move) {
@@ -186,6 +185,13 @@ Types::Color Position::get_winner(bool searching) {
         return Board::swap_color(resigned);
     }
 
+    const auto kings = get_kings();
+    if (kings[Types::RED] == Types::NO_VERTEX) {
+        return Types::BLACK;
+    } else if (kings[Types::BLACK] == Types::NO_VERTEX) {
+        return Types::RED;
+    }
+
     // According Asian Xiangqi Federation rules, if the current
     // player can eat opponent king. The current player win the
     // game.
@@ -194,14 +200,7 @@ Types::Color Position::get_winner(bool searching) {
         return to_move;
     }
 
-    const auto kings = get_kings();
-    if (kings[Types::RED] == Types::NO_VERTEX) {
-        return Types::BLACK;
-    } else if (kings[Types::BLACK] == Types::NO_VERTEX) {
-        return Types::RED;
-    }
-
-    if (get_movenum() > m_maxmoves) {
+    if (get_rule50_ply_left() <= 0) {
         return Types::EMPTY_COLOR;
     }
 
@@ -260,16 +259,25 @@ const std::shared_ptr<const Board> Position::get_past_board(const int p) const {
 }
 
 void Position::compute_repetitions() {
+    // We don't have push the board into history buffer yet!
     int cycle_length = 0;
     int repetitions = 0;
+    bool cutoff = false;
+
     const auto current_hash = board.get_hash();
     const auto size = m_history.size();
 
-    for (int idx = size - 3; idx >= m_startboard; idx -= 2) {
+    for (int idx = size - 2; idx >= m_startboard; idx -= 2) {
         const auto hash = m_history[idx]->get_hash();
+        if (m_history[idx]->get_repetitions() == 0) {
+            cutoff = true;
+        }
         if (hash == current_hash) {
-            cycle_length = size - idx - 1;
+            cycle_length = size - idx;
             repetitions = 1 + m_history[idx]->get_repetitions();
+            if (cutoff) {
+                repetitions = 1;
+            }
             break;
         }
     }
@@ -283,6 +291,14 @@ int Position::get_repetitions() const {
 
 int Position::get_cycle_length() const {
     return board.get_cycle_length();
+}
+
+int Position::get_rule50_ply() const {
+    return board.get_rule50_ply();
+}
+
+int Position::get_rule50_ply_left() const {
+    return board.get_rule50_ply_left();
 }
 
 std::array<Types::Vertices, 2> Position::get_kings() const {
@@ -327,14 +343,6 @@ std::string Position::get_fen() const {
     return out.str();
 }
 
-int Position::get_max_moves() const {
-    return m_maxmoves;
-}
-
 int Position::get_historysize() const {
     return static_cast<int>(m_history.size());
-}
-
-void Position::set_max_moves(int moves) {
-    m_maxmoves = moves < 1 ? 1 : moves;
 }

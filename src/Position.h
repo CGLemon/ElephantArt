@@ -52,14 +52,11 @@ public:
     int get_movenum() const;
     int get_gameply() const;
     int get_historysize() const;
-    int get_max_moves() const;
     Move get_last_move() const;
 
     Types::Piece_t get_piece_type(const Types::Vertices vtx) const;
     Types::Piece get_piece(const Types::Vertices vtx) const;
     std::string get_fen() const;
-
-    void set_max_moves(int moves);
     
     Board board;
     
@@ -77,13 +74,14 @@ public:
     std::string get_wxfstring(Move m) const;
     int get_repetitions() const;
     int get_cycle_length() const;
+    int get_rule50_ply() const;
+    int get_rule50_ply_left() const;
     std::array<Types::Vertices, 2> get_kings() const;
 
 private:
     void compute_repetitions();
 
     Types::Color resigned{Types::INVALID_COLOR};
-    int m_maxmoves;
 
     std::uint64_t position_hash;
     int m_startboard;
