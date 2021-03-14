@@ -22,6 +22,7 @@
 TimeControl::TimeControl(int milliseconds, int movestogo, int increment) {
     m_lagbuffer = 0;
     m_plies = 0;
+    m_score = 0;
     m_milliseconds = milliseconds;
     m_movestogo = movestogo;
     m_increment = increment;
@@ -44,17 +45,24 @@ int TimeControl::get_limittime() const {
 
     if (m_increment > 0) {
         auto remaining = static_cast<double>(m_milliseconds);
-        auto increment = static_cast<double>(m_increment);
         auto estimated = static_cast<double>(get_estimated_plies());
+        auto increment = static_cast<double>(m_increment * estimated / 5);
+
         auto elasticity = 0.0f;
-        return static_cast<int>(elasticity + (remaining + estimated * increment)/estimated);
+        return static_cast<int>(elasticity + (remaining + increment)/estimated);
     }
 
     return 0.f;
 }
 
 int TimeControl::get_estimated_plies() const {
-    return m_maxplies - m_plies;
+    const auto remaining = 200 - m_plies;
+
+    if (remaining <= 20) {
+        return 20;
+    }
+
+    return remaining;
 }
 
 void TimeControl::set_score(const int score) {
@@ -65,8 +73,7 @@ void TimeControl::set_lagbuffer(const int milliseconds) {
     m_lagbuffer = milliseconds > 0 ? milliseconds : 0;
 }
 
-void TimeControl::set_plies(const int plies, const int draw_plies) {
-    m_maxplies = draw_plies;
+void TimeControl::set_plies(const int plies) {
     m_plies = plies > 0 ? plies : 0;
 }
 

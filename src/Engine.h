@@ -54,7 +54,7 @@ public:
                              const int g = DEFUALT_POSITION);
     Response think(SearchSetting setting, const int g = DEFUALT_POSITION);
     Response interrupt(const int g = DEFUALT_POSITION);
-    Response ponderhit(const int g = DEFUALT_POSITION);
+    Response ponderhit(const bool draw, const int g = DEFUALT_POSITION);
     Response selfplay(const int g = DEFUALT_POSITION);
     Response printf_pgn(std::string filename = "NO_FILE_NAME", const int g = DEFUALT_POSITION);
     Response load_pgn(std::string filename, const int g = DEFUALT_POSITION);

@@ -358,8 +358,8 @@ Engine::Response Engine::interrupt(const int g) {
     return std::string{};
 }
 
-Engine::Response Engine::ponderhit(const int g) {
+Engine::Response Engine::ponderhit(const bool draw, const int g) {
     auto s = get_search(g);
-    s->ponderhit();
+    s->ponderhit(draw);
     return std::string{};
 }

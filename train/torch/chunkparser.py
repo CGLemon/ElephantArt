@@ -86,7 +86,7 @@ class Data(PiecesIndex):
     def fill_v1(self, linecnt, readline):
         if linecnt == 0:
             v = int(readline)
-            assert v == 1, "The data is not correct version."
+            assert v == 1 or v == 0, "The data is not correct version."
         elif linecnt >= 1 and linecnt <= 7:
             p = readline.split()
             start = self.ACCUMULATE[linecnt-1]

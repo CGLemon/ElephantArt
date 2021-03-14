@@ -90,7 +90,8 @@ void init_options_map() {
     options_map["winograd"] << Utils::Option::setoption(false);
     options_map["min_cutoff"] << Utils::Option::setoption(1);
 
-    options_map["ponder"] << Utils::Option::setoption(false);
+    options_map["draw_threshold"] << Utils::Option::setoption(0.9f, 1.f, 0.f);
+    options_map["resign_threshold"] << Utils::Option::setoption(0.1f, 1.f, 0.f);
     options_map["playouts"] << Utils::Option::setoption(Search::MAX_PLAYOUTS);
     options_map["visits"] << Utils::Option::setoption(Search::MAX_PLAYOUTS);
     options_map["fpu_root_reduction"] << Utils::Option::setoption(0.25f);

@@ -152,7 +152,7 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
         const auto cnt = parser.get_count();
         if (cnt >= 3) {
             const auto filename = parser.get_command(1)->str;
-            const auto outname = parser.get_command(1)->str;
+            const auto outname = parser.get_command(2)->str;
             out << m_ascii_engine->supervised(filename, outname);
         }
     } else {

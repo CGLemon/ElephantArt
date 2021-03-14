@@ -114,7 +114,7 @@ bool ForcedCheckmate::is_opp_checkmate(std::vector<Move> &movelist) {
 
 bool ForcedCheckmate::checkmate_search(Position &currentpos,
                                        std::vector<std::uint64_t> &buf, int depth, int nodes) const {
-    int bound = depth * m_factor / float(nodes);
+    int bound = 0; // depth * m_factor / float(nodes);
     if (currentpos.get_rule50_ply_left() == 0 || depth > m_maxdepth + bound) {
         return false;
     }
@@ -173,7 +173,7 @@ bool ForcedCheckmate::checkmate_search(Position &currentpos,
 
 bool ForcedCheckmate::uncheckmate_search(Position &currentpos,
                                          std::vector<std::uint64_t> &buf, int depth, int nodes) const {
-    int bound = depth * m_factor / float(nodes);
+    int bound = 0; // depth * m_factor / float(nodes);
     if (currentpos.get_rule50_ply_left() == 0 || depth > m_maxdepth + bound) {
         return true;
     }

@@ -206,6 +206,7 @@ Types::Color Position::get_winner(bool searching) {
 
     auto rep = Repetition(*this);
     auto res = rep.judge();
+
     if (res == Repetition::DRAW) {
         return Types::EMPTY_COLOR;
     } else if (res == Repetition::LOSE) {

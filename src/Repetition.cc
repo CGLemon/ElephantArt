@@ -57,7 +57,7 @@ Repetition::Result Repetition::judge() {
             return LOSE;
         }
     }
-
+    /*
     auto forced = ForcedCheckmate(m_position);
     auto ch_move = forced.find_checkmate();
 
@@ -79,6 +79,7 @@ Repetition::Result Repetition::judge() {
             return DRAW;
         }
     }
+    */
 
     // Perpetual pursuit
 

@@ -73,6 +73,7 @@ private:
 class SearchInformation {
 public:
     Move move;
+    bool draw;
     int depth;
     float seconds;
 };
@@ -80,6 +81,7 @@ public:
 class SearchSetting {
 public:
     bool ponder{false};
+    bool draw{false};
     int nodes{std::numeric_limits<int>::max()};
     int depth{std::numeric_limits<int>::max()};
     int milliseconds{std::numeric_limits<int>::max()};
@@ -98,8 +100,8 @@ public:
     Move uct_move();
     void think(SearchSetting setting, SearchInformation *info);
     void interrupt();
-    void ponderhit();
-    std::shared_ptr<SearchParameters> parameters();
+    void ponderhit(bool draw);
+    std::shared_ptr<SearchParameters> parameters() const;
     
 private:
     void prepare_uct();
@@ -112,7 +114,8 @@ private:
     void set_running(bool is_running);
     void set_playouts(int playouts);
     bool stop_thinking(int elapsed, int limittime) const;
-    Move uct_best_move() const;
+    std::pair<Move, Move> get_best_move() const;
+    std::string get_draw_resign(Types::Color colors, bool draw) const;
 
     void increment_threads();
     void decrement_threads();

@@ -33,9 +33,10 @@ public:
     int random_min_visits;
 
     bool dirichlet_noise;
-    bool ponder;
     bool collect;
 
+    float draw_threshold;
+    float resign_threshold;
     float fpu_root_reduction;
     float fpu_reduction;
     float cpuct_init;

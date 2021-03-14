@@ -29,6 +29,8 @@ void UCCI::init() {
         m_ucci_engine = std::make_unique<Engine>();
     }
     m_ucci_engine->initialize();
+
+    ucci_option["usemillisec"] << Utils::Option::setoption(false);
 }
 
 void UCCI::loop() {
@@ -59,7 +61,9 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
     auto out = std::ostringstream{};
     if (const auto res = parser.find("ucci", 0)) {
         out << "id name " << PROGRAM << " " << VERSION << std::endl;
-        out << "id author " << "NA" << std::endl;
+        out << "id copyright 2021 NA" << std::endl;
+        out << "id author NA" << std::endl;
+        out << "option usemillisec type check default false" << std::endl;
         out << "ucciok" << std::endl;
     } else if (const auto res = parser.find("isready", 0)) {
         out << "readyok" << std::endl;
@@ -70,6 +74,9 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
         if (const auto ponder = parser.find("ponder")) {
             setting.ponder = true;
         }
+        if (const auto draw = parser.find("draw")) {
+            setting.draw = true;
+        }
         if (const auto depth = parser.find_next("depth")) {
             setting.depth = depth->get<int>();
         }
@@ -77,7 +84,12 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
             setting.nodes = nodes->get<int>();
         }
         if (const auto time = parser.find_next("time")) {
-            setting.milliseconds = 1000 * time->get<int>();
+            auto ite = ucci_option.find("usemillisec");
+            if (ite->second.get<bool>()) {
+                setting.milliseconds = time->get<int>();
+            } else {
+                setting.milliseconds = 1000 * time->get<int>();
+            }
         }
         if (const auto movestogo = parser.find_next("movestogo")) {
             setting.movestogo = movestogo->get<int>();
@@ -98,13 +110,35 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
     } else if (const auto res = parser.find("stop", 0)) {
         m_ucci_engine->interrupt();
     } else if (const auto res = parser.find("ponderhit", 0)) {
-        m_ucci_engine->ponderhit();
+        if (const auto draw = parser.find("draw")) {
+            m_ucci_engine->ponderhit(true);
+        } else {
+            m_ucci_engine->ponderhit(false);
+        }
     } else if (const auto res = parser.find("position", 0)) {
         auto pos = parser.get_commands(1)->str;
         m_ucci_engine->position(pos);
+    } else if (const auto res = parser.find("setoption", 0)) {
+        if (parser.get_count() >= 3) {
+            const auto key = parser.get_commands(1)->str;
+            const auto value = parser.get_commands(2)->str;
+            setoption(key, value);
+        }
     } else {
         auto commands = parser.get_commands();
         out << "Unknown command: " << commands->str << std::endl;
     }
     return out.str();
+}
+
+
+void UCCI::setoption(std::string key, std::string value) {
+    auto ite = ucci_option.find(key);
+    if (key == "usemillisec") {
+        if (value == "true") {
+            ite->second.set<bool>(true);
+        } else if (value == "false") {
+            ite->second.set<bool>(false);
+        }
+    }
 }

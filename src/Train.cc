@@ -332,6 +332,8 @@ void Train::supervised(std::string pgnfile, std::string datafile) {
 
     parser.gather_pgnlist(pgnfile, pgns);
     auto pos = std::make_shared<Position>();
+
+    set_option("collect", true);
     for (auto &pgn: pgns) {
         if (pgn.result == Types::INVALID_COLOR) {
             continue;
@@ -347,6 +349,7 @@ void Train::supervised(std::string pgnfile, std::string datafile) {
         gather_winner(pgn.result);
         save_data(datafile, true);
     }
+    set_option("collect", false);
 }
 
 int Train::get_version() const {

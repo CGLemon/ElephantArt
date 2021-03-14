@@ -29,9 +29,10 @@ void SearchParameters::reset() {
     random_min_visits  = option<int>("random_min_visits");
 
     dirichlet_noise    = option<bool>("dirichlet_noise");
-    ponder             = option<bool>("ponder");
     collect            = option<bool>("collect");
 
+    draw_threshold     = option<float>("draw_threshold");
+    resign_threshold   = option<float>("resign_threshold");
     fpu_root_reduction = option<float>("fpu_root_reduction");
     fpu_reduction      = option<float>("fpu_reduction");
     cpuct_init         = option<float>("cpuct_init");

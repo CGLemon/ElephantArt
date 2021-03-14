@@ -118,6 +118,7 @@ void CPUBackend::forward(const std::vector<float> &planes,
     }
     
     // policy head
+
     const auto policy_extract_channels = m_weights->policy_extract_channels;
     auto policy_conv = std::vector<float>(policy_extract_channels * Board::INTERSECTIONS);
 
@@ -136,7 +137,7 @@ void CPUBackend::forward(const std::vector<float> &planes,
                        workspace, output_pol);
     
     AddSpatialBias::Forward(POLICYMAP, output_pol, m_weights->p_map.biases);
-    
+
     // value head
     const auto value_extract_channels = m_weights->value_extract_channels;
     auto value_conv = std::vector<float>(value_extract_channels * Board::INTERSECTIONS);
@@ -156,7 +157,7 @@ void CPUBackend::forward(const std::vector<float> &planes,
                           m_weights->v_fc1.weights,
                           m_weights->v_fc1.biases,
                           value_fc, true);
-    
+
     FullyConnect::Forward(VALUELAYER, WINRATELAYER,
                           value_fc,
                           m_weights->v_fc2.weights,

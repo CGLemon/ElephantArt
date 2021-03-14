@@ -29,6 +29,7 @@
 #include "Utils.h"
 #include "CLInterface.h"
 
+#include <unordered_map>
 #include <memory>
 #include <string>
 
@@ -45,7 +46,11 @@ private:
 
     virtual std::string execute(Utils::CommandParser &parser);
 
+    void setoption(std::string key, std::string value);
+
     std::unique_ptr<Engine> m_ucci_engine{nullptr};
+
+    std::unordered_map<std::string, Utils::Option> ucci_option;
 
 };
 

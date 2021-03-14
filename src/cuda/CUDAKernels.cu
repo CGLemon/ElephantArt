@@ -198,7 +198,7 @@ void im2col(int filter_size, int channels, int H, int W,
 template <typename T>
 __global__ void global_avg_pool_kernel(T *input, T *output, int N, int C, int spatial) {
     int total_elements = N * C;
-    int index = threadIdx.x + blockDim.x * blockIdx.x; // index : batch * channels
+    int index = threadIdx.x + blockDim.x * blockIdx.x; // index: batch * channels
     if (index < total_elements) {
         float *input_ptr = input + index * spatial;
         float Sum = 0;

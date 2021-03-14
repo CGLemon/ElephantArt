@@ -25,7 +25,7 @@ public:
     int get_limittime() const;
 
     void set_lagbuffer(const int milliseconds);
-    void set_plies(const int plies, const int draw_plies);
+    void set_plies(const int plies);
     void set_score(const int score);
 
 private:
@@ -35,7 +35,6 @@ private:
     int m_milliseconds;
     int m_movestogo;
     int m_increment;
-    int m_maxplies;
     int m_plies;
     int m_score;
 };

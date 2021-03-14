@@ -158,7 +158,7 @@ std::vector<float> Model::gather_planes(const Position *const pos) {
 
     auto status_iterator = std::begin(input_data) + INPUT_MOVES * 14 * Board::INTERSECTIONS;
 
-    // plane 17 - 18
+    // plane 15-16
     auto middle = status_iterator + Board::INTERSECTIONS;
     if (color == Types::RED) {
         std::fill(status_iterator, middle, 1.f);
@@ -181,6 +181,7 @@ std::vector<float> Model::gather_features(const Position *const pos) {
     const auto ply = pos->get_gameply();
     const auto rpt = pos->get_repetitions();
     const auto r50_left = pos->get_rule50_ply_left();
+
     input_features[0] = static_cast<float>(ply)/30.f;
     input_features[1] = static_cast<float>(r50_left)/30.f;
     if (rpt >= 1) {
@@ -202,7 +203,7 @@ void Model::load_weights(const std::string &filename,
     file.open(filename.c_str());
 
     if (!file.is_open()) {
-        Utils::printf<Utils::AUTO>("Could not opne file : %s!\n", filename.c_str());
+        Utils::printf<Utils::AUTO>("Could not opne file: %s!\n", filename.c_str());
         return;
     }
 
@@ -214,9 +215,9 @@ void Model::load_weights(const std::string &filename,
     try {
         fill_weights(buffer, nn_weight);
     } catch (const char* err) {
-        // Should not happned.
+        // Should be not happned.
         Utils::printf<Utils::AUTO>("Loading network file warning!\n", err);
-        Utils::printf<Utils::AUTO>("    Cause : %s.\n", err);
+        Utils::printf<Utils::AUTO>("    Cause: %s.\n", err);
     }
     
     if (nn_weight->loaded && option<bool>("stats_verbose")) {
@@ -388,7 +389,7 @@ void Model::fill_weights(std::istream &weights_file,
                     nn_weight->residual_channels != res_conv1_shape[1] ||
                     nn_weight->residual_channels != res_bn1_shape[0] || 
                 res_conv1_shape[2] != 3) {
-                throw "The Residual Block (1) is wrong";
+                throw "The Residual Block(1) is wrong";
             }
 
             fill_convolution_layer(tower_ptr->conv_2,
@@ -405,7 +406,7 @@ void Model::fill_weights(std::istream &weights_file,
                     nn_weight->residual_channels != res_conv2_shape[1] ||
                     nn_weight->residual_channels != res_bn2_shape[0] ||
                     res_conv2_shape[2] != 3) {
-                throw "The Residual Block (2) is wrong";
+                throw "The Residual Block(2) is wrong";
             }
             
             const auto res_next_shape = netmodel[t_offset+4];
