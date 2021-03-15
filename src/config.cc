@@ -214,13 +214,6 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         parser.remove_command(res->idx);
     }
 
-    if (const auto res = parser.find("--debug_mode")) {
-        set_option("quiet_verbose", false);
-        set_option("stats_verbose", true);
-        set_option("analysis_verbose", true);
-        parser.remove_command(res->idx);
-    }
-
     if (const auto res = parser.find("--collect")) {
         set_option("collect", true);
         parser.remove_command(res->idx);
@@ -394,12 +387,19 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 #ifdef USE_CUDA
     set_option("use_gpu", true);
 #endif
-    
-    if (error_commands(parser)) {
-        help();
-    }
     if (option<std::string>("mode") == "ucci") {
         set_option("quiet_verbose", true);
+    }
+    if (const auto res = parser.find("--debug_mode")) {
+        set_option("quiet_verbose", false);
+        set_option("stats_verbose", true);
+        set_option("analysis_verbose", true);
+        parser.remove_command(res->idx);
+    }
+    
+
+    if (error_commands(parser)) {
+        help();
     }
 }
 
