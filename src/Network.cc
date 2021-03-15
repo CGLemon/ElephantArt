@@ -84,10 +84,9 @@ void Network::initialize(const std::string &weightsfile) {
                                     EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION);
     }
 #endif
-    set_cache_memory(Cache<Netresult>::DEFALUT_CACHE_MEM);
-    if (option<bool>("stats_verbose")) {
-        m_cache.dump_capacity();
-    }
+
+    set_cache_memory(option<int>("cache_size"));
+
 #ifdef USE_CUDA
     using backend = CUDABackend;
 #else
@@ -127,6 +126,9 @@ void Network::reload_weights(const std::string &weightsfile) {
 
 void Network::set_cache_memory(const int MiB) {
     m_cache.set_memory(MiB);
+    if (option<bool>("stats_verbose")) {
+        m_cache.dump_capacity();
+    }
 }
 
 
@@ -174,7 +176,7 @@ Network::Netresult Network::get_output_internal(const Position *const position) 
         dummy_forward(policy_out, winrate_out);
     }
 
-
+    // TODO: Remove "softmax_pol_temp" and "softmax_wdl_temp" to UCCI Option.
     const auto result = Model::get_result(policy_out,
                                           winrate_out,
                                           option<float>("softmax_pol_temp"),

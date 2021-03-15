@@ -119,10 +119,13 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
         auto pos = parser.get_commands(1)->str;
         m_ucci_engine->position(pos);
     } else if (const auto res = parser.find("setoption", 0)) {
+           printf("YES %zu\n", parser.get_count());
         if (parser.get_count() >= 3) {
-            const auto key = parser.get_commands(1)->str;
-            const auto value = parser.get_commands(2)->str;
-            setoption(key, value);
+                printf("YES\n");
+            const auto key = parser.get_command(1)->str;
+            const auto val = parser.get_command(2)->str;
+            std::cout << key << " : " << val << "\n";
+            setoption(key, val);
         }
     } else {
         auto commands = parser.get_commands();
@@ -132,13 +135,15 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
 }
 
 
-void UCCI::setoption(std::string key, std::string value) {
+void UCCI::setoption(std::string key, std::string val) {
     auto ite = ucci_option.find(key);
     if (key == "usemillisec") {
-        if (value == "true") {
+        if (val == "true") {
             ite->second.set<bool>(true);
-        } else if (value == "false") {
+        } else if (val == "false") {
             ite->second.set<bool>(false);
         }
+    } else if (key == "cachesize") {
+        m_ucci_engine->setoption(key, val);
     }
 }

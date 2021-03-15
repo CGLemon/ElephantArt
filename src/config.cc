@@ -82,6 +82,7 @@ void init_options_map() {
 
     options_map["num_games"] << Utils::Option::setoption(1, 32, 1);
 
+    options_map["cache_size"] << Utils::Option::setoption(50, 128 * 1024, 1);
     options_map["softmax_pol_temp"] << Utils::Option::setoption(1.0f);
     options_map["softmax_wdl_temp"] << Utils::Option::setoption(1.0f);
     options_map["cache_moves"] << Utils::Option::setoption(20);

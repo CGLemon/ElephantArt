@@ -362,3 +362,12 @@ Engine::Response Engine::ponderhit(const bool draw, const int g) {
     s->ponderhit(draw);
     return std::string{};
 }
+
+Engine::Response Engine::setoption(std::string key, std::string val) {
+    if (key == "cachesize") {
+        printf("YES\n");
+        const auto mem = std::stoi(val);
+        m_network->set_cache_memory(mem);
+    }
+    return std::string{};
+}

@@ -32,8 +32,6 @@
 template <typename EntryType>
 class Cache {
 public:
-    static constexpr size_t DEFALUT_CACHE_MEM = 50; // ~50 MiB
-
     Cache() : m_hits(0), m_lookups(0), m_inserts(0) {}
 
     bool lookup(std::uint64_t hash, EntryType &result);
@@ -154,7 +152,7 @@ void Cache<EntryType>::clear_stats() {
 template <typename EntryType>
 void Cache<EntryType>::dump_capacity() {
     LockGuard<lock_t::S_LOCK> lock(m_sm);
-    Utils::printf<Utils::AUTO>("Cach memory allocated: %.4f(MiB)\n",
+    Utils::printf<Utils::AUTO>("Cache capacity memory: %.4f(MiB)\n",
                                (float)(m_size * Cache::ENTRY_SIZE) / (1024.f * 1024.f));
 }
 
