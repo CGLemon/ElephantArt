@@ -59,6 +59,7 @@ public:
     Response printf_pgn(std::string filename = "NO_FILE_NAME", const int g = DEFUALT_POSITION);
     Response load_pgn(std::string filename, const int g = DEFUALT_POSITION);
     Response supervised(std::string filename, std::string outname, const int g = DEFUALT_POSITION);
+    Response newgame(const int g = DEFUALT_POSITION);
     Response setoption(std::string key, std::string val);
 private:
     int clamp(const int g) const;

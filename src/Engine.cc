@@ -27,7 +27,6 @@
 #include <sstream>
 
 void Engine::initialize() {
-
     const auto games = (size_t)option<int>("num_games");
 
     m_positions.clear();
@@ -360,6 +359,13 @@ Engine::Response Engine::interrupt(const int g) {
 Engine::Response Engine::ponderhit(const bool draw, const int g) {
     auto s = get_search(g);
     s->ponderhit(draw);
+    return std::string{};
+}
+
+Engine::Response Engine::newgame(const int g) {
+    auto p = get_position(g); 
+    m_network->clear_cache();
+    p->init_game(clamp(g));
     return std::string{};
 }
 

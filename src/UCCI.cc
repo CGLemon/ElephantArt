@@ -66,7 +66,9 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
         out << "ucciok" << std::endl;
     } else if (const auto res = parser.find("isready", 0)) {
         out << "readyok" << std::endl;
-    } else if (const auto res = parser.find({"display", "d"}, 0)) {
+    } else if (const auto res = parser.find("uccinewgame", 0)) {
+        m_ucci_engine->newgame();
+    }else if (const auto res = parser.find({"display", "d"}, 0)) {
         m_ucci_engine->display();
     } else if (const auto res = parser.find("go", 0)) {
         auto setting = SearchSetting{};
