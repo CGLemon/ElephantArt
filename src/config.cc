@@ -82,10 +82,10 @@ void init_options_map() {
 
     options_map["num_games"] << Utils::Option::setoption(1, 32, 1);
 
+    options_map["usemillisec"] << Utils::Option::setoption(false);
     options_map["cache_size"] << Utils::Option::setoption(50, 128 * 1024, 1);
     options_map["softmax_pol_temp"] << Utils::Option::setoption(1.0f);
     options_map["softmax_wdl_temp"] << Utils::Option::setoption(1.0f);
-    options_map["cache_moves"] << Utils::Option::setoption(20);
     options_map["weights_file"] << Utils::Option::setoption(NO_WEIGHT_FILE_NAME);
     options_map["float_precision"] << Utils::Option::setoption(5);
     options_map["winograd"] << Utils::Option::setoption(false);
@@ -219,6 +219,11 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         parser.remove_command(res->idx);
     }
 
+    if  (const auto res = parser.find("--usemillisec")) {
+        set_option("usemillisec", true);
+        parser.remove_command(res->idx);
+    }
+
     if (const auto res = parser.find_next({"--logfile", "-l"})) {
         if (is_parameter(res->str)) {
             set_option("log_file", res->get<std::string>());
@@ -254,6 +259,13 @@ ArgsParser::ArgsParser(int argc, char** argv) {
     if (const auto res = parser.find_next({"--threads", "-t"})) {
         if (is_parameter(res->str)) {
             set_option("threads", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--cachesize")) {
+        if (is_parameter(res->str)) {
+            set_option("cache_size", res->get<int>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }

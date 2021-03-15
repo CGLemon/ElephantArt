@@ -29,8 +29,6 @@ void UCCI::init() {
         m_ucci_engine = std::make_unique<Engine>();
     }
     m_ucci_engine->initialize();
-
-    ucci_option["usemillisec"] << Utils::Option::setoption(false);
 }
 
 void UCCI::loop() {
@@ -84,8 +82,7 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
             setting.nodes = nodes->get<int>();
         }
         if (const auto time = parser.find_next("time")) {
-            auto ite = ucci_option.find("usemillisec");
-            if (ite->second.get<bool>()) {
+            if (option<bool>("usemillisec")) {
                 setting.milliseconds = time->get<int>();
             } else {
                 setting.milliseconds = 1000 * time->get<int>();
@@ -136,12 +133,11 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
 
 
 void UCCI::setoption(std::string key, std::string val) {
-    auto ite = ucci_option.find(key);
     if (key == "usemillisec") {
         if (val == "true") {
-            ite->second.set<bool>(true);
+            set_option("usemillisec", true);
         } else if (val == "false") {
-            ite->second.set<bool>(false);
+            set_option("usemillisec", false);
         }
     } else if (key == "cachesize") {
         m_ucci_engine->setoption(key, val);
