@@ -33,7 +33,7 @@ public:
     using Netresult = NNResult;
     using PolicyMapsPair = std::pair<float, int>;
 
-    void initialize(const int playouts, const std::string &weightsfile);
+    void initialize(const std::string &weightsfile);
 
     void reload_weights(const std::string &weightsfile);
 
@@ -41,12 +41,10 @@ public:
                          const bool read_cache = true,
                          const bool write_cache = true);
 
-    void clear_cache();
-
     void release_nn();
 
-    void set_playouts(const int playouts);
-
+    void clear_cache();
+    void set_cache_memory(const int MiB);
 
 private:
     static constexpr auto INTERSECTIONS = Board::INTERSECTIONS;

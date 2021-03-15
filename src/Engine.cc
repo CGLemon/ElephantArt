@@ -45,8 +45,7 @@ void Engine::initialize() {
     
     if (m_network == nullptr) {
         m_network = std::make_unique<Network>();
-        m_network->initialize(option<int>("playouts"),
-                              option<std::string>("weights_file"));
+        m_network->initialize(option<std::string>("weights_file"));
     }
 
     while (m_train_group.size() < games) {

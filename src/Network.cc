@@ -59,7 +59,7 @@ Network::~Network() {
     m_forward->destroy();  
 }
 
-void Network::initialize(const int playouts, const std::string &weightsfile) {
+void Network::initialize(const std::string &weightsfile) {
 
 #ifndef __APPLE__
 #ifdef USE_OPENBLAS
@@ -84,7 +84,7 @@ void Network::initialize(const int playouts, const std::string &weightsfile) {
                                     EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION);
     }
 #endif
-    set_playouts(playouts);
+    set_cache_memory(Cache<Netresult>::DEFALUT_CACHE_MEM);
     if (option<bool>("stats_verbose")) {
         m_cache.dump_capacity();
     }
@@ -125,10 +125,10 @@ void Network::reload_weights(const std::string &weightsfile) {
     m_weights = nullptr;
 }
 
-void Network::set_playouts(const int playouts) {
-    const size_t cache_size = option<int>("cache_moves") * playouts;
-    m_cache.resize(cache_size);
+void Network::set_cache_memory(const int MiB) {
+    m_cache.set_memory(MiB);
 }
+
 
 bool Network::probe_cache(const Position *const position,
                           Network::Netresult &result) {

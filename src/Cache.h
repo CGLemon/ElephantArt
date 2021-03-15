@@ -32,12 +32,13 @@
 template <typename EntryType>
 class Cache {
 public:
+    static constexpr size_t DEFALUT_CACHE_MEM = 50; // ~50 MiB
+
     Cache() : m_hits(0), m_lookups(0), m_inserts(0) {}
 
     bool lookup(std::uint64_t hash, EntryType &result);
     void insert(std::uint64_t hash, const EntryType &result);
-    void resize(size_t size);
-
+    void set_memory(size_t MiB);
     void dump_capacity();
     void dump_stats();
     size_t get_estimated_size();
@@ -46,13 +47,15 @@ public:
     void clear_stats();
 
 private:
-    static constexpr size_t MAX_CACHE_COUNT = 150000;
+    static constexpr size_t MAX_CACHE_MEM = 128 * 1024; // ~128 GiB
 
-    static constexpr size_t MIN_CACHE_COUNT = 6000;
+    static constexpr size_t MIN_CACHE_MEM = 1;
 
     static constexpr size_t ENTRY_SIZE = sizeof(EntryType) +
                                              sizeof(std::uint64_t) +
                                              sizeof(std::unique_ptr<EntryType>);
+
+    void resize(size_t size);
 
     SharedMutex m_sm;
     size_t m_size;
@@ -105,11 +108,19 @@ void Cache<EntryType>::insert(std::uint64_t hash, const EntryType &result) {
 }
 
 template <typename EntryType>
+void Cache<EntryType>::set_memory(size_t MiB) {
+    MiB = MiB > MAX_CACHE_MEM ? MAX_CACHE_MEM :
+              MiB < MIN_CACHE_MEM ? MIN_CACHE_MEM : MiB;
+    const double bytes = 1024.f * 1024.f * (double)MiB;
+    const auto size = size_t(bytes / Cache::ENTRY_SIZE);
+    resize(size);
+}
+
+template <typename EntryType>
 void Cache<EntryType>::resize(size_t size) {
     LockGuard<lock_t::X_LOCK> lock(m_sm);
 
-    m_size = size > Cache::MAX_CACHE_COUNT ? Cache::MAX_CACHE_COUNT : 
-                 size < Cache::MIN_CACHE_COUNT ? Cache::MIN_CACHE_COUNT : size;
+    m_size = size;
 
     while (m_order.size() > m_size) {
         m_cache.erase(m_order.front());
@@ -143,14 +154,14 @@ void Cache<EntryType>::clear_stats() {
 template <typename EntryType>
 void Cache<EntryType>::dump_capacity() {
     LockGuard<lock_t::S_LOCK> lock(m_sm);
-    Utils::printf<Utils::AUTO>("Cach memory used : %.4f(Mib)\n",
+    Utils::printf<Utils::AUTO>("Cach memory allocated: %.4f(MiB)\n",
                                (float)(m_size * Cache::ENTRY_SIZE) / (1024.f * 1024.f));
 }
 
 template <typename EntryType> 
 void Cache<EntryType>::dump_stats() {
     LockGuard<lock_t::S_LOCK> lock(m_sm);
-    Utils::printf<Utils::AUTO>("Cache: %d/%d hits/lookups = %.2f, hitrate, %d inserts, %lu size, memory used : %zu\n",
+    Utils::printf<Utils::AUTO>("Cache: %d/%d hits/lookups = %.2f, hitrate, %d inserts, %lu size, memory used: %zu\n",
                                    m_hits, m_lookups,
                                    100.f * m_hits / (m_lookups + 1),
                                    m_inserts,
