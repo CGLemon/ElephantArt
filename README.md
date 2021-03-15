@@ -13,7 +13,7 @@ Elephant Art is still pre-alpha version. Many components are not complete(Includ
     $ cmake ..
     $ make
     
-## Other Option To Build
+## More options to build
 Accelerate the Network on CPU. OpenBlas is required.
 
     $ cmake .. -DBLAS_BACKEND=OPENBLAS
@@ -23,11 +23,11 @@ Accelerate the Network by GPU. CUDA and CUDNN are required.
     $ cmake .. -DGUP_BACKEND=CUDA
     $ cmake .. -DGUP_BACKEND=CUDA -DUSE_CUDNN=1
 
-## Start With UCCI Interface
+## Start with UCCI Interface
     $ ./Elephant -m ucci -w <weights file>
     
 ## Experiment Network
-The network is a experiment version. The format will be changed in the future. Please check it before you use it.
+The network is an experiment version. The format will be changed in the future. Please check it before you use it.
 
 https://drive.google.com/drive/folders/1NDrWH5MhAeut_sWAE55uJhvui4Hvapr5?usp=sharing
 
