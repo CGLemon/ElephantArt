@@ -32,7 +32,7 @@
 template <typename container>
 void process_bn_var(container &weights) {
     static constexpr float epsilon = 1e-5f;
-    for (auto &&w : weights) {
+    for (auto &&w: weights) {
         w = 1.0f / std::sqrt(w + epsilon);
     }
 }
@@ -172,10 +172,10 @@ std::vector<float> Model::gather_planes(const Position *const pos) {
 }
 
 std::vector<float> Model::gather_features(const Position *const pos) {
-    // feature 1 : Game plies.
-    // feature 2 : Fifty-Rule ply left.
-    // feature 3 : repetitions one.
-    // feature 4 : repetitions two.
+    // feature 1: Game plies.
+    // feature 2: Fifty-Rule ply left.
+    // feature 3: repetitions one.
+    // feature 4: repetitions two.
 
     auto input_features = std::vector<float>(INPUT_FEATURES, 0.0f);
     const auto ply = pos->get_gameply();
@@ -604,7 +604,7 @@ void Model::process_weights(std::shared_ptr<NNWeights> &nn_weight) {
         nn_weight->input_conv.biases[idx] = 0.0f;
     }
     // residual tower
-    for (auto &residual : nn_weight->residual_tower) {
+    for (auto &residual: nn_weight->residual_tower) {
         for (auto idx = size_t{0}; idx < residual.conv_1.biases.size(); ++idx) {
             residual.bn_1.means[idx] -= residual.conv_1.biases[idx] *
                                             residual.bn_1.stddevs[idx];
@@ -642,7 +642,7 @@ void Model::process_weights(std::shared_ptr<NNWeights> &nn_weight) {
                                             channels, INPUT_CHANNELS);
     }
 
-    for (auto &residual : nn_weight->residual_tower) {
+    for (auto &residual: nn_weight->residual_tower) {
         if (residual.conv_1.kernel_size == 3) {
             residual.conv_1.weights = Winograd::transform_f(
                                           residual.conv_1.weights,
@@ -691,22 +691,22 @@ void Model::dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &ti
 
     Utils::printf<Utils::AUTO>("Neural Network Information :\n");
     Utils::printf<Utils::AUTO>("Time :\n");
-    Utils::printf<Utils::AUTO>("  initialization process : %.4f second(s)\n", duration(timer, 1));
-    Utils::printf<Utils::AUTO>("  input layer process : %.4f second(s)\n", duration(timer, 2));
+    Utils::printf<Utils::AUTO>("  initialization process: %.4f second(s)\n", duration(timer, 1));
+    Utils::printf<Utils::AUTO>("  input layer process: %.4f second(s)\n", duration(timer, 2));
     Utils::printf<Utils::AUTO>("  tower layers process: %.4f second(s)\n", duration(timer, 3));
     Utils::printf<Utils::AUTO>("  output layers process: %.4f second(s)\n", duration(timer, 4));
-    Utils::printf<Utils::AUTO>("Channels / Blocks :  %d / %d\n", nn_weight->residual_channels, nn_weight->residual_blocks);
+    Utils::printf<Utils::AUTO>("Channels / Blocks:  %d / %d\n", nn_weight->residual_channels, nn_weight->residual_blocks);
     Utils::printf<Utils::AUTO>("Tower Struct :\n");
     for (auto i = 0; i < nn_weight->residual_blocks; ++i) {
-        Utils::printf<Utils::AUTO>("  block %2d : ", i+1);
+        Utils::printf<Utils::AUTO>("  block %2d: ", i+1);
         if (nn_weight->residual_tower[i].apply_se) {
             Utils::printf<Utils::AUTO>("ResidualBlock-SE\n");
         } else {
             Utils::printf<Utils::AUTO>("ResidualBlock\n");
         }
     }
-    Utils::printf<Utils::AUTO>("Policy Channels : %d\n", nn_weight->policy_extract_channels);
-    Utils::printf<Utils::AUTO>("Value Channels : %d\n", nn_weight->value_extract_channels);
+    Utils::printf<Utils::AUTO>("Policy Channels: %d\n", nn_weight->policy_extract_channels);
+    Utils::printf<Utils::AUTO>("Value Channels: %d\n", nn_weight->value_extract_channels);
 }
 
 void get_weights_from_file(std::istream &weights_file, std::vector<float> &weights) {
