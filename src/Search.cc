@@ -131,11 +131,10 @@ std::pair<Move, Move> Search::get_best_move() const {
 
     auto child = m_rootnode->get_child(maps);
     auto ponder_move = Move{};
-    if (child) {
+    if (child->has_children()) {
         const auto ponder_maps = child->get_best_move();
         ponder_move = Decoder::maps2move(ponder_maps);
     }
-
     return std::make_pair(best_move, ponder_move);
 }
 

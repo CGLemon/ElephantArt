@@ -116,12 +116,9 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
         auto pos = parser.get_commands(1)->str;
         m_ucci_engine->position(pos);
     } else if (const auto res = parser.find("setoption", 0)) {
-           printf("YES %zu\n", parser.get_count());
         if (parser.get_count() >= 3) {
-                printf("YES\n");
             const auto key = parser.get_command(1)->str;
             const auto val = parser.get_command(2)->str;
-            std::cout << key << " : " << val << "\n";
             setoption(key, val);
         }
     } else {
