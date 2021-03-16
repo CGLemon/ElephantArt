@@ -635,9 +635,9 @@ template<>
 void Board::info_stream<Types::ASCII>(std::ostream &out) const {
     out << "{";
     if (m_tomove == Types::RED) {
-        out << "Next player : RED";
+        out << "Next player: RED";
     } else if (m_tomove == Types::BLACK) {
-        out << "Next player : BLACK";
+        out << "Next player: BLACK";
     }  else {
         out << "color error!";
     }
@@ -656,19 +656,19 @@ template<>
 void Board::info_stream<Types::CHINESE>(std::ostream &out) const {
     out << "{";
     if (m_tomove == Types::RED) {
-        out << "下一手 ：紅方";
+        out << "下一手：紅方";
     } else if (m_tomove == Types::BLACK) {
-        out << "下一手 ：黑方";
+        out << "下一手：黑方";
     }  else {
         out << "color error!";
     }
 
-    out << "，上一手棋 ：" << get_last_move().to_string();
+    out << "，上一手棋：" << get_last_move().to_string();
     out << "，第 " << get_gameply() << " 手棋";
     out << ", 無吃子 " << get_rule50_ply() << " 手棋";
-    out << "，哈希 ：" << std::hex << get_hash() << std::dec;
+    out << "，哈希：" << std::hex << get_hash() << std::dec;
 
-    out << "，\n Fen ：";
+    out << "，\n Fen：";
     fen_stream(out);
     out << "}" << std::endl;
 }
@@ -743,7 +743,10 @@ void Board::board_stream<Types::ASCII>(std::ostream &out, const Move lastmove) c
             if (coordinate_vtx == from_vertex) {
                 out << "*";
             } else {
+                m_bb_color[Types::RED] & Utils::vertex2bitboard(coordinate_vtx) ? out << "\033[31m" :
+                    m_bb_color[Types::BLACK] & Utils::vertex2bitboard(coordinate_vtx) ? out << "\033[30m" : out << "\033[0m";
                 piece_stream<Types::ASCII>(out, coordinate_x, coordinate_y);
+                out << "\033[0m";
             }
         }
         if (mark) {
@@ -791,7 +794,10 @@ void Board::board_stream<Types::CHINESE>(std::ostream &out, const Move lastmove)
             } else {
                 out << " ";
             }
+            m_bb_color[Types::RED] & Utils::vertex2bitboard(coordinate_vtx) ? out << "\033[31m" :
+                m_bb_color[Types::BLACK] & Utils::vertex2bitboard(coordinate_vtx) ? out << "\033[30m" : out << "\033[0m";
             piece_stream<Types::CHINESE>(out, coordinate_x, coordinate_y);
+            out << "\033[0m";
         }
         if (mark) {
             mark = false;
