@@ -106,7 +106,7 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
         if (const auto increment = parser.find_next("oppincrement")) {
             // unused
         }
-        out << m_ucci_engine->think(setting);
+        m_ucci_engine->think(setting);
     } else if (const auto res = parser.find("stop", 0)) {
         m_ucci_engine->interrupt();
     } else if (const auto res = parser.find("ponderhit", 0)) {

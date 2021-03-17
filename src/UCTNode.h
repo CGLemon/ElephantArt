@@ -100,6 +100,8 @@ public:
     void increment_threads();
     void decrement_threads();
 
+    void make_terminated(Types::Color color);
+
     void set_active(const bool active);
     void invalinode();
 
@@ -111,12 +113,16 @@ public:
     bool is_active() const;
     bool is_valid() const;
 
+    bool is_terminated() const;
+
     std::shared_ptr<UCTNodeStats> node_status() const;
 
 private:
     float m_red_stmeval{0.0f};
     float m_red_winloss{0.0f};
     float m_draw{0.0f};
+
+    bool m_terminated{false};
 
     Types::Color m_color{Types::INVALID_COLOR};
     

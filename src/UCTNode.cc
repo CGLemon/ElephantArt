@@ -82,9 +82,15 @@ bool UCTNode::expend_children(Network &network,
     auto ch_move = forced.find_checkmate(movelist);
     if (ch_move.valid()) {
         nodelist.emplace_back(1.0f, Decoder::move2maps(ch_move));
-        legal_accumulate = 1.0f;
-        movelist.clear();
-        set_result(m_color);
+
+        set_result(get_color());
+        link_nodelist(nodelist, min_psa_ratio);
+
+        auto child = m_children[0];
+        inflate(child);
+        child->get()->make_terminated(get_color());
+        expand_done();
+        return true;
     }
 
     for (const auto &move: movelist) {
@@ -647,6 +653,11 @@ int UCTNode::randomize_first_proportionally(float random_temp) {
     return select_maps;
 }
 
+void UCTNode::make_terminated(Types::Color color) {
+    set_result(color);
+    m_terminated = true;
+}
+
 void UCTNode::increment_threads() {
     m_loading_threads.fetch_add(1);
 }
@@ -709,6 +720,10 @@ bool UCTNode::is_active() const {
 
 bool UCTNode::is_valid() const {
     return m_status.load() != INVALID;
+}
+
+bool UCTNode::is_terminated() const {
+    return m_terminated;
 }
 
 std::shared_ptr<SearchParameters> UCTNode::parameters() const {

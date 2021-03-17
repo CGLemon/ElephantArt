@@ -88,14 +88,15 @@ void Search::play_simulation(Position &currpos, UCTNode *const node,
         if (currpos.gameover(true)) {
             search_result.from_gameover(currpos);
             node->apply_evals(search_result.nn_evals());
+        } else if (node->is_terminated()) {
+            search_result.from_nn_evals(node->get_node_evals());
         } else {
             const bool has_children = node->has_children();
             const bool success = node->expend_children(m_network,
                                                        currpos,
                                                        get_min_psa_ratio());
             if (!has_children && success) {
-                const auto nn_evals = node->get_node_evals();
-                search_result.from_nn_evals(nn_evals);
+                search_result.from_nn_evals(node->get_node_evals());
             }
         }
     }
@@ -109,8 +110,7 @@ void Search::play_simulation(Position &currpos, UCTNode *const node,
         ++depth;
     }
     if (search_result.valid()) {
-        auto out = search_result.nn_evals();
-        node->update(out);
+        node->update(search_result.nn_evals());
     }
     node->decrement_threads();
 }
