@@ -58,8 +58,7 @@ Move ForcedCheckmate::find_checkmate(std::vector<Move> &movelist) {
         auto nextpos = std::make_shared<Position>(m_rootpos);
         nextpos->do_move_assume_legal(move);
         if (nextpos->is_check(m_color)) {
-            const auto repetitions = m_rootpos.get_repetitions();
-            if (repetitions >= 2) {
+            if (nextpos->get_repetitions() >= 2) {
                 // This may cause the perpetual check. We may lose the game.
                 // Or the other best result is draw. We don't want these results.
                 continue;
@@ -112,15 +111,15 @@ bool ForcedCheckmate::is_opp_checkmate(std::vector<Move> &movelist) {
     return false;
 }
 
-bool ForcedCheckmate::checkmate_search(Position &currentpos,
+bool ForcedCheckmate::checkmate_search(Position &currpos,
                                        std::vector<std::uint64_t> &buf, int depth, int nodes) const {
     int bound = 0; // depth * m_factor / float(nodes);
-    if (currentpos.get_rule50_ply_left() == 0 || depth > m_maxdepth + bound) {
+    if (currpos.get_rule50_ply_left() == 0 || depth > m_maxdepth + bound) {
         return false;
     }
-    const auto to_move = currentpos.get_to_move();
-    const auto movelist = currentpos.get_movelist();
-    const auto kings = currentpos.get_kings();
+    const auto to_move = currpos.get_to_move();
+    const auto movelist = currpos.get_movelist();
+    const auto kings = currpos.get_kings();
 
     auto cnt = size_t{0};
     for (const auto &move: movelist) {
@@ -129,17 +128,16 @@ bool ForcedCheckmate::checkmate_search(Position &currentpos,
             return true;
         }
 
-        if (currentpos.is_check(to_move)) {
+        if (currpos.is_check(to_move)) {
             // We already win the game. Just find out what move capture
             // opponent king.
             continue;
         }
 
-        auto nextpos = std::make_shared<Position>(currentpos);
+        auto nextpos = std::make_shared<Position>(currpos);
         nextpos->do_move_assume_legal(move);
 
-        const auto repetitions = m_rootpos.get_repetitions();
-        if (repetitions >= 2) {
+        if (nextpos->get_repetitions() >= 2) {
             continue;
         }
 
@@ -171,15 +169,15 @@ bool ForcedCheckmate::checkmate_search(Position &currentpos,
     return false;
 }
 
-bool ForcedCheckmate::uncheckmate_search(Position &currentpos,
+bool ForcedCheckmate::uncheckmate_search(Position &currpos,
                                          std::vector<std::uint64_t> &buf, int depth, int nodes) const {
     int bound = 0; // depth * m_factor / float(nodes);
-    if (currentpos.get_rule50_ply_left() == 0 || depth > m_maxdepth + bound) {
+    if (currpos.get_rule50_ply_left() == 0 || depth > m_maxdepth + bound) {
         return true;
     }
-    const auto to_move = currentpos.get_to_move();
-    const auto movelist = currentpos.get_movelist();
-    const auto kings = currentpos.get_kings();
+    const auto to_move = currpos.get_to_move();
+    const auto movelist = currpos.get_movelist();
+    const auto kings = currpos.get_kings();
 
     auto cnt = size_t{0};
     for (const auto &move: movelist) {
@@ -188,8 +186,12 @@ bool ForcedCheckmate::uncheckmate_search(Position &currentpos,
             return true;
         }
 
-        auto nextpos = std::make_shared<Position>(currentpos);
+        auto nextpos = std::make_shared<Position>(currpos);
         nextpos->do_move_assume_legal(move);
+
+        if (nextpos->get_repetitions() >= 2) {
+            continue;
+        }
 
         if (nextpos->is_check(Board::swap_color(to_move))) {
             continue;

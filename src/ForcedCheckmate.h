@@ -33,9 +33,9 @@ public:
     bool is_opp_checkmate(std::vector<Move> &movelist);
 
 private:
-    bool checkmate_search(Position &currentpos,
+    bool checkmate_search(Position &currpos,
                           std::vector<std::uint64_t> &buf, int depth, int nodes) const;
-    bool uncheckmate_search(Position &currentpos,
+    bool uncheckmate_search(Position &currpos,
                             std::vector<std::uint64_t> &buf, int depth, int nodes) const;
     Position &m_rootpos;
     Types::Color m_color;
