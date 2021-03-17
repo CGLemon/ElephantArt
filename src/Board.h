@@ -206,7 +206,7 @@ private:
     BitBoard &get_piece_bitboard_ref(Types::Piece_t pt);
 
     std::array<BitBoard, 2> m_bb_color;
-    std::array<BitBoard, 2> m_bb_attacks;
+    public: std::array<BitBoard, 2> m_bb_attacks;
 
     BitBoard m_bb_pawn;
     BitBoard m_bb_horse;

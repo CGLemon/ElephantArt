@@ -35,20 +35,22 @@ Repetition::Result Repetition::judge() {
     const auto size = history.size();
     const auto last_move = m_position.get_last_move();
     const auto to_move = m_position.get_to_move();
+    const auto opp_color = Board::swap_color(to_move);
 
     int my_ckecking_cnt = 0;
     int opp_ckecking_cnt = 0;
 
     assert(history[size - 2]->get_repetitions() == 1);
 
-    if (m_position.is_check(to_move)) {
+    if (m_position.is_check(opp_color)) {
         ++my_ckecking_cnt;
         for (int i = 1; i < cycle_length; ++i) {
             auto &board = history[history.size() - i - 1];
-            if (!board->is_check(board->get_to_move())) {
+            if (board->is_check(Board::swap_color(board->get_to_move()))) {
                 to_move == board->get_to_move() ? ++my_ckecking_cnt : ++opp_ckecking_cnt;
             }
         }
+
         if (my_ckecking_cnt == cycle_length/2) {
             if (my_ckecking_cnt == opp_ckecking_cnt) {
                 return DRAW;

@@ -210,7 +210,7 @@ Types::Color Position::get_winner(bool searching) {
     if (res == Repetition::DRAW) {
         return Types::EMPTY_COLOR;
     } else if (res == Repetition::LOSE) {
-        return Board::swap_color(to_move);
+        return to_move;
     } else if (res == Repetition::UNKNOWN) {
         // The program has no idea what the result is. Maybe the opponent 
         // is lose, or draw. But we are so gentle. We simply think that the 
