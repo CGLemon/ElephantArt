@@ -95,8 +95,8 @@ void init_options_map() {
     options_map["resign_threshold"] << Utils::Option::setoption(0.1f, 1.f, 0.f);
     options_map["playouts"] << Utils::Option::setoption(Search::MAX_PLAYOUTS);
     options_map["visits"] << Utils::Option::setoption(Search::MAX_PLAYOUTS);
-    options_map["fpu_root_reduction"] << Utils::Option::setoption(0.25f);
     options_map["fpu_reduction"] << Utils::Option::setoption(0.25f);
+    options_map["fpu_root_reduction"] << Utils::Option::setoption(0.25f);
     options_map["cpuct_init"] << Utils::Option::setoption(2.5f);
     options_map["cpuct_root_init"] << Utils::Option::setoption(2.5f);
     options_map["cpuct_base"] << Utils::Option::setoption(19652.f);
@@ -204,12 +204,12 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         parser.remove_command(res->idx);
     }
 
-    if (const auto res = parser.find("--stats_verbose")) {
+    if (const auto res = parser.find("--stats-verbose")) {
         set_option("stats_verbose", true);
         parser.remove_command(res->idx);
     }
 
-    if (const auto res = parser.find("--analysis_verbose")) {
+    if (const auto res = parser.find("--analysis-verbose")) {
         set_option("analysis_verbose", true);
         parser.remove_command(res->idx);
     }
@@ -239,6 +239,62 @@ ArgsParser::ArgsParser(int argc, char** argv) {
                 set_option("mode", res->get<std::string>());
                 parser.remove_slice(res->idx-1, res->idx+1);
             }
+        }
+    }
+
+    if (const auto res = parser.find_next("--fpu-reduction")) {
+        if (is_parameter(res->str)) {
+            set_option("fpu_reduction", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--fpu-root-reduction")) {
+        if (is_parameter(res->str)) {
+            set_option("fpu_root_reduction", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--cpuct-init")) {
+        if (is_parameter(res->str)) {
+            set_option("cpuct-init", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--cpuct-root-init")) {
+        if (is_parameter(res->str)) {
+            set_option("cpuct_root_init", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--cpuct-base")) {
+        if (is_parameter(res->str)) {
+            set_option("cpuct_base", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--cpuct-root-base")) {
+        if (is_parameter(res->str)) {
+            set_option("cpuct_root_base", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--draw-factor")) {
+        if (is_parameter(res->str)) {
+            set_option("draw_factor", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--draw-root-factor")) {
+        if (is_parameter(res->str)) {
+            set_option("draw_root_factor", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
@@ -298,98 +354,98 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         }
     }
 
-    if (const auto res = parser.find_next("--black_pawn")) {
+    if (const auto res = parser.find_next("--black-pawn")) {
         if (is_parameter(res->str)) {
             set_option<char>("black_pawn_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--black_horse")) {
+    if (const auto res = parser.find_next("--black-horse")) {
         if (is_parameter(res->str)) {
             set_option<char>("black_horse_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--black_cannon")) {
+    if (const auto res = parser.find_next("--black-cannon")) {
         if (is_parameter(res->str)) {
             set_option<char>("black_cannon_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--black_rook")) {
+    if (const auto res = parser.find_next("--black-rook")) {
         if (is_parameter(res->str)) {
             set_option<char>("black_rook_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--black_elephant")) {
+    if (const auto res = parser.find_next("--black-elephant")) {
         if (is_parameter(res->str)) {
             set_option<char>("black_elephant_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--black_advisor")) {
+    if (const auto res = parser.find_next("--black-advisor")) {
         if (is_parameter(res->str)) {
             set_option<char>("black_advisor_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--black_king")) {
+    if (const auto res = parser.find_next("--black-king")) {
         if (is_parameter(res->str)) {
             set_option<char>("black_king_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--red_pawn")) {
+    if (const auto res = parser.find_next("--red-pawn")) {
         if (is_parameter(res->str)) {
             set_option<char>("red_pawn_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--red_horse")) {
+    if (const auto res = parser.find_next("--red-horse")) {
         if (is_parameter(res->str)) {
             set_option<char>("red_horse_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--red_cannon")) {
+    if (const auto res = parser.find_next("--red-cannon")) {
         if (is_parameter(res->str)) {
             set_option<char>("red_cannon_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--red_rook")) {
+    if (const auto res = parser.find_next("--red-rook")) {
         if (is_parameter(res->str)) {
             set_option<char>("red_rook_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--red_elephant")) {
+    if (const auto res = parser.find_next("--red-elephant")) {
         if (is_parameter(res->str)) {
             set_option<char>("red_elephant_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--red_advisor")) {
+    if (const auto res = parser.find_next("--red-advisor")) {
         if (is_parameter(res->str)) {
             set_option<char>("red_advisor_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
-    if (const auto res = parser.find_next("--red_king")) {
+    if (const auto res = parser.find_next("--red-king")) {
         if (is_parameter(res->str)) {
             set_option<char>("red_king_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
@@ -402,7 +458,7 @@ ArgsParser::ArgsParser(int argc, char** argv) {
     if (option<std::string>("mode") == "ucci") {
         set_option("quiet_verbose", true);
     }
-    if (const auto res = parser.find("--debug_mode")) {
+    if (const auto res = parser.find("--debug-mode")) {
         set_option("quiet_verbose", false);
         set_option("stats_verbose", true);
         set_option("analysis_verbose", true);
@@ -423,6 +479,7 @@ void ArgsParser::help() const {
     Utils::printf<Utils::SYNC>("  --playouts, -p <integer>\n");
     Utils::printf<Utils::SYNC>("  --threads, -t <integer>\n");
     Utils::printf<Utils::SYNC>("  --weights, -w <weight file name>\n");
+    Utils::printf<Utils::SYNC>("  --analysis-verbose\n");
     exit(-1);
 }
 
