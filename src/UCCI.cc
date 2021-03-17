@@ -122,24 +122,11 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
         if (parser.get_count() >= 3) {
             const auto key = parser.get_command(1)->str;
             const auto val = parser.get_command(2)->str;
-            setoption(key, val);
+            m_ucci_engine->setoption(key, val);
         }
     } else {
         auto commands = parser.get_commands();
         out << "Unknown command: " << commands->str << std::endl;
     }
     return out.str();
-}
-
-
-void UCCI::setoption(std::string key, std::string val) {
-    if (key == "usemillisec") {
-        if (val == "true") {
-            set_option("usemillisec", true);
-        } else if (val == "false") {
-            set_option("usemillisec", false);
-        }
-    } else if (key == "cachesize") {
-        m_ucci_engine->setoption(key, val);
-    }
 }

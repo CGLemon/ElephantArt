@@ -60,7 +60,8 @@ public:
     Response load_pgn(std::string filename, const int g = DEFUALT_POSITION);
     Response supervised(std::string filename, std::string outname, const int g = DEFUALT_POSITION);
     Response newgame(const int g = DEFUALT_POSITION);
-    Response setoption(std::string key, std::string val);
+    Response setoption(std::string key, std::string val, const int g = DEFUALT_POSITION);
+
 private:
     int clamp(const int g) const;
 

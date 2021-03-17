@@ -46,8 +46,6 @@ private:
 
     virtual std::string execute(Utils::CommandParser &parser);
 
-    void setoption(std::string key, std::string value);
-
     std::unique_ptr<Engine> m_ucci_engine{nullptr};
 };
 

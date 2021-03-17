@@ -101,6 +101,7 @@ public:
     void think(SearchSetting setting, SearchInformation *info);
     void interrupt();
     void ponderhit(bool draw);
+    void set_playouts(int playouts);
     std::shared_ptr<SearchParameters> parameters() const;
     
 private:
@@ -112,7 +113,7 @@ private:
     float get_min_psa_ratio();
     bool is_running();
     void set_running(bool is_running);
-    void set_playouts(int playouts);
+
     bool stop_thinking(int elapsed, int limittime) const;
     std::pair<Move, Move> get_best_move() const;
     std::string get_draw_resign(Types::Color colors, bool draw) const;

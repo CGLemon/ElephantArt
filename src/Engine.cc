@@ -369,10 +369,32 @@ Engine::Response Engine::newgame(const int g) {
     return std::string{};
 }
 
-Engine::Response Engine::setoption(std::string key, std::string val) {
+Engine::Response Engine::setoption(std::string key, std::string val, const int g) {
     if (key == "cachesize") {
         const auto mem = std::stoi(val);
         m_network->set_cache_memory(mem);
+    } else if (key == "usemillisec") {
+        if (val == "true") {
+            set_option(key, true);
+        } else if (val == "false") {
+            set_option(key, false);
+        }
+    } else if (key == "playouts") {
+        auto s = get_search(g);
+        s->set_playouts(std::stoi(val));
+    } else if (key == "cpuct-init") {
+        auto s = get_search(g);
+        s->parameters()->cpuct_init = std::stoi(val);
+    } else if (key == "cpuct-root-init") {
+        auto s = get_search(g);
+        s->parameters()->cpuct_root_init = std::stoi(val);
+    } else if (key == "cpuct-base") {
+        auto s = get_search(g);
+        s->parameters()->cpuct_base = std::stoi(val);
+    } else if (key == "cpuct-root-base") {
+        auto s = get_search(g);
+        s->parameters()->cpuct_root_base = std::stoi(val);
     }
+
     return std::string{};
 }
