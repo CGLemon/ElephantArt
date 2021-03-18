@@ -17,16 +17,20 @@
 */
 
 #include <memory>
+#include <cassert>
 #include <algorithm>
 
 #include "ForcedCheckmate.h"
 #include "Board.h"
+#include "Random.h"
 
 ForcedCheckmate::ForcedCheckmate(Position &position) : m_rootpos(position) {
-    m_relaxed_move = 0; // unused
-    m_maxdepth = 16;
-    m_factor = 50.f;
+    set_maxdepth(20);
     m_color = m_rootpos.get_to_move();
+}
+
+void ForcedCheckmate::set_maxdepth(int maxdepth) {
+    m_maxdepth = maxdepth < BASIC_DEPTH ? BASIC_DEPTH : maxdepth;
 }
 
 Move ForcedCheckmate::find_checkmate() {
@@ -34,17 +38,22 @@ Move ForcedCheckmate::find_checkmate() {
     return find_checkmate(movelist);
 }
 
-Move ForcedCheckmate::find_checkmate(std::vector<Move> &movelist) {
-    if (m_rootpos.gameover(true)) {
+Move ForcedCheckmate::find_checkmate(std::vector<Move> movelist) {
+    auto hashbuf = std::vector<std::uint64_t>(m_maxdepth+1);
+    const auto kings = m_rootpos.get_kings();
+
+    if (m_rootpos.get_rule50_ply_left() == 0 ||
+            kings[m_color] == Types::NO_VERTEX ||
+            kings[Board::swap_color(m_color)] == Types::NO_VERTEX) {
+        // The Game is over.
         return Move{};
     }
 
-    auto hashbuf = std::vector<std::uint64_t>(10);
-    const auto kings = m_rootpos.get_kings();
-    auto cnt = size_t{0};
+    shuffle(movelist);
+
+    hashbuf[0] = m_rootpos.get_hash();
 
     for (const auto &move: movelist) {
-        ++cnt;
         if (move.get_to() == kings[Board::swap_color(m_color)]) {
             return move;
         }
@@ -63,8 +72,9 @@ Move ForcedCheckmate::find_checkmate(std::vector<Move> &movelist) {
                 // Or the other best result is draw. We don't want these results.
                 continue;
             }
-            hashbuf[0] = nextpos->get_hash();
-            const auto success = !uncheckmate_search(*nextpos, hashbuf, 1, movelist.size() - cnt);
+
+            const auto success = !uncheckmate_search(*nextpos, hashbuf, 1);
+
             if (success) {
                 return move;
             }
@@ -74,57 +84,20 @@ Move ForcedCheckmate::find_checkmate(std::vector<Move> &movelist) {
     return Move{};
 }
 
-bool ForcedCheckmate::is_opp_checkmate() {
-    auto movelist = m_rootpos.get_movelist();
-    return is_opp_checkmate(movelist);
-}
-
-bool ForcedCheckmate::is_opp_checkmate(std::vector<Move> &movelist) {
-    if (m_rootpos.get_winner(true) == Board::swap_color(m_color)) {
-        return true;
-    }
-
-    const auto kings = m_rootpos.get_kings();
-
-    auto hashbuf = std::vector<std::uint64_t>(10);
-    auto cnt = size_t{0};
-    for (const auto &move: movelist) {
-        ++cnt;
-        if (move.get_to() == kings[Board::swap_color(m_color)]) {
-            return false;
-        }
-
-        auto nextpos = std::make_shared<Position>(m_rootpos);
-        nextpos->do_move_assume_legal(move);
-
-        if (nextpos->is_check(Board::swap_color(m_color))) {
-            return true;
-        }
-
-        hashbuf[0] = nextpos->get_hash();
-
-        const auto success = checkmate_search(*nextpos, hashbuf, 1, movelist.size() - cnt);
-        if (success) {
-            return true;
-        }
-    }
-    return false;
-}
-
 bool ForcedCheckmate::checkmate_search(Position &currpos,
-                                       std::vector<std::uint64_t> &buf, int depth, int nodes) const {
-    int bound = 0; // depth * m_factor / float(nodes);
-    if (currpos.get_rule50_ply_left() == 0 || depth > m_maxdepth + bound) {
+                                       std::vector<std::uint64_t> &buf, int depth) const {
+    if (currpos.get_rule50_ply_left() == 0 || depth > m_maxdepth) {
         return false;
     }
+    const auto movelist = get_shuffle_movelist(currpos);
     const auto to_move = currpos.get_to_move();
-    const auto movelist = currpos.get_movelist();
     const auto kings = currpos.get_kings();
 
-    auto cnt = size_t{0};
+    buf[depth] = currpos.get_hash();
+
     for (const auto &move: movelist) {
-        ++cnt;
         if (move.get_to() == kings[Board::swap_color(to_move)]) {
+            // We capture opponent king.
             return true;
         }
 
@@ -142,26 +115,18 @@ bool ForcedCheckmate::checkmate_search(Position &currpos,
         }
 
         auto hash = nextpos->get_hash();
-        if ((int)buf.size() < depth+1) {
-            buf.resize(depth+1);
-        }
-
-        if (std::find(std::begin(buf), 
-                std::begin(buf) + depth, hash) == 
-                std::begin(buf) + depth) {
-            buf[depth] = hash; 
-        } else {
-            // This move is exist before. We don't need to
-            // waste time to search it.
+        if (std::find(std::begin(buf), std::begin(buf) + depth, hash) != std::begin(buf) + depth) {
+            // This position is exist before. It may cause the perpetual check. We
+            // should avoid to search it.
             continue;
         }
 
         if (!nextpos->is_check(to_move)) {
+            // It is not forced check move.
             continue;
         }
 
-        const auto success = !uncheckmate_search(*nextpos, buf, depth+1, movelist.size() - cnt + nodes);
-        if (success) {
+        if (!uncheckmate_search(*nextpos, buf, depth+1)) {
             return true;
         }
     }
@@ -170,44 +135,59 @@ bool ForcedCheckmate::checkmate_search(Position &currpos,
 }
 
 bool ForcedCheckmate::uncheckmate_search(Position &currpos,
-                                         std::vector<std::uint64_t> &buf, int depth, int nodes) const {
-    int bound = 0; // depth * m_factor / float(nodes);
-    if (currpos.get_rule50_ply_left() == 0 || depth > m_maxdepth + bound) {
+                                         std::vector<std::uint64_t> &buf, int depth) const {
+    if (currpos.get_rule50_ply_left() == 0 || depth > m_maxdepth) {
         return true;
     }
+    const auto movelist = get_shuffle_movelist(currpos);
     const auto to_move = currpos.get_to_move();
-    const auto movelist = currpos.get_movelist();
     const auto kings = currpos.get_kings();
+    
+    buf[depth] = currpos.get_hash();
 
-    auto cnt = size_t{0};
     for (const auto &move: movelist) {
-        ++cnt;
         if (move.get_to() == kings[Board::swap_color(to_move)]) {
+            // We capture opponent king.
             return true;
+        }
+
+        if (currpos.is_check(to_move)) {
+            // We already win the game. Just find out what move capture
+            // opponent king.
+            continue;
         }
 
         auto nextpos = std::make_shared<Position>(currpos);
         nextpos->do_move_assume_legal(move);
 
-        if (nextpos->get_repetitions() >= 2) {
-            continue;
-        }
-
         if (nextpos->is_check(Board::swap_color(to_move))) {
+            // We are already lose.
             continue;
         }
 
-        if ((int)buf.size() < depth+1) {
-            buf.resize(depth+1);
+        auto hash = nextpos->get_hash();
+        if (std::find(std::begin(buf), std::begin(buf) + depth, hash) != std::begin(buf) + depth) {
+            // This position is exist before. We don't need to waste time
+            // to search it.
+            return true;
         }
-        buf[depth] = nextpos->get_hash();
 
-        const auto success = !checkmate_search(*nextpos, buf, depth+1, movelist.size() - cnt + nodes);
-        if (success) {
+        if (!checkmate_search(*nextpos, buf, depth+1)) {
             return true;
         }
     }
 
     // We don't find a uncheckmate move.
     return false;
+}
+
+void ForcedCheckmate::shuffle(std::vector<Move> &movelist) const {
+    auto rng = Random<random_t::SplitMix_64>::get_Rng();
+    std::shuffle(std::begin(movelist), std::end(movelist), rng);
+}
+
+std::vector<Move> ForcedCheckmate::get_shuffle_movelist(Position &pos) const {
+    auto movelist = pos.get_movelist();
+    shuffle(movelist);
+    return movelist;
 }

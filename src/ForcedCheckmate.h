@@ -23,20 +23,27 @@
 #include "BitBoard.h"
 #include "Types.h"
 
+#include <vector>
+
 class ForcedCheckmate {
 public:
     ForcedCheckmate(Position &position);
 
     Move find_checkmate();
-    Move find_checkmate(std::vector<Move> &movelist);
-    bool is_opp_checkmate();
-    bool is_opp_checkmate(std::vector<Move> &movelist);
+    Move find_checkmate(std::vector<Move> movelist);
+
+    void set_maxdepth(int maxdepth);
 
 private:
+    static constexpr int BASIC_DEPTH = 4;
     bool checkmate_search(Position &currpos,
-                          std::vector<std::uint64_t> &buf, int depth, int nodes) const;
+                          std::vector<std::uint64_t> &buf, int depth) const;
     bool uncheckmate_search(Position &currpos,
-                            std::vector<std::uint64_t> &buf, int depth, int nodes) const;
+                            std::vector<std::uint64_t> &buf, int depth) const;
+
+    void shuffle(std::vector<Move> &movelist) const;
+    std::vector<Move> get_shuffle_movelist(Position &pos) const;
+
     Position &m_rootpos;
     Types::Color m_color;
     int m_relaxed_move;

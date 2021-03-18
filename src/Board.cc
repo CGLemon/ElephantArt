@@ -1173,7 +1173,7 @@ void Board::do_move_assume_legal(Move move) {
     // Update zobrist.
     update_zobrist(p , from, to);
     if (is_capture()) {
-        auto capture_p = static_cast<Types::Piece>(capture_pt) + (color == Types::BLACK ? 7 : 0);
+        auto capture_p = static_cast<Types::Piece>(capture_pt) + (color == Types::RED ? 7 : 0);
         update_zobrist_remove(capture_p, to);
     } 
 
