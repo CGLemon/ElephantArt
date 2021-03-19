@@ -153,8 +153,8 @@ void init_options_map() {
 
 void init_basic_parameters() {
     Zobrist::init_zobrist();
-    Decoder::initialize();
     Board::pre_initialize();
+    Decoder::initialize();
 }
 
 ArgsParser::ArgsParser(int argc, char** argv) {

@@ -40,7 +40,9 @@ static constexpr auto WINRATELAYER = 4;
 struct NNResult {
     std::array<float, POLICYMAP * Board::INTERSECTIONS> policy;
     std::array<float, WINRATELAYER> winrate_misc;
-    NNResult () {
+    bool symmetry;
+
+    NNResult() {
         policy.fill(0.0f);
         winrate_misc.fill(0.0f);
     }
@@ -141,7 +143,7 @@ struct Model {
         virtual bool valid() = 0;
     };
     
-    static std::vector<float> gather_planes(const Position *const pos);
+    static std::vector<float> gather_planes(const Position *const pos, const bool symmetry);
     static std::vector<float> gather_features(const Position *const pos);
 
     static void load_weights(const std::string &filename,
@@ -169,9 +171,13 @@ struct Model {
                                        const int out_channels,
                                        const int kernel_size);
 
+    static NNResult get_result_from_cache(NNResult result,
+                                          const bool symmetry);
+
     static NNResult get_result(std::vector<float> &policy,
                                std::vector<float> &value,
                                const float p_softmax_temp,
-                               const float v_softmax_temp);
+                               const float v_softmax_temp,
+                               const bool symmetry);
 };
 #endif

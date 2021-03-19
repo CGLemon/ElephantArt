@@ -23,6 +23,7 @@
 #include "Model.h"
 #include "Utils.h"
 #include "config.h"
+#include "Decoder.h"
 #include "WinogradHelper.h"
 
 #ifdef USE_FAST_PARSER
@@ -32,7 +33,7 @@
 template <typename container>
 void process_bn_var(container &weights) {
     static constexpr float epsilon = 1e-5f;
-    for (auto &&w: weights) {
+    for (auto &&w : weights) {
         w = 1.0f / std::sqrt(w + epsilon);
     }
 }
@@ -103,11 +104,13 @@ void Desc::LinearLayer::load_size(int is, int os, bool check) {
 
 void fill_piece_planes(const std::shared_ptr<const Board> board,
                        std::vector<float>::iterator red,
-                       std::vector<float>::iterator black) {
+                       std::vector<float>::iterator black,
+                       const bool symmetry) {
     
     for (auto idx = size_t{0}; idx < Board::INTERSECTIONS; ++idx) {
-        const auto x = idx % Board::WIDTH;
-        const auto y = idx / Board::WIDTH;
+        const auto sym_idx = Board::symmetry_nn_idx_table[static_cast<int>(symmetry)][idx];
+        const auto x = sym_idx % Board::WIDTH;
+        const auto y = sym_idx / Board::WIDTH;
         const auto vtx = Board::get_vertex(x, y);
         const auto pis = board->get_piece(vtx);
         
@@ -120,16 +123,16 @@ void fill_piece_planes(const std::shared_ptr<const Board> board,
     }
 }
 
-std::vector<float> Model::gather_planes(const Position *const pos) {
+std::vector<float> Model::gather_planes(const Position *const pos, const bool symmetry) {
     static constexpr auto MOVES_PLANES = INPUT_MOVES * 14;
     static constexpr auto STATUS_PLANES = INPUT_STATUS;
 
     static_assert(INPUT_CHANNELS == MOVES_PLANES + STATUS_PLANES, "");
     static_assert(INPUT_CHANNELS == 16, "");
 
-    // planes |  1 -  7 | Current player picee position.
-    // planes |  8 - 14 | Next player picee position.
-    // planes | 15 - 16 | Is red or not.
+    // planes  1- 7: Current player pieces position.
+    // planes  8-14: Next player pieces position.
+    // planes 15-16: Current player is red or not.
 
     auto input_data = std::vector<float>(INPUT_CHANNELS * Board::INTERSECTIONS, 0.0f);
     auto color = pos->get_to_move();
@@ -150,7 +153,8 @@ std::vector<float> Model::gather_planes(const Position *const pos) {
             const auto board = pos->get_past_board(p);
             fill_piece_planes(board,
                               red_iterator,
-                              blk_iterator);
+                              blk_iterator,
+                              symmetry);
         }
         std::advance(red_iterator, 7 * Board::INTERSECTIONS);
         std::advance(blk_iterator, 7 * Board::INTERSECTIONS);
@@ -569,18 +573,44 @@ void Model::fill_weights(std::istream &weights_file,
     }
 }
 
+NNResult Model::get_result_from_cache(NNResult result,
+                                      const bool symmetry) {
+
+    if (result.symmetry == symmetry) {
+        return result;
+    }
+
+    const auto probabilities = result.policy;
+    for (auto p = size_t{0}; p < POLICYMAP; ++p) {
+        for (auto idx = size_t{0}; idx < Board::INTERSECTIONS; ++idx) {
+            const auto maps = Decoder::get_symmetry_maps(idx + p * Board::INTERSECTIONS);
+            result.policy[idx + p * Board::INTERSECTIONS] = probabilities[maps];
+        }
+    }
+
+    return result;
+}
+
 NNResult Model::get_result(std::vector<float> &policy,
                            std::vector<float> &value,
                            const float p_softmax_temp,
-                           const float v_softmax_temp) {
+                           const float v_softmax_temp,
+                           const bool symmetry) {
     NNResult result;
+
+    // Is symmetry or not.
+    result.symmetry = symmetry;
 
     // Probabilities
     const auto probabilities = Activation::Softmax(policy, p_softmax_temp);
     for (auto p = size_t{0}; p < POLICYMAP; ++p) {
         for (auto idx = size_t{0}; idx < Board::INTERSECTIONS; ++idx) {
-            result.policy[idx + p * Board::INTERSECTIONS] =
-                probabilities[idx + p * Board::INTERSECTIONS];
+            int maps = idx + p * Board::INTERSECTIONS;
+            if (symmetry) {
+                maps = Decoder::get_symmetry_maps(maps);
+            }
+
+            result.policy[idx + p * Board::INTERSECTIONS] = probabilities[maps];
         }
     }
 
@@ -604,7 +634,7 @@ void Model::process_weights(std::shared_ptr<NNWeights> &nn_weight) {
         nn_weight->input_conv.biases[idx] = 0.0f;
     }
     // residual tower
-    for (auto &residual: nn_weight->residual_tower) {
+    for (auto &residual : nn_weight->residual_tower) {
         for (auto idx = size_t{0}; idx < residual.conv_1.biases.size(); ++idx) {
             residual.bn_1.means[idx] -= residual.conv_1.biases[idx] *
                                             residual.bn_1.stddevs[idx];
@@ -635,6 +665,8 @@ void Model::process_weights(std::shared_ptr<NNWeights> &nn_weight) {
         return;
     }
 
+    // TODO: Implement winograd convolve.
+
     auto channels = nn_weight->residual_channels;
     if (nn_weight->input_conv.kernel_size == 3) {
         nn_weight->input_conv.weights = Winograd::transform_f(
@@ -642,7 +674,7 @@ void Model::process_weights(std::shared_ptr<NNWeights> &nn_weight) {
                                             channels, INPUT_CHANNELS);
     }
 
-    for (auto &residual: nn_weight->residual_tower) {
+    for (auto &residual : nn_weight->residual_tower) {
         if (residual.conv_1.kernel_size == 3) {
             residual.conv_1.weights = Winograd::transform_f(
                                           residual.conv_1.weights,

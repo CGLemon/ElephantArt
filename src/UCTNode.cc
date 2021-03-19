@@ -64,7 +64,7 @@ bool UCTNode::expend_children(Network &network,
         return false;
     }
 
-    const auto raw_netlist = network.get_output(&pos);
+    const auto raw_netlist = network.get_output(&pos, Network::RANDOM_SYMMETRY);
 
     m_color = pos.get_to_move();
     link_nn_output(raw_netlist, m_color);
@@ -93,7 +93,7 @@ bool UCTNode::expend_children(Network &network,
         return true;
     }
 
-    for (const auto &move: movelist) {
+    for (const auto &move : movelist) {
         const auto maps = Decoder::move2maps(move);
         const auto policy = raw_netlist.policy[maps];
         if (is_root) {
@@ -146,12 +146,12 @@ bool UCTNode::expend_children(Network &network,
     }
 
     if (legal_accumulate > 0.0f) {
-        for (auto &node: nodelist) {
+        for (auto &node : nodelist) {
             node.first /= legal_accumulate;
         }
     } else {
         const auto cnt = static_cast<float>(nodelist.size());
-        for (auto &node: nodelist) {
+        for (auto &node : nodelist) {
             node.first = 1.0f / cnt;
         }
     }
@@ -166,7 +166,7 @@ void UCTNode::link_nodelist(std::vector<Network::PolicyMapsPair> &nodelist, floa
     std::stable_sort(std::rbegin(nodelist), std::rend(nodelist));
 
     const float min_psa = nodelist[0].first * min_psa_ratio;
-    for (const auto &node: nodelist) {
+    for (const auto &node : nodelist) {
         if (node.first < min_psa) {
             break;
         } else {
@@ -402,7 +402,7 @@ std::vector<std::pair<float, int>> UCTNode::get_lcb_list(const Types::Color colo
     auto list = std::vector<std::pair<float, int>>{};
     inflate_all_children();
 
-    for (const auto & child: m_children) {
+    for (const auto & child : m_children) {
         const auto node = child->get();
         const auto visits = node->get_visits();
         const auto maps = node->get_maps();
@@ -424,7 +424,7 @@ std::vector<std::pair<float, int>> UCTNode::get_winrate_list(const Types::Color 
     auto list = std::vector<std::pair<float, int>>{};
     inflate_all_children();
 
-    for (const auto &child: m_children) {
+    for (const auto &child : m_children) {
         const auto node = child->get();
         const auto visits = node->get_visits();
         const auto maps = node->get_maps();
@@ -445,7 +445,7 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
 
     int parentvisits = 0;
     float total_visited_policy = 0.0f;
-    for (const auto &child: m_children) {
+    for (const auto &child : m_children) {
         const auto node = child->get();
         if (!node) {
             continue;
@@ -472,7 +472,7 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
     std::shared_ptr<UCTNodePointer> best_node = nullptr;
     float best_value = std::numeric_limits<float>::lowest();
 
-    for (const auto &child: m_children) {
+    for (const auto &child : m_children) {
         // Check the node is pointer or not.
         // If not, we can not get most data from child.
         const auto node = child->get();
@@ -557,14 +557,14 @@ std::vector<float> UCTNode::apply_dirichlet_noise(const float epsilon, const flo
         return dirichlet_buffer;
     }
 
-    for (auto &v: dirichlet_buffer) {
+    for (auto &v : dirichlet_buffer) {
         v /= sample_sum;
     }
 
     child_cnt = 0;
     // Be Sure all node are expended.
     inflate_all_children();
-    for (const auto &child: m_children) {
+    for (const auto &child : m_children) {
         auto node = child->get();
         auto policy = node->get_policy();
         auto eta_a = dirichlet_buffer[child_cnt++];
@@ -607,7 +607,7 @@ int UCTNode::get_best_move() {
     float best_value = std::numeric_limits<float>::lowest();
     int best_move = -1;
 
-    for (auto &lcb: lcblist) {
+    for (auto &lcb : lcblist) {
         const auto lcb_value = lcb.first;
         const auto maps = lcb.second;
         if (lcb_value > best_value) {
@@ -629,7 +629,7 @@ int UCTNode::randomize_first_proportionally(float random_temp) {
     auto accum = float{0.0f};
     auto accum_vector = std::vector<std::pair<float, int>>{};
 
-    for (const auto &child: m_children) {
+    for (const auto &child : m_children) {
         auto node = child->get();
         const auto visits = node->get_visits();
         const auto maps = node->get_maps();
@@ -739,13 +739,13 @@ void UCTNode::set_policy(const float p) {
 }
 
 void UCTNode::inflate_all_children() {
-    for (const auto &child: m_children) {
+    for (const auto &child : m_children) {
         inflate(child);
     }
 }
 
 void UCTNode::release_all_children() {
-    for (const auto &child: m_children) {
+    for (const auto &child : m_children) {
          release(child);
     }
 }
@@ -822,7 +822,7 @@ void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off)
                                      node->get_draw() * 100.f);
 
     int push = 0;
-    for (auto &lcb: lcblist) {
+    for (auto &lcb : lcblist) {
         const auto lcb_value = lcb.first > 0.0f ? lcb.first : 0.0f;
         const auto maps = lcb.second;
 
@@ -867,7 +867,7 @@ std::string UCT_Information::pv_to_srting(UCTNode *node) {
     }
   
     auto res = std::string{};
-    for (const auto &maps: pvlist) {
+    for (const auto &maps : pvlist) {
         const auto move = Decoder::maps2move(maps);
         res += move.to_string();
         res += " ";

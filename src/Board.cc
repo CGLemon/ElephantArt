@@ -28,6 +28,9 @@ constexpr std::array<Types::Piece, Board::NUM_VERTICES> Board::START_VERTICES;
 
 constexpr std::array<Types::Direction, 8> Board::m_dirs;
 
+std::array<std::array<int, Board::INTERSECTIONS>, Board::NUM_SYMMETRIES> Board::symmetry_nn_idx_table;
+std::array<std::array<Types::Vertices, Board::NUM_VERTICES>, Board::NUM_SYMMETRIES> Board::symmetry_nn_vtx_table;
+
 std::array<std::array<BitBoard, Board::NUM_VERTICES>, 2> Board::m_pawn_attacks;
 std::array<BitBoard, Board::NUM_VERTICES> Board::m_advisor_attacks;
 std::array<BitBoard, Board::NUM_VERTICES> Board::m_king_attacks;
@@ -73,6 +76,41 @@ void Board::clear_status() {
     m_capture = false;
     m_lastmove = Move{};
     set_repetitions(0, 0);
+}
+
+void Board::init_symmetry() {
+    const auto get_symmetry = [](const int x, const int y, bool symm) {
+         int symm_x = x;
+         int symm_y = y;
+         if (symm) {
+             symm_x = Board::WIDTH - x - 1;
+         }
+
+         return std::make_pair(symm_x, symm_y);
+    };
+
+    for (int symm = 0; symm < NUM_SYMMETRIES; ++symm) {
+        for (int vtx = 0; vtx < NUM_VERTICES; ++vtx) {
+            symmetry_nn_vtx_table[symm][vtx] = Types::NO_VERTEX;
+        }
+        for (int idx = 0; idx < INTERSECTIONS; ++idx) {
+            symmetry_nn_idx_table[symm][idx] = 0;
+        }
+    }
+
+    for (int symm = 0; symm < NUM_SYMMETRIES; ++symm) {
+        for (int y = 0; y < HEIGHT; ++y) {
+            for (int x = 0; x < WIDTH; ++x) {
+                const auto sym_idx = get_symmetry(x, y, (bool)symm);
+                const auto vtx = get_vertex(x, y);
+                const auto idx = get_index(x, y);
+                symmetry_nn_idx_table[symm][idx] =
+                    get_index(sym_idx.first, sym_idx.second);
+                symmetry_nn_vtx_table[symm][vtx] =
+                    get_vertex(sym_idx.first, sym_idx.second);
+            }
+        }
+    }
 }
 
 bool Board::fen2board(std::string &fen) {
@@ -137,7 +175,7 @@ bool Board::fen2board(std::string &fen) {
         c_bb |= bb;
     };
     auto vtx = Types::VTX_A9;
-    for (const char &c: fen_stream) {
+    for (const char &c : fen_stream) {
         bool skip = false;
         if (c == blk_pawn) {
             bb_process(vtx, bb_pawn, bb_black);
@@ -486,7 +524,7 @@ void Board::init_magics() {
                                         BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
         auto dirs = {Types::EAST, Types::WEST}; 
-        for (const auto &dir: dirs) {
+        for (const auto &dir : dirs) {
             auto p = center;
             do {
                 p = Utils::shift(dir, p);
@@ -500,7 +538,7 @@ void Board::init_magics() {
                                         BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
         auto dirs = {Types::NORTH, Types::SOUTH}; 
-        for (const auto &dir: dirs) {
+        for (const auto &dir : dirs) {
             auto p = center;
             do {
                 p = Utils::shift(dir, p);
@@ -514,7 +552,7 @@ void Board::init_magics() {
                                         BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
         auto dirs = {Types::EAST, Types::WEST}; 
-        for (const auto &dir: dirs) {
+        for (const auto &dir : dirs) {
             auto p = Utils::shift(dir, center);
             while (Utils::on_board(p) && !(p & occupancy)) {
                 reference |= p;
@@ -534,7 +572,7 @@ void Board::init_magics() {
                                           BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
         auto dirs = {Types::NORTH, Types::SOUTH}; 
-        for (const auto &dir: dirs) {
+        for (const auto &dir : dirs) {
             auto p = Utils::shift(dir, center);
             while (Utils::on_board(p) && !(p & occupancy)) {
                 reference |= p;
@@ -603,6 +641,7 @@ void Board::dump_memory() {
 void Board::pre_initialize() {
     init_move_pattens();
     init_magics();
+    init_symmetry();
     dump_memory();
 }
 
@@ -817,15 +856,18 @@ void Board::board_stream<Types::CHINESE>(std::ostream &out, const Move lastmove)
     info_stream<Types::CHINESE>(out);
 }
 
-std::uint64_t Board::calc_hash() const {
+std::uint64_t Board::calc_hash(const bool symm) const {
     auto res = Zobrist::zobrist_empty;
 
     for (int y = 0; y < HEIGHT; ++y) {
         for (int x = 0; x < WIDTH; ++x) {
             const auto vtx = get_vertex(x, y);
             const auto pis = get_piece(vtx);
+
+            const auto symm_vtx = symmetry_nn_vtx_table[int(symm)][vtx];
+
             if (is_on_board(vtx)) {
-                res ^= Zobrist::zobrist[pis][vtx];
+                res ^= Zobrist::zobrist[pis][symm_vtx];
             } 
         }
     }

@@ -31,9 +31,11 @@
 class Decoder {
 public:
     static void initialize();
-    static Move maps2move(const int idx);
-    static bool maps_valid(const int idx);
+    static Move maps2move(const int maps);
+    static bool maps_valid(const int maps);
     static int move2maps(const Move &move);
+
+    static int get_symmetry_maps(const int maps);
 
     static std::string get_mapstring();
 
@@ -41,6 +43,7 @@ private:
     static std::unordered_map<std::uint16_t, int> moves_map;
     static std::array<Move, POLICYMAP * Board::INTERSECTIONS> policymaps_moves;
     static std::array<bool, POLICYMAP * Board::INTERSECTIONS> policymaps_valid;
+    static std::array<int, POLICYMAP * Board::INTERSECTIONS> symmetry_maps;
 };
 
 #endif

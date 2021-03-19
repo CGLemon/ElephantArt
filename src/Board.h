@@ -42,6 +42,14 @@ public:
 
     static constexpr auto INTERSECTIONS = BITBOARD_INTERSECTIONS;
 
+    static constexpr int NUM_SYMMETRIES = 2;
+
+    static constexpr int IDENTITY_SYMMETRY = 0;
+
+    static std::array<std::array<int, INTERSECTIONS>, NUM_SYMMETRIES> symmetry_nn_idx_table;
+
+    static std::array<std::array<Types::Vertices, NUM_VERTICES>, NUM_SYMMETRIES> symmetry_nn_vtx_table;
+
     void reset_board();
 
     static Types::Vertices get_vertex(const int x, const int y);
@@ -50,6 +58,8 @@ public:
     static int get_x(const Types::Vertices vtx);
     static int get_y(const Types::Vertices vtx);
     static std::pair<int, int> get_xy(const Types::Vertices vtx);
+    static Types::Vertices get_symmetry_vertex(const Types::Vertices vtx);
+    static int get_symmetry_index(const int idx);
     static std::string get_start_position();
     Types::Piece get_piece(const int x, const int y) const;
     Types::Piece get_piece(const Types::Vertices vtx) const;
@@ -81,7 +91,7 @@ public:
 
     bool fen2board(std::string &fen);
 
-    std::uint64_t calc_hash() const;
+    std::uint64_t calc_hash(const bool symm = false) const;
 
     static constexpr std::array<Types::Direction, 8> m_dirs =
         {Types::NORTH,      Types::EAST,       Types::SOUTH,      Types::WEST,
@@ -192,6 +202,7 @@ private:
     static std::array<Magic, NUM_VERTICES> m_cannonrank_magics;
     static std::array<Magic, NUM_VERTICES> m_cannonfile_magics;
 
+    static void init_symmetry();
     static void init_pawn_attacks();
     static void init_move_pattens();
     static void init_magics();
@@ -268,6 +279,14 @@ inline int Board::get_y(const Types::Vertices vertex) {
 
 inline std::pair<int, int> Board::get_xy(const Types::Vertices vertex) {
     return std::make_pair(get_x(vertex), get_y(vertex));
+}
+
+inline Types::Vertices Board::get_symmetry_vertex(const Types::Vertices vtx) {
+    return symmetry_nn_vtx_table[1][vtx];
+}
+
+inline int Board::get_symmetry_index(const int idx) {
+    return symmetry_nn_idx_table[1][idx];
 }
 
 inline Types::Color Board::swap_color(const Types::Color color) {

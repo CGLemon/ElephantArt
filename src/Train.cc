@@ -225,7 +225,7 @@ void proccess_inputs(Position &pos, DataCollection &data) {
     const auto to_move = pos.get_to_move();
     data.to_move = to_move;
 
-    const auto inputs = Model::gather_planes(&pos);
+    const auto inputs = Model::gather_planes(&pos, false);
     assert(inputs.size() == data.input_planes.size());
     std::copy(std::begin(inputs), std::end(inputs), std::begin(data.input_planes));
 

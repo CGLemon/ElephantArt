@@ -28,6 +28,10 @@
 
 class Network {
 public:
+    enum Ensemble {
+        DIRECT, RANDOM_SYMMETRY, SYMMETRY
+    };
+
     ~Network();
 
     using Netresult = NNResult;
@@ -38,6 +42,7 @@ public:
     void reload_weights(const std::string &weightsfile);
 
     Netresult get_output(const Position *const position,
+                         const Ensemble ensemble = Ensemble::DIRECT,
                          const bool read_cache = true,
                          const bool write_cache = true);
 
@@ -50,11 +55,10 @@ private:
     static constexpr auto INTERSECTIONS = Board::INTERSECTIONS;
 
     bool probe_cache(const Position *const position,
-                     Network::Netresult &result);
+                     Network::Netresult &result,
+                     const bool symmetry);
 
-    Netresult get_output_internal(const Position *const position);
-  
-    Netresult get_output_form_cache(const Position *const position);
+    Netresult get_output_internal(const Position *const position, const bool symmetry);
 
     Cache<Netresult> m_cache;
 

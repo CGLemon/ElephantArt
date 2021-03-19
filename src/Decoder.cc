@@ -25,6 +25,7 @@
 std::array<Move, POLICYMAP * Board::INTERSECTIONS> Decoder::policymaps_moves;
 std::array<bool, POLICYMAP * Board::INTERSECTIONS> Decoder::policymaps_valid;
 std::unordered_map<std::uint16_t, int> Decoder::moves_map;
+std::array<int, POLICYMAP * Board::INTERSECTIONS> Decoder::symmetry_maps;
 
 void Decoder::initialize() {
     const auto in_boundary = [](const int x, const int y) -> bool {
@@ -171,28 +172,50 @@ void Decoder::initialize() {
             moves_map.emplace(move.get_data(), idx);
         }
     }
+
+    // Initialize the symmetry map.
+    const auto get_symmetry_move= [](Move move) -> Move {
+        const auto symm_f_vtx = Board::get_symmetry_vertex(move.get_from());
+        const auto symm_t_vtx = Board::get_symmetry_vertex(move.get_to());
+        return Move(symm_f_vtx, symm_t_vtx);
+    };
+
+    for (int maps = 0; maps < POLICYMAP * Board::INTERSECTIONS; ++maps) {
+        if (maps_valid(maps)) {
+            const auto symm_move = get_symmetry_move(maps2move(maps));
+            const auto symm_maps = move2maps(symm_move);
+            symmetry_maps[maps] = symm_maps;
+        } else {
+            symmetry_maps[maps] = maps;
+        }
+    }
 }
 
-Move Decoder::maps2move(const int idx) {
-    assert(idx >= 0 && idx < POLICYMAP * Board::INTERSECTIONS);
-    return policymaps_moves[idx];
+Move Decoder::maps2move(const int maps) {
+    assert(maps >= 0 && maps < POLICYMAP * Board::INTERSECTIONS);
+    return policymaps_moves[maps];
 }
 
-bool Decoder::maps_valid(const int idx) {
-    return policymaps_valid[idx];
+bool Decoder::maps_valid(const int maps) {
+    return policymaps_valid[maps];
 }
 
 int Decoder::move2maps(const Move &move) {
     const auto iter = moves_map.find(move.get_data());
     assert(iter != std::end(moves_map));
-    const auto maps = iter->second;
+    auto maps = iter->second;
     return maps;
+}
+
+int Decoder::get_symmetry_maps(const int maps) {
+    assert(maps >= 0 && maps < POLICYMAP * Board::INTERSECTIONS);
+    return symmetry_maps[maps];
 }
 
 std::string Decoder::get_mapstring() {
     auto out = std::ostringstream{}; 
     for (int p = 0; p < POLICYMAP; ++p) {
-        out << "maps : " << p+1 << std::endl;
+        out << "maps: " << p+1 << std::endl;
         for (int y = 0; y < Board::HEIGHT; ++y) {
             for (int x = 0; x < Board::WIDTH; ++x) {
                 const auto idx = Board::get_index(x, y);

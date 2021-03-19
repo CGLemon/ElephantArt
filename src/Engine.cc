@@ -206,7 +206,7 @@ Engine::Response Engine::raw_nn(const int g) {
 Engine::Response Engine::input_planes(const int g) {
     auto rep = std::ostringstream{};
     const auto &p = *get_position(g);
-    const auto input_planes = Model::gather_planes(&p);
+    const auto input_planes = Model::gather_planes(&p, false);
     for (int p = 0; p < INPUT_CHANNELS; ++p) {
         rep << "planes: " << p+1 << std::endl;
         for (int y = 0; y < Board::HEIGHT; ++y) {
