@@ -573,24 +573,6 @@ void Model::fill_weights(std::istream &weights_file,
     }
 }
 
-NNResult Model::get_result_from_cache(NNResult result,
-                                      const bool symmetry) {
-
-    if (result.symmetry == symmetry) {
-        return result;
-    }
-
-    const auto probabilities = result.policy;
-    for (auto p = size_t{0}; p < POLICYMAP; ++p) {
-        for (auto idx = size_t{0}; idx < Board::INTERSECTIONS; ++idx) {
-            const auto maps = Decoder::get_symmetry_maps(idx + p * Board::INTERSECTIONS);
-            result.policy[idx + p * Board::INTERSECTIONS] = probabilities[maps];
-        }
-    }
-
-    return result;
-}
-
 NNResult Model::get_result(std::vector<float> &policy,
                            std::vector<float> &value,
                            const float p_softmax_temp,

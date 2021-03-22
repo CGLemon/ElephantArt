@@ -55,8 +55,7 @@ private:
     static constexpr auto INTERSECTIONS = Board::INTERSECTIONS;
 
     bool probe_cache(const Position *const position,
-                     Network::Netresult &result,
-                     const bool symmetry);
+                     Network::Netresult &result);
 
     Netresult get_output_internal(const Position *const position, const bool symmetry);
 

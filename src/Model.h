@@ -171,9 +171,6 @@ struct Model {
                                        const int out_channels,
                                        const int kernel_size);
 
-    static NNResult get_result_from_cache(NNResult result,
-                                          const bool symmetry);
-
     static NNResult get_result(std::vector<float> &policy,
                                std::vector<float> &value,
                                const float p_softmax_temp,

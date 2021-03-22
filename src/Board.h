@@ -42,9 +42,14 @@ public:
 
     static constexpr auto INTERSECTIONS = BITBOARD_INTERSECTIONS;
 
+    // Number of symmetries.
     static constexpr int NUM_SYMMETRIES = 2;
 
+    // Imply false.
     static constexpr int IDENTITY_SYMMETRY = 0;
+
+    // Imply true.
+    static constexpr int USING_SYMMETRY = 1;
 
     static std::array<std::array<int, INTERSECTIONS>, NUM_SYMMETRIES> symmetry_nn_idx_table;
 

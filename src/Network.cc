@@ -132,35 +132,12 @@ void Network::set_cache_memory(const int MiB) {
 }
 
 bool Network::probe_cache(const Position *const position,
-                          Network::Netresult &result,
-                          const bool symmetry) {
+                          Network::Netresult &result) {
     // TODO: Cache the all symmetry position in early game.
 
     if (m_cache.lookup(position->get_hash(), result)) {
-        // Because we don't cache symmetry position hash, the policymaps
-        // may be symmetry or non-symmetry. We need to check the symmetry
-        // first. Then, decide to do symmetry or not by following cases.
-        //
-        // Case1:
-        // If we want the symmetry policymaps, the NN result is non-symmetry.
-        // Do symmetry.
-        //
-        // Case2:
-        // If we want the symmetry policymaps, the NN result is symmetry.
-        // Not to Do symmetry.
-        // 
-        // Case3:
-        // If we want the non-symmetry policymaps, the NN result is symmetry.
-        // Do symmetry.
-        // 
-        // Case4:
-        // If we want the non-symmetry policymaps, the NN result is non-symmetry.
-        // Not to Do symmetry.
-
-        result = Model::get_result_from_cache(result, symmetry);
         return true;
     }
-
     return false;
 }
 
@@ -190,7 +167,8 @@ void dummy_forward(std::vector<float> &policy,
     }
 }
 
-Network::Netresult Network::get_output_internal(const Position *const position, const bool symmetry) {
+Network::Netresult
+Network::get_output_internal(const Position *const position, const bool symmetry) {
     auto policy_out = std::vector<float>(POLICYMAP * INTERSECTIONS);
     auto winrate_out = std::vector<float>(WINRATELAYER);
 
@@ -225,15 +203,18 @@ Network::get_output(const Position *const position,
 
     if (ensemble == DIRECT) {
         symm = static_cast<bool>(Board::IDENTITY_SYMMETRY);
+        assert(!symm);
     } else if (ensemble == RANDOM_SYMMETRY) {
         auto rng = Random<random_t::XoroShiro128Plus>::get_Rng();
         symm = static_cast<bool>(rng.randfix<2>());
     } else if (ensemble == SYMMETRY) {
-        symm = true;
+        symm = static_cast<bool>(Board::USING_SYMMETRY);
+        assert(symm);
     }
 
     if (read_cache) {
-        if (probe_cache(position, result, symm)) {
+        // Get result from cache, if the it is in the cache memory.
+        if (probe_cache(position, result)) {
             return result;
         }
     }
@@ -241,6 +222,7 @@ Network::get_output(const Position *const position,
     result = get_output_internal(position, symm);
 
     if (write_cache) {
+        // Write result to cache, if the it is in the cache memory.
         m_cache.insert(position->get_hash(), result);
     }
     return result;

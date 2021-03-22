@@ -85,7 +85,6 @@ void Board::init_symmetry() {
          if (symm) {
              symm_x = Board::WIDTH - x - 1;
          }
-
          return std::make_pair(symm_x, symm_y);
     };
 
@@ -863,9 +862,7 @@ std::uint64_t Board::calc_hash(const bool symm) const {
         for (int x = 0; x < WIDTH; ++x) {
             const auto vtx = get_vertex(x, y);
             const auto pis = get_piece(vtx);
-
             const auto symm_vtx = symmetry_nn_vtx_table[int(symm)][vtx];
-
             if (is_on_board(vtx)) {
                 res ^= Zobrist::zobrist[pis][symm_vtx];
             } 
