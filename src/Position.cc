@@ -18,7 +18,7 @@
 
 #include "Position.h"
 #include "Zobrist.h"
-#include "Repetition.h"
+#include "ForcedCheckmate.h"
 
 #include <queue>
 #include <iterator>
@@ -77,7 +77,7 @@ void Position::do_move_assume_legal(Move move) {
     compute_repetitions();
     push_board();
     if (is_capture()) {
-        m_startboard = m_history.size() - 1;
+        m_startboard = get_historysize() - 1;
     }
 }
 
@@ -100,7 +100,7 @@ bool Position::do_textmove(std::string smove) {
 }
 
 bool Position::undo_move() {
-    const auto size = m_history.size();
+    const auto size = get_historysize();
     assert(size >= 1);
     if (size == 1) {
         return false;
@@ -121,8 +121,7 @@ bool Position::undo_move(int moves_age) {
 
 std::vector<Move> Position::get_movelist() {
     auto movelist = std::vector<Move>{};
-    const auto color = get_to_move();
-    board.generate_movelist(color, movelist);
+    board.generate_movelist(get_to_move(), movelist);
 
     return movelist;
 }
@@ -138,8 +137,8 @@ bool Position::position(std::string &fen, std::string &moves) {
 
     // Second: Scan the moves.
     auto chain_moves = std::queue<Move>{};
-    bool moves_success = true;
-    auto move_cnt = size_t{0};
+    auto moves_success = true;
+    auto move_cnt = 0;
 
     if (!moves.empty()) {
         auto moves_stream = std::stringstream{moves};
@@ -154,7 +153,7 @@ bool Position::position(std::string &fen, std::string &moves) {
                 }
             }
 
-            if (++move_cnt != chain_moves.size()) {
+            if (++move_cnt != (int)chain_moves.size()) {
                 moves_success = false;
                 break;
             }
@@ -167,7 +166,7 @@ bool Position::position(std::string &fen, std::string &moves) {
             do_move_assume_legal(chain_moves.front());
             chain_moves.pop();
         }
-        assert(m_history.size() == move_cnt + 1);
+        assert(get_historysize() == move_cnt + 1);
     }
 
     return moves_success;
@@ -204,9 +203,7 @@ Types::Color Position::get_winner(bool searching) {
         return Types::EMPTY_COLOR;
     }
 
-    auto rep = Repetition(*this);
-    auto res = rep.judge();
-
+    const auto res = get_threefold_repetitions_result();
     if (res == Repetition::DRAW) {
         return Types::EMPTY_COLOR;
     } else if (res == Repetition::LOSE) {
@@ -254,9 +251,8 @@ Types::Piece Position::get_piece(const Types::Vertices vtx) const {
 }
 
 const std::shared_ptr<const Board> Position::get_past_board(const int p) const {
-    const auto size = m_history.size();
-    assert(0 <= p && p <= (int)size - 1);
-    return m_history[size - p - 1];
+    assert(0 <= p && p <= get_historysize() - 1);
+    return m_history[get_historysize() - p - 1];
 }
 
 void Position::compute_repetitions() {
@@ -266,7 +262,7 @@ void Position::compute_repetitions() {
     bool cutoff = false;
 
     const auto current_hash = board.get_hash();
-    const auto size = m_history.size();
+    const auto size = get_historysize();
 
     for (int idx = size - 2; idx >= m_startboard; idx -= 2) {
         const auto hash = m_history[idx]->get_hash();
@@ -346,4 +342,64 @@ std::string Position::get_fen() const {
 
 int Position::get_historysize() const {
     return static_cast<int>(m_history.size());
+}
+
+Position::Repetition Position::get_threefold_repetitions_result() {
+    // TODO: Support fully asian rule.
+    // https://www.asianxiangqi.org/%E6%AF%94%E8%B5%9B%E8%A7%84%E4%BE%8B/%E6%AF%94%E8%B5%9B%E8%A7%84%E4%BE%8B_2017.pdf
+
+    if (get_repetitions() < 2) {
+        return Repetition::NONE;
+    }
+
+    const auto size = get_historysize();
+    const auto to_move = get_to_move();
+    const auto opp_color = Board::swap_color(to_move);
+
+    int my_ckecking_cnt = 0;
+    int opp_ckecking_cnt = 0;
+
+    assert(m_history[size - 2]->get_repetitions() == 1);
+
+    if (is_check(opp_color)) {
+        // Current position is ckecking.
+        ++my_ckecking_cnt;
+        for (int i = 1; i < get_cycle_length(); ++i) {
+            auto &board = m_history[size - i - 1];
+            if (board->is_check(Board::swap_color(board->get_to_move()))) {
+                to_move == board->get_to_move() ? ++my_ckecking_cnt : ++opp_ckecking_cnt;
+            }
+        }
+
+        if (my_ckecking_cnt == get_cycle_length()/2) {
+            if (my_ckecking_cnt == opp_ckecking_cnt) {
+                // This is both sides perpetual check case. The game is draw.
+                return Repetition::DRAW;
+            }
+            // This is perpetual check case. We lose the game.
+            return Repetition::LOSE;
+        }
+    }
+
+    const auto last_move = get_last_move(); 
+    const auto pt = board.get_piece_type(last_move.get_to());
+
+    assert(pt != Types::EMPTY_PIECE_T);
+
+    if (pt == Types::KING ||
+            pt == Types::PAWN ||
+            pt == Types::ADVISOR ||
+            pt == Types::ELEPHANT) {
+        return Repetition::DRAW;
+    }
+
+
+    // Perpetual pursuit
+
+    return Repetition::UNKNOWN;
+}
+
+Move Position::get_forced_checkmate_move() {
+    auto forced = ForcedCheckmate(*this);
+    return forced.find_checkmate();
 }

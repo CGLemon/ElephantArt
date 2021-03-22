@@ -22,8 +22,6 @@
 #include "Utils.h"
 #include "config.h"
 #include "Decoder.h"
-#include "Repetition.h"
-#include "ForcedCheckmate.h"
 
 #include <thread>
 #include <algorithm>
@@ -78,10 +76,9 @@ bool UCTNode::expend_children(Network &network,
     const auto kings = pos.get_kings();
 
     // Probe forced checkmate sequences.
-    auto forced = ForcedCheckmate(pos);
-    auto ch_move = forced.find_checkmate(movelist);
-    if (ch_move.valid()) {
-        nodelist.emplace_back(1.0f, Decoder::move2maps(ch_move));
+    auto forced_move = pos.get_forced_checkmate_move();
+    if (forced_move.valid()) {
+        nodelist.emplace_back(1.0f, Decoder::move2maps(forced_move));
 
         set_result(get_color());
         link_nodelist(nodelist, min_psa_ratio);
@@ -99,19 +96,19 @@ bool UCTNode::expend_children(Network &network,
         if (is_root) {
             auto fork_pos = std::make_shared<Position>(pos);
             fork_pos->do_move_assume_legal(move);
-            auto rep = Repetition(*fork_pos);
-            auto res = rep.judge();
-            if (res == Repetition::UNKNOWN) {
+
+            const auto res = fork_pos->get_threefold_repetitions_result();
+            if (res == Position::Repetition::UNKNOWN) {
                 // It is unknown result. we don't need to consider it if we have
                 // other choice. But if not, we will add inferior moves to the
                 // node list.
                 inferior_legal += policy;
                 inferior_moves.emplace_back(policy, maps);
                 continue;
-            } else if (res == Repetition::LOSE) {
+            } else if (res == Position::Repetition::LOSE) {
                 // If we are lose. Don't need to consider this move.
                 continue;
-            } else if (res == Repetition::DRAW) {
+            } else if (res == Position::Repetition::DRAW) {
                 // Do nothing.
             }
 

@@ -28,6 +28,10 @@
 
 class Position {
 public:
+    enum class Repetition {
+        NONE = 0, DRAW, LOSE, UNKNOWN
+    };
+
     void init_game(const int tag);
 
     void display() const;
@@ -77,6 +81,9 @@ public:
     int get_rule50_ply() const;
     int get_rule50_ply_left() const;
     std::array<Types::Vertices, 2> get_kings() const;
+
+    Repetition get_threefold_repetitions_result();
+    Move get_forced_checkmate_move();
 
 private:
     void compute_repetitions();

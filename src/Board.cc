@@ -1271,7 +1271,7 @@ Move Board::text2move(std::string text) {
     if (text.size() != 4) {
         return Move{};
     }
-    
+
     const auto str2vertex = [&](const char *s) -> Types::Vertices {
         char x_char = s[0];
         char y_char = s[1];
