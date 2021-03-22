@@ -222,7 +222,7 @@ Network::get_output(const Position *const position,
     result = get_output_internal(position, symm);
 
     if (write_cache) {
-        // Write result to cache, if the it is in the cache memory.
+        // Write result to cache, if the it is not in the cache memory.
         m_cache.insert(position->get_hash(), result);
     }
     return result;

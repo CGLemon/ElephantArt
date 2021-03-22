@@ -74,19 +74,17 @@ private:
 template <typename EntryType>
 bool Cache<EntryType>::lookup(std::uint64_t hash, EntryType &result) {
     LockGuard<lock_t::S_LOCK> lock(m_sm);
-    
-    bool success = true;
+
     ++m_lookups;
 
     const auto iter = m_cache.find(hash);
-    if (iter == m_cache.end()) {
-        success = false;
-    } else {
+    if (iter != m_cache.end()) {
         const auto &entry = iter->second;
         ++m_hits;
         result = entry->result;
+        return true;
     }
-    return success;
+    return false;
 }
 
 template <typename EntryType>
