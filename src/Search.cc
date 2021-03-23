@@ -282,7 +282,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         return;
     }
 
-    const auto uct_worker = [&]() -> void {
+    const auto uct_worker = [this]() -> void {
         // Waiting, until main thread searching.
         while (m_running_threads.load() < 1 && is_running()) {
             std::this_thread::yield();
@@ -300,7 +300,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         decrement_threads();
     };
 
-    const auto main_worker = [&, set = setting, info]() -> void {
+    const auto main_worker = [this, set = setting, info]() -> void {
         auto keep_running = true;
         auto maxdepth = 0;
         const auto limitnodes = set.nodes;

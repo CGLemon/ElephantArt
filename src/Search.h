@@ -127,7 +127,7 @@ private:
     Position & m_position;
     Network & m_network;
     Train & m_train;
-    UCTNode * m_rootnode{nullptr}; 
+    UCTNode * m_rootnode{nullptr};
 
     ThreadPool m_searchpool;
     std::unique_ptr<ThreadGroup<void>> m_threadGroup{nullptr};

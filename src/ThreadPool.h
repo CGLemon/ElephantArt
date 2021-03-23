@@ -108,8 +108,7 @@ inline void ThreadPool::idle() {
 inline void  ThreadPool::dump_status() {
     idle();
     std::cout << "Thread pool status"                           << std::endl;
-    std::cout << " Running : "         << !m_quit.load()        << std::endl;
-    std::cout << " Number threads : "  << m_fork_threads.load() << std::endl;
+    std::cout << " Number threads: "   << m_fork_threads.load() << std::endl;
     std::cout << " Remainning tasks: " << m_tasks.size()        << std::endl;
     wake_up();
 }
