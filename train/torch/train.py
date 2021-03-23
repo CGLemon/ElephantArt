@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 import numpy as np
 
+from symmetry import *
 from nnprocess import NNProcess
 from chunkparser import ChunkParser
 
@@ -39,18 +40,24 @@ class DataSet():
         pol = np.zeros(self.policy_map * self.ysize * self.xsize)
         wdl = np.zeros(3)
         stm = np.zeros(1)
+        symmetry = bool(np.random.choice(2, 1)[0])
+
         # input planes
         for i in range(7):
             start = data.ACCUMULATE[i]
             num = data.PIECES_NUMBER[i]
             for n in range(num):
                 cp_idx = data.current_pieces[start + n]
+                if symmetry:
+                    cp_idx = symmetry_index[cp_idx]
                 if cp_idx != -1:
                     x = self.get_x(cp_idx)
                     y = self.get_y(cp_idx)
                     input_planes[i][y][x] = 1
                     
                 op_idx = data.other_pieces[start + n]
+                if symmetry:
+                    op_idx = symmetry_index[op_idx]
                 if op_idx != -1:
                     x = self.get_x(op_idx)
                     y = self.get_y(op_idx)
@@ -71,7 +78,11 @@ class DataSet():
 
         # probabilities
         for idx, p in zip(data.policyindex, data.probabilities):
-            pol[idx] = p
+            prob_idx = idx
+            if symmetry:
+                prob_idx = symmetry_maps[prob_idx]
+                assert prob_idx != -1, "Invalid probabilities"
+            pol[prob_idx] = p
             
         # winrate
         stm = data.result
