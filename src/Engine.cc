@@ -244,6 +244,9 @@ Engine::Response Engine::rand_move(const int g) {
 
     const auto move = s->random_move();
     const auto success = p->do_move(move);
+#ifdef NDEBUG
+    (void) success;
+#endif
     assert(success);
 
     return rep.str();
@@ -256,6 +259,9 @@ Engine::Response Engine::nn_direct_move(const int g) {
 
     const auto move = s->nn_direct_move();
     const auto success = p->do_move(move);
+#ifdef NDEBUG
+    (void) success;
+#endif
     assert(success);
 
     return rep.str();
@@ -272,6 +278,9 @@ Engine::Response Engine::uct_move(const int g) {
 
     const auto move = s->uct_move();
     const auto success = p->do_move(move);
+#ifdef NDEBUG
+    (void) success;
+#endif
     assert(success);
 
     return rep.str();
@@ -298,6 +307,9 @@ Engine::Response Engine::selfplay(const int g) {
         display();
         const auto move = s->uct_move();
         const auto success = p->do_move(move);
+#ifdef NDEBUG
+        (void) success;
+#endif
         assert(success);
     }
     const auto winner = p->get_winner(false);

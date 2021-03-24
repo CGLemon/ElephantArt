@@ -769,11 +769,17 @@ bool UCTNode::acquire_expanding() {
 
 void UCTNode::expand_done() {
     auto v = m_expand_state.exchange(ExpandState::EXPANDED);
+#ifdef NDEBUG
+    (void) v;
+#endif
     assert(v == ExpandState::EXPANDING);
 }
 
 void UCTNode::expand_cancel() {
     auto v = m_expand_state.exchange(ExpandState::INITIAL);
+#ifdef NDEBUG
+    (void) v;
+#endif
     assert(v == ExpandState::EXPANDING);
 }
 

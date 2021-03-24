@@ -137,6 +137,9 @@ inline bool NodePointer<Node, Data>::inflate() {
             reinterpret_cast<std::uint64_t>(new Node(m_data)) |
             POINTER;
         auto old_pointer = m_pointer.exchange(new_pointer);
+#ifdef NDEBUG
+        (void) old_pointer;
+#endif
         assert(is_inflating(old_pointer));
         return true;
     }
@@ -148,6 +151,9 @@ inline bool NodePointer<Node, Data>::release() {
     if (is_pointer(v)) {
         delete read_ptr(v);
         auto pointer = m_pointer.exchange(UNINFLATED);
+#ifdef NDEBUG
+        (void) pointer;
+#endif
         assert(pointer == v);
         return true;
     }
