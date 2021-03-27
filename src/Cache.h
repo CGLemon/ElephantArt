@@ -37,8 +37,7 @@ public:
     bool lookup(std::uint64_t hash, EntryType &result);
     void insert(std::uint64_t hash, const EntryType &result);
     void set_memory(size_t MiB);
-    void dump_capacity();
-    void dump_stats();
+
     size_t get_estimated_size();
 
     void clear();
@@ -145,23 +144,5 @@ void Cache<EntryType>::clear_stats() {
     m_hits = 0;
     m_lookups = 0;
     m_inserts = 0;
-}
-
-template <typename EntryType>
-void Cache<EntryType>::dump_capacity() {
-    LockGuard<lock_t::S_LOCK> lock(m_sm);
-    Utils::printf<Utils::AUTO>("Cache capacity memory: %.4f(MiB)\n",
-                               (float)(m_size * Cache::ENTRY_SIZE) / (1024.f * 1024.f));
-}
-
-template <typename EntryType> 
-void Cache<EntryType>::dump_stats() {
-    LockGuard<lock_t::S_LOCK> lock(m_sm);
-    Utils::printf<Utils::AUTO>("Cache: %d/%d hits/lookups = %.2f, hitrate, %d inserts, %lu size, memory used: %zu\n",
-                                   m_hits, m_lookups,
-                                   100.f * m_hits / (m_lookups + 1),
-                                   m_inserts,
-                                   m_cache.size(),
-                                   get_estimated_size());
 }
 #endif

@@ -64,25 +64,20 @@ void Network::initialize(const std::string &weightsfile) {
 #ifndef __APPLE__
 #ifdef USE_OPENBLAS
     openblas_set_num_threads(1);
-    if (option<bool>("stats_verbose")) {
-        Utils::printf<Utils::AUTO>("BLAS Core: %s\n", openblas_get_corename());
-    }
+    DEBUG << "BLAS Core:" << ' ' << openblas_get_corename() << std::endl;
 #endif
 #ifdef USE_MKL
     mkl_set_num_threads(1);
     MKLVersion Version;
     mkl_get_version(&Version);
-    if (option<bool>("stats_verbose")) {
-        Utils::printf<Utils::AUTO>("BLAS core: MKL %s\n", Version.Processor);
-    }
+    DEBUG << "BLAS core: MKL" << ' ' << Version.Processor << std::endl;
 #endif
 #endif
 
 #ifdef USE_EIGEN
-    if (option<bool>("stats_verbose")) {
-        Utils::printf<Utils::AUTO>("BLAS Core: built-in Eigen %d.%d.%d library.\n",
-                                    EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION);
-    }
+    DEBUG << "BLAS Core: Eigen" << ' '
+              << EIGEN_WORLD_VERSION << '.' << EIGEN_MAJOR_VERSION << '.' << EIGEN_MINOR_VERSION << ' '
+              << "library." << std::endl;
 #endif
 
     set_cache_memory(option<int>("cache_size"));
@@ -101,7 +96,7 @@ void Network::initialize(const std::string &weightsfile) {
     m_forward->initialize(m_weights);
 
     if (m_weights->loaded) {
-        Utils::printf<Utils::AUTO>("Weights are pushed down\n");
+        // Do nothing...
     }
 
     m_weights.reset();
@@ -118,7 +113,7 @@ void Network::reload_weights(const std::string &weightsfile) {
     m_forward->reload(m_weights);
 
     if (m_weights->loaded) {
-        Utils::printf<Utils::AUTO>("Weights are pushed down\n");
+        // Do nothing...
     }
     m_weights.reset();
     m_weights = nullptr;
@@ -126,9 +121,6 @@ void Network::reload_weights(const std::string &weightsfile) {
 
 void Network::set_cache_memory(const int MiB) {
     m_cache.set_memory(MiB);
-    if (option<bool>("stats_verbose")) {
-        m_cache.dump_capacity();
-    }
 }
 
 bool Network::probe_cache(const Position *const position,
@@ -160,7 +152,7 @@ void dummy_forward(std::vector<float> &policy,
         v = dist(rng);
     }
     const auto v_acc = std::accumulate(std::begin(value),
-                                       std::begin(value)+ 3, 0.0f);
+                                       std::begin(value)+3, 0.0f);
 
     for (int idx = 0; idx < 3; ++idx) {
         value[idx] = value[idx] / v_acc;
@@ -197,7 +189,6 @@ Network::get_output(const Position *const position,
                     const Network::Ensemble ensemble,
                     const bool read_cache,
                     const bool write_cache) {
-
     Netresult result;
     bool symm = false;
 

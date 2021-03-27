@@ -148,86 +148,66 @@ float cached_t_quantile(int v) {
 
 static std::mutex IOMutex;
 
-#define PRINTF_LOG_FILE_HANDEL                         \
-std::lock_guard<std::mutex> lock(IOMutex);             \
-auto fp = fopen(option<const char*>("log_file"), "a"); \
-if (fp) {                                              \
-    vfprintf(fp, fmt, va);                             \
-    fclose(fp);                                        \
+Logging::Logging(const char* file, int line, bool write_only) {
+    m_file = std::string{file};
+    m_line = line;
+    m_write_only = write_only;
 }
 
-#define STREAM_LOG_FILE_HANDEL                                           \
-std::lock_guard<std::mutex> lock(IOMutex);                               \
-auto fp = std::fstream{};                                                \
-fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out); \
-if (fp.is_open()) {                                                      \
-    fp << out.str();                                                     \
-    fp.close();                                                          \
-}
-
-template <>
-void printf_base<EXTERN>(const char *fmt, va_list va) {
+Logging::~Logging() {
+    std::lock_guard<std::mutex> lock(IOMutex);
+    if (!m_write_only) {
+        std::cout << str() << std::flush;
+    }
     if (option<std::string>("log_file") != NO_LOG_FILE_NAME) {
-        PRINTF_LOG_FILE_HANDEL
+        auto fp = std::fstream{};  
+        fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out);
+        if (fp.is_open()) {
+            fp << str();
+            fp.close();
+        }
     }
 }
 
-template <>
-void printf<EXTERN>(std::ostringstream &out) {
+StandError::StandError(const char* file, int line) {
+    m_file = std::string{file};
+    m_line = line;
+}
+
+StandError::~StandError() {
+    std::lock_guard<std::mutex> lock(IOMutex);
+    std::cout << str() << std::flush;
     if (option<std::string>("log_file") != NO_LOG_FILE_NAME) {
-        STREAM_LOG_FILE_HANDEL
+        auto fp = std::fstream{};  
+        fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out);
+        if (fp.is_open()) {
+            fp << str();
+            fp.close();
+        }
     }
 }
 
-template <>
-void printf_base<SYNC>(const char *fmt, va_list va) {
-    va_list va2;
-    va_copy(va2, va);
-
-    vfprintf(stdout, fmt, va);
-    printf_base<EXTERN>(fmt, va2);
-
-    va_end(va);
+UCCIDebug::UCCIDebug(const char* file, int line) {
+    m_file = std::string{file};
+    m_line = line;
 }
 
-template <>
-void printf<SYNC>(std::ostringstream &out) {
-    std::cout << out.str();
-    printf<EXTERN>(out);
-}
-
-template <>
-void printf_base<STATIC>(const char *fmt, va_list va) {
-    if (option<std::string>("log_file") == NO_LOG_FILE_NAME) {
-        vfprintf(stdout, fmt, va);
-    } else {
-        PRINTF_LOG_FILE_HANDEL
-    }
-}
-
-template <>
-void printf<STATIC>(std::ostringstream &out) {
-    if (option<std::string>("log_file") == NO_LOG_FILE_NAME) {
-        std::cout << out.str();
-    } else {
-        STREAM_LOG_FILE_HANDEL
-    }
-}
-
-template <>
-void printf_base<AUTO>(const char *fmt, va_list va) {
-    if (option<bool>("quiet_verbose")) {
+UCCIDebug::~UCCIDebug() {
+    if (!option<bool>("debug_verbose")) {
         return;
     }
-    printf_base<STATIC>(fmt, va);
-}
 
-template <>
-void printf<AUTO>(std::ostringstream &out) {
-    if (option<bool>("quiet_verbose")) {
-        return;
+    std::lock_guard<std::mutex> lock(IOMutex);
+    if (option<std::string>("log_file") != NO_LOG_FILE_NAME) {
+        auto fp = std::fstream{};  
+        fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out);
+        if (fp.is_open()) {
+            fp << str();
+            fp.close();
+        }
+    } else {
+        std::cout << str() << std::flush;
     }
-    printf<STATIC>(out);
 }
 
 void space_stream(std::ostream &out, const size_t times) {

@@ -34,7 +34,7 @@ void PGNParser::savepgn(std::string filename, Position &pos, PGNRecorder::Format
         file << pgnstr;
         file.close();
     } else {
-        Utils::printf<Utils::STATIC>("Couldn't Open file %s!\n", filename.c_str());
+        ERROR << "Couldn't Open file:" << ' ' << filename << '!' << std::endl;
     }
 }
 
@@ -50,7 +50,7 @@ void PGNParser::loadpgn(std::string filename, Position &pos) const {
 
     file.open(filename);
     if (!file.is_open()) {
-        Utils::printf<Utils::STATIC>("Could not opne file : %s!\n", filename.c_str());
+        ERROR << "Couldn't Open file:" << ' ' << filename << '!' << std::endl;
         return;
     }
 
@@ -80,7 +80,7 @@ void PGNParser::gather_pgnlist(std::string filename, std::vector<PGNRecorder> &p
 
     file.open(filename);
     if (!file.is_open()) {
-        Utils::printf<Utils::STATIC>("Could not opne file : %s!\n", filename.c_str());
+        ERROR << "Couldn't Open file:" << ' ' << filename << '!' << std::endl;
         return;
     }
 
@@ -370,13 +370,13 @@ void PGNParser::from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgn
         pgns.emplace_back(*pgn);
     }
     if (error) {
-        Utils::printf<Utils::STATIC>("The PGN format is wrong! Games: %zu, Cause: %s.\n",
-                                     pgns.size(), cause.c_str());
+        ERROR << "The PGN format is wrong! Games:" << ' ' << pgns.size() << ','
+                  << "Cause:" << ' ' << cause << '.' << std::endl;
         pgns.clear();
     }
     if (not_support) {
-        Utils::printf<Utils::STATIC>("The PGN format is not support! Games: %zu, Cause: %s.\n",
-                                     pgns.size(), cause.c_str());
+        ERROR << "The PGN format is not support! Games:" << ' ' << pgns.size() << ','
+                  << "Cause:" << ' ' << cause << '.' << std::endl;
         pgns.clear();
     }
 }

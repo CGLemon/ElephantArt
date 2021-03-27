@@ -22,6 +22,7 @@
 #include "Utils.h"
 #include "config.h"
 #include "Decoder.h"
+#include <iomanip>
 
 #include <thread>
 #include <algorithm>
@@ -801,30 +802,26 @@ size_t UCT_Information::get_memory_used(UCTNode *node) {
     return nodes * node_mem + edges * edge_mem;
 }
 
-void UCT_Information::dump_tree_stats(UCTNode *node) {
-    const auto mem = static_cast<double>(get_memory_used(node)) / (1024.f * 1024.f);
-    const auto status = node->node_status();
-    const auto nodes = status->nodes.load();
-    const auto edges = status->edges.load();
-
-    Utils::printf<Utils::STATIC>("Tree Status: \n");
-    Utils::printf<Utils::STATIC>("  nodes: %d, edges: %d, tree memory used: %.2f MiB\n", nodes, edges, mem);
-}
-
-void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off) {
+std::string UCT_Information::get_stats_string(UCTNode *node, Position &position) {
+    auto out = std::ostringstream{};
     const auto color = position.get_to_move();
     const auto lcblist = node->get_lcb_list(color);
     const auto parentvisits = static_cast<float>(node->get_visits());
     assert(color == node->get_color());
 
-    Utils::printf<Utils::STATIC>("Search List:\n"); 
-    Utils::printf<Utils::STATIC>("Root -> %7d (WL: %5.2f%%) (V: %5.2f%%) (D: %5.2f%%)\n",
-                                     node->get_visits(),
-                                     node->get_winloss(color, false) * 100.f,
-                                     node->get_stmeval(color, false) * 100.f,
-                                     node->get_draw() * 100.f);
 
-    int push = 0;
+    const auto space = 7;
+    out << "Search List:" << std::endl;
+    out << std::setw(6) << "move"
+            << std::setw(10) << "visits"
+            << std::setw(space) << "WL(%)"
+            << std::setw(space) << "V(%)"
+            << std::setw(space) << "LCB(%)"
+            << std::setw(space) << "D(%)"
+            << std::setw(space) << "P(%)"
+            << std::setw(space) << "N(%)"
+            << std::endl;
+
     for (auto &lcb : lcblist) {
         const auto lcb_value = lcb.first > 0.0f ? lcb.first : 0.0f;
         const auto maps = lcb.second;
@@ -838,29 +835,43 @@ void UCT_Information::dump_stats(UCTNode *node, Position &position, int cut_off)
         const auto stm_eval = child->get_stmeval(color, false);
         const auto draw = child->get_draw();
         const auto move = Decoder::maps2move(maps);
-        const auto pv_string = move.to_string() + " " + pv_to_srting(child);
+        const auto pv_string = move.to_string() + ' ' + get_pvsrting(child);
         const auto visit_ratio = static_cast<float>(visits) / (parentvisits - 1); // One is root visit.
-        Utils::printf<Utils::STATIC>("  %4s -> %7d (WL: %5.2f%%) (V: %5.2f%%) (LCB: %5.2f%%) (D: %5.2f%%) (P: %5.2f%%) (N: %5.2f%%) ", 
-                                         move.to_string().c_str(),
-                                         visits,
-                                         wl_eval * 100.f,    // win loss eval
-                                         stm_eval * 100.f,   // side to move eval
-                                         lcb_value * 100.f,  // LCB eval
-                                         draw * 100.f,       // draw probability
-                                         pobability * 100.f, // move probability
-                                         visit_ratio * 100.f);
-        Utils::printf<Utils::STATIC>("PV: %s\n", pv_string.c_str());
-
-        push++;
-        if (push == cut_off) {
-            Utils::printf<Utils::STATIC>("     ...remain %d selections\n", (int)lcblist.size() - cut_off);
-            break;
-        }
+        out << std::fixed << std::setprecision(2)
+                << std::setw(6) << move.to_string()
+                << std::setw(10) << visits
+                << std::setw(space) << wl_eval * 100.f     // win loss eval
+                << std::setw(space) << stm_eval * 100.f    // side to move eval
+                << std::setw(space) << lcb_value * 100.f   // LCB eval
+                << std::setw(space) << draw * 100.f        // draw probability
+                << std::setw(space) << pobability * 100.f  // move probability
+                << std::setw(space) << visit_ratio * 100.f
+                << std::setw(6) << "| PV:" << ' ' << pv_string
+                << std::endl;
     }
-    dump_tree_stats(node);
+
+    out << get_memory_string(node);
+
+    return out.str();
 }
 
-std::string UCT_Information::pv_to_srting(UCTNode *node) {
+std::string UCT_Information::get_memory_string(UCTNode *node) {
+    const auto mem = static_cast<double>(get_memory_used(node)) / (1024.f * 1024.f);
+    const auto status = node->node_status();
+    const auto nodes = status->nodes.load();
+    const auto edges = status->edges.load();
+
+    auto out = std::ostringstream{};
+
+    out << "Tree Status:" << std::endl
+            << std::setw(9) << "nodes:" << ' ' << nodes  << std::endl
+            << std::setw(9) << "edges:" << ' ' << edges  << std::endl
+            << std::setw(9) << "memory:" << ' ' << mem << ' ' << "(MiB)" << std::endl;
+
+    return out.str();
+}
+
+std::string UCT_Information::get_pvsrting(UCTNode *node) {
     auto pvlist = std::vector<int>{};
     auto *next = node;
     while (next->has_children()) {

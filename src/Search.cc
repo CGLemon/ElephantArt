@@ -177,10 +177,11 @@ void Search::prepare_uct() {
     const auto stm_eval = color == Types::RED ? nn_eval.red_stmeval : 1 - nn_eval.red_stmeval;
     const auto winloss = color == Types::RED ? nn_eval.red_winloss : 1 - nn_eval.red_winloss;
     if (option<bool>("analysis_verbose")) {
-        Utils::printf<Utils::STATIC>("Raw NN output\n");
-        Utils::printf<Utils::STATIC>("  stm eval: %.2f%\n", stm_eval * 100.f);
-        Utils::printf<Utils::STATIC>("  winloss: %.2f%\n", winloss * 100.f);
-        Utils::printf<Utils::STATIC>("  draw probability: %.2f%\n", nn_eval.draw * 100.f);
+        LOGGING << "Raw NN output:" << std::endl
+                    << std::fixed << std::setprecision(2)
+                    << std::setw(11) << "stm eval:" << ' ' << stm_eval * 100.f << "%" << std::endl
+                    << std::setw(11) << "winloss:" << ' ' << winloss * 100.f << "%" << std::endl
+                    << std::setw(11) << "draw:" << ' ' << nn_eval.draw * 100.f << "%" << std::endl;
     }
 }
 
@@ -219,24 +220,20 @@ Move Search::nn_direct_move() {
     auto move = Decoder::maps2move(std::begin(analysis)->second);
     if (option<bool>("analysis_verbose")) {
         auto out = std::ostringstream{};
-        auto prec = option<int>("float_precision");
         for (int i = 0; i < 10; ++i) {
             const auto policy = analysis[i].first;
             const auto maps = analysis[i].second;
             const auto move = Decoder::maps2move(maps);
-            out << "Move "
-                << move.to_string()
-                << " -> Policy: raw "
-                << std::fixed
-                << std::setprecision(prec)
-                << policy
-                << " | normalize "
-                << std::fixed
-                << std::setprecision(prec)
-                << policy / acc
-                << std::endl;
+            out << std::fixed << std::setprecision(2)
+                    << "Move "
+                    << move.to_string()
+                    << " -> Policy: raw "
+                    << policy
+                    << " | normalize "
+                    << policy / acc
+                    << std::endl;
         }
-        Utils::printf<Utils::STATIC>(out);
+        LOGGING << out.str();
     }
     return move;
 }
@@ -360,11 +357,17 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
                 if (keep_running) {
                     maxdepth = depth;
                 }
-                const auto pv = UCT_Information::pv_to_srting(m_rootnode);
-                Utils::printf<Utils::SYNC>("info depth %d time %d nodes %d score %d pv %s\n",
-                                               maxdepth, elapsed, nodes, int(score), pv.c_str());
+                const auto pv = UCT_Information::get_pvsrting(m_rootnode);
+                LOGGING << "info"
+                            << ' ' << "depth" << ' ' << maxdepth
+                            << ' ' << "time"  << ' ' << elapsed
+                            << ' ' << "nodes" << ' ' << nodes
+                            << ' ' << "score" << ' ' << int(score)
+                            << ' ' << "pv"    << ' ' << pv
+                            << std::endl;
             }
         }
+
         decrement_threads();
 
         // Waiting, until all threads finish searching.
@@ -379,29 +382,30 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         const auto moves = get_best_move();
         const auto bestmove = moves.first;
         const auto pondermove = moves.second;
-
         const auto draw_resign = get_draw_resign(color, set.draw);
 
         if (option<bool>("ucci_response")) {
-            Utils::printf<Utils::SYNC>("bestmove %s", bestmove.to_string().c_str());
+            LOGGING << "bestmove" << ' ' << bestmove.to_string();
             if (pondermove.valid()) {
-                Utils::printf<Utils::SYNC>(" ponder %s", pondermove.to_string().c_str());
+                LOGGING << ' ' << "ponder" << ' ' << pondermove.to_string();
             }
-            if (draw_resign != "") {
-                Utils::printf<Utils::SYNC>(" %s",draw_resign.c_str());
+            if (!draw_resign.empty()) {
+                LOGGING << ' ' << draw_resign;
             }
-            Utils::printf<Utils::SYNC>("\n");
+            LOGGING << std::endl;
         }
+
         if (info) {
             info->move = bestmove;
             info->seconds = elapsed;
             info->depth = maxdepth;
         }
         if (option<bool>("analysis_verbose")) {
-            UCT_Information::dump_stats(m_rootnode, m_rootposition);
-            Utils::printf<Utils::STATIC>("Speed:\n");
-            Utils::printf<Utils::STATIC>("  %.4f second(s), %d playout(s), %.2f p/s\n",
-                                              elapsed, m_playouts.load(), m_playouts.load()/elapsed);
+            LOGGING << UCT_Information::get_stats_string(m_rootnode, m_rootposition);
+            LOGGING << "Speed:" << std::endl
+                        << "  " << elapsed                   << ' ' << "second(s)" << std::endl
+                        << "  " << m_playouts.load()         << ' ' << "playout(s)" << std::endl
+                        << "  " << m_playouts.load()/elapsed << ' ' << "p/s" << std::endl;
         }
         clear_nodes();
     };

@@ -19,6 +19,7 @@
 #include "Position.h"
 #include "Zobrist.h"
 #include "ForcedCheckmate.h"
+#include "Utils.h"
 
 #include <queue>
 #include <iterator>
@@ -36,9 +37,9 @@ void Position::init_game(const int tag) {
 void Position::display() const {
     const auto lastmove = get_last_move();
     if (option<bool>("using_chinese")) {
-        board.dump_board<Types::CHINESE>(lastmove);
+        LOGGING << board.get_boardstring<Types::CHINESE>(lastmove);
     } else {
-        board.dump_board<Types::ASCII>(lastmove);
+        LOGGING << board.get_boardstring<Types::ASCII>(lastmove);
     }
 }
 

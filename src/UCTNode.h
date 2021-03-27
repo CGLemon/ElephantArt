@@ -199,10 +199,12 @@ private:
 class UCT_Information {
 public:
   static size_t get_memory_used(UCTNode *node);
-  static void dump_tree_stats(UCTNode *node);
 
-  static void dump_stats(UCTNode *node, Position &position, int cut_off = -1);
-  static std::string pv_to_srting(UCTNode *node);
+  static std::string get_stats_string(UCTNode *node, Position &position);
+
+  static std::string get_memory_string(UCTNode *node);
+
+  static std::string get_pvsrting(UCTNode *node);
 };
 
 #endif

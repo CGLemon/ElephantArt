@@ -151,7 +151,7 @@ struct Model {
     
     static void process_weights(std::shared_ptr<NNWeights> &nn_weight);
 
-    static void dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &timer);
+    static std::string get_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &timer);
 
     static void fill_weights(std::istream &weights_file,
                              std::shared_ptr<NNWeights> &nn_weight);

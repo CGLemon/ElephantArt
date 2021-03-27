@@ -28,16 +28,18 @@
 #include <chrono>
 
 void CUDABackend::initialize(std::shared_ptr<Model::NNWeights> weights) {
-    Utils::printf<Utils::AUTO>("Using CUDA network.\n");
-    CUDA::check_devices();
+    if (option<bool>("debug_verbose")) {
+        CUDA::check_devices();
+    }
     reload(weights);
     prepare_worker();
+    DEBUG << "Create CUDA Network" << std::endl;
 }
 
 void CUDABackend::destroy() {
     release();
     quit_worker();
-    Utils::printf<Utils::AUTO>("CUDA network was released.\n");
+    DEBUG << "Release CUDA Network" << std::endl;
 }
 
 void CUDABackend::reload(std::shared_ptr<Model::NNWeights> weights) {

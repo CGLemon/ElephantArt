@@ -74,8 +74,7 @@ void init_options_map() {
     options_map["batchsize"] << Utils::Option::setoption(1, 256, 1);
     options_map["threads"] << Utils::Option::setoption(1, 256, 1);
 
-    options_map["quiet_verbose"] << Utils::Option::setoption(false);
-    options_map["stats_verbose"] << Utils::Option::setoption(false);
+    options_map["debug_verbose"] << Utils::Option::setoption(false);
     options_map["analysis_verbose"] << Utils::Option::setoption(false);
     options_map["ucci_response"] << Utils::Option::setoption(true);
     options_map["log_file"] << Utils::Option::setoption(NO_LOG_FILE_NAME);
@@ -87,7 +86,6 @@ void init_options_map() {
     options_map["softmax_pol_temp"] << Utils::Option::setoption(1.0f);
     options_map["softmax_wdl_temp"] << Utils::Option::setoption(1.0f);
     options_map["weights_file"] << Utils::Option::setoption(NO_WEIGHT_FILE_NAME);
-    options_map["float_precision"] << Utils::Option::setoption(5);
     options_map["winograd"] << Utils::Option::setoption(false);
     options_map["min_cutoff"] << Utils::Option::setoption(1);
 
@@ -172,15 +170,14 @@ ArgsParser::ArgsParser(int argc, char** argv) {
             return false;
         }
         int t = 1;
-        Utils::printf<Utils::STATIC>("Command(s) Error!\n  The parameter(s)\n");
+        ERROR << "Command(s) Error:" << std::endl;
         for (auto i = size_t{0}; i < cnt; ++i) {
             const auto command = parser.get_command(i)->str;
             if (!is_parameter(command)) {
-                if (t != 1) { Utils::printf<Utils::STATIC>("\n"); }
-                Utils::printf<Utils::STATIC>("    %d. %s", t++, command.c_str());
+                ERROR << " " << t << command << std::endl;
             }
         }
-        Utils::printf<Utils::STATIC>("\n  are not understood.\n");
+        ERROR << " are not understood." << std::endl;
         return true;
     };
 
@@ -196,16 +193,6 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 
     if (const auto res = parser.find({"--chinese", "-ch"})) {
         set_option("using_chinese", true);
-        parser.remove_command(res->idx);
-    }
-
-    if (const auto res = parser.find({"--quiet", "-q"})) {
-        set_option("quiet_verbose", true);
-        parser.remove_command(res->idx);
-    }
-
-    if (const auto res = parser.find("--stats-verbose")) {
-        set_option("stats_verbose", true);
         parser.remove_command(res->idx);
     }
 
@@ -333,13 +320,6 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         }
     }
 
-    if (const auto res = parser.find_next("--floatprecision")) {
-        if (is_parameter(res->str)) {
-            set_option("float_precision", res->get<int>());
-            parser.remove_slice(res->idx-1, res->idx+1);
-        }
-    }
-
     if (const auto res = parser.find_next({"--batchsize" , "-b"})) {
         if (is_parameter(res->str)) {
             set_option("batchsize", res->get<int>());
@@ -455,16 +435,11 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 #ifdef USE_CUDA
     set_option("use_gpu", true);
 #endif
-    if (option<std::string>("mode") == "ucci") {
-        set_option("quiet_verbose", true);
-    }
+
     if (const auto res = parser.find("--debug-mode")) {
-        set_option("quiet_verbose", false);
-        set_option("stats_verbose", true);
-        set_option("analysis_verbose", true);
+        set_option("debug_verbose", true);
         parser.remove_command(res->idx);
     }
-    
 
     if (error_commands(parser)) {
         help();
@@ -472,14 +447,14 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 }
 
 void ArgsParser::help() const {
-    Utils::printf<Utils::SYNC>("Arguments:\n");
-    Utils::printf<Utils::SYNC>("  --help, -h\n");
-    Utils::printf<Utils::SYNC>("  --chinese, -ch\n");
-    Utils::printf<Utils::SYNC>("  --mode, -m [ascii/ucci]\n");
-    Utils::printf<Utils::SYNC>("  --playouts, -p <integer>\n");
-    Utils::printf<Utils::SYNC>("  --threads, -t <integer>\n");
-    Utils::printf<Utils::SYNC>("  --weights, -w <weight file name>\n");
-    Utils::printf<Utils::SYNC>("  --analysis-verbose\n");
+    ERROR << "Arguments:" << std::endl
+              << "  --help, -h" << std::endl
+              << "  --chinese, -ch" << std::endl
+              << "  --mode, -m [ascii/ucci]" << std::endl
+              << "  --playouts, -p <integer>" << std::endl
+              << "  --threads, -t <integer>" << std::endl
+              << "  --weights, -w <weight file name>" << std::endl
+              << "  --analysis-verbose" << std::endl;
     exit(-1);
 }
 

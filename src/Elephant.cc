@@ -38,19 +38,18 @@ const static std::string get_license() {
 }
 
 static void ascii_loop() {
-    auto ascii = std::make_shared<ASCII>();
+    auto ascii = std::make_unique<ASCII>();
 }
 
 static void ucci_loop() {
-    auto ucci = std::make_shared<UCCI>();
+    auto ucci = std::make_unique<UCCI>();
 }
 
 int main(int argc, char **argv) {
     const auto args = ArgsParser(argc, argv);
-    const auto license = get_license();
-
-    Utils::printf<Utils::AUTO>("%s", license.c_str());
     args.dump();
+
+    LOGGING << get_license();
 
     init_basic_parameters();
 

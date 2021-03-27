@@ -91,7 +91,7 @@ public:
     std::string get_fenstring() const;
 
     template<Types::Language> void board_stream(std::ostream &out, const Move lastmove) const;
-    template<Types::Language> void dump_board(const Move lastmove) const;
+    template<Types::Language> std::string get_boardstring(const Move lastmove) const;
     template<Types::Language> static void piece_stream(std::ostream &out, Types::Piece p);
 
     bool fen2board(std::string &fen);
@@ -327,9 +327,9 @@ void Board::piece_stream(std::ostream &out, const int x, const int y) const {
 }
 
 template<Types::Language L>
-void Board::dump_board(const Move lastmove) const {
+std::string Board::get_boardstring(const Move lastmove) const {
     auto out = std::ostringstream{};
     board_stream<L>(out, lastmove);
-    Utils::printf<Utils::STATIC>(out);
+    return out.str();
 }
 #endif

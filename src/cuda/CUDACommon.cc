@@ -123,18 +123,18 @@ bool is_using_cuDNN() {
 }
 
 void output_spec(const cudaDeviceProp &sDevProp) {
-    Utils::printf<Utils::AUTO>(" Device name: %s\n", sDevProp.name);
-    Utils::printf<Utils::AUTO>(" Device memory(MiB): %zu\n", (sDevProp.totalGlobalMem/(1024*1024)));
-    Utils::printf<Utils::AUTO>(" Memory per-block(KiB): %zu\n", (sDevProp.sharedMemPerBlock/1024));
-    Utils::printf<Utils::AUTO>(" Register per-block(KiB): %zu\n", (sDevProp.regsPerBlock/1024));
-    Utils::printf<Utils::AUTO>(" Warp size: %zu\n", sDevProp.warpSize);
-    Utils::printf<Utils::AUTO>(" Memory pitch(MiB): %zu\n", (sDevProp.memPitch/(1024*1024)));
-    Utils::printf<Utils::AUTO>(" Constant Memory(KiB): %zu\n", (sDevProp.totalConstMem/1024));
-    Utils::printf<Utils::AUTO>(" Max thread per-block: %zu\n", sDevProp.maxThreadsPerBlock);
-    Utils::printf<Utils::AUTO>(" Max thread dim: (%zu, %zu, %zu)\n", sDevProp.maxThreadsDim[0], sDevProp.maxThreadsDim[1], sDevProp.maxThreadsDim[2]);
-    Utils::printf<Utils::AUTO>(" Max grid size: (%zu, %zu, %zu)\n", sDevProp.maxGridSize[0], sDevProp.maxGridSize[1], sDevProp.maxGridSize[2]);
-    Utils::printf<Utils::AUTO>(" Clock: %zu(kHz)\n", (sDevProp.clockRate/1000));
-    Utils::printf<Utils::AUTO>(" textureAlignment: %zu\n", sDevProp.textureAlignment);
+    printf(" Device name: %s\n", sDevProp.name);
+    printf(" Device memory(MiB): %zu\n", (sDevProp.totalGlobalMem/(1024*1024)));
+    printf(" Memory per-block(KiB): %zu\n", (sDevProp.sharedMemPerBlock/1024));
+    printf(" Register per-block(KiB): %zu\n", (sDevProp.regsPerBlock/1024));
+    printf(" Warp size: %zu\n", sDevProp.warpSize);
+    printf(" Memory pitch(MiB): %zu\n", (sDevProp.memPitch/(1024*1024)));
+    printf(" Constant Memory(KiB): %zu\n", (sDevProp.totalConstMem/1024));
+    printf(" Max thread per-block: %zu\n", sDevProp.maxThreadsPerBlock);
+    printf(" Max thread dim: (%zu, %zu, %zu)\n", sDevProp.maxThreadsDim[0], sDevProp.maxThreadsDim[1], sDevProp.maxThreadsDim[2]);
+    printf(" Max grid size: (%zu, %zu, %zu)\n", sDevProp.maxGridSize[0], sDevProp.maxGridSize[1], sDevProp.maxGridSize[2]);
+    printf(" Clock: %zu(kHz)\n", (sDevProp.clockRate/1000));
+    printf(" textureAlignment: %zu\n", sDevProp.textureAlignment);
 }
 
 void check_devices() {
@@ -148,31 +148,30 @@ void check_devices() {
     {
         const auto major = cuda_version/1000;
         const auto minor = (cuda_version - major * 1000)/10;
-        Utils::printf<Utils::AUTO>("CUDA version: Major %zu, Minor %zu\n", major, minor);
+        printf("CUDA version: Major %zu, Minor %zu\n", major, minor);
     }
 
-
-    Utils::printf<Utils::AUTO>("Using cuDNN: ");
+    printf("Using cuDNN: ");
     if (is_using_cuDNN()) {
-        Utils::printf<Utils::AUTO>("Yes\n");
+        printf("Yes\n");
 #ifdef USE_CUDNN
         const auto cudnn_version = cudnnGetVersion();
         const auto major = cudnn_version/1000;
         const auto minor = (cudnn_version -  major * 1000)/100;
-        Utils::printf<Utils::AUTO>("cuDNN version: Major %zu, Minor %zu\n", major, minor);
+        printf("cuDNN version: Major %zu, Minor %zu\n", major, minor);
 #endif
     } else {
-        Utils::printf<Utils::AUTO>("No\n");
+        printf("No\n");
     }
 
-    Utils::printf<Utils::AUTO>("Number of CUDA devices: %zu\n", devicecount);
+    printf("Number of CUDA devices: %zu\n", devicecount);
     for(int i = 0; i < devicecount; ++i) {
-        Utils::printf<Utils::AUTO>("=== Device %zu ===\n", i);
+        printf("=== Device %zu ===\n", i);
         cudaDeviceProp sDeviceProp;
         cudaGetDeviceProperties(&sDeviceProp, i);
         output_spec(sDeviceProp);
     }
-    Utils::printf<Utils::AUTO>("\n");
+    printf("\n");
 }
 } // namespace CUDA
 

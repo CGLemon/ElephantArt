@@ -241,8 +241,8 @@ void proccess_inputs(Position &pos, DataCollection &data) {
 
 bool Train::handle() const {
     if (m_lock) {
-        Utils::printf<Utils::AUTO>("It don't allow push new data.\n");
-        Utils::printf<Utils::AUTO>("Please dump the buffer first. (hint. dump-collection)\n");
+        ERROR << "Don't allow to push new data" << std::endl
+                  << "Please out of the buffer first. (hint. dump-collection)" << std::endl;
         return false;
     }
 

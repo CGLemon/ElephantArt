@@ -17,6 +17,7 @@
 */
 
 #include <cassert>
+#include <iomanip>
 #include <unordered_map>
 
 #include "Blas.h"
@@ -207,7 +208,7 @@ void Model::load_weights(const std::string &filename,
     file.open(filename.c_str());
 
     if (!file.is_open()) {
-        Utils::printf<Utils::AUTO>("Could not opne file: %s!\n", filename.c_str());
+        ERROR << "Couldn't Open file:" << ' ' << filename << '!' << std::endl;
         return;
     }
 
@@ -220,12 +221,12 @@ void Model::load_weights(const std::string &filename,
         fill_weights(buffer, nn_weight);
     } catch (const char* err) {
         // Should be not happned.
-        Utils::printf<Utils::AUTO>("Loading network file warning!\n", err);
-        Utils::printf<Utils::AUTO>("    Cause: %s.\n", err);
+        ERROR << "Loading network file warning!" << std::endl
+                  << "    Cause:" << ' ' << err << '.' << std::endl;
     }
     
-    if (nn_weight->loaded && option<bool>("stats_verbose")) {
-        Utils::printf<Utils::AUTO>("Loading is successful!\n");
+    if (nn_weight->loaded) {
+        DEBUG << "Loading is successful!" << std::endl;
     }
 }
 
@@ -568,9 +569,7 @@ void Model::fill_weights(std::istream &weights_file,
             }
         }
     }
-    if (option<bool>("stats_verbose")) {
-        dump_nn_info(nn_weight, timer);
-    }
+    DEBUG << get_nn_info(nn_weight, timer);
 }
 
 NNResult Model::get_result(std::vector<float> &policy,
@@ -692,7 +691,7 @@ void Model::process_weights(std::shared_ptr<NNWeights> &nn_weight) {
 
 }
 
-void Model::dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &timer) {
+std::string Model::get_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &timer) {
     const auto duration = [](Utils::Timer &timer, int t) -> float {
         auto cnt = timer.get_record_count();
         if (t == 1) {
@@ -703,24 +702,30 @@ void Model::dump_nn_info(std::shared_ptr<NNWeights> &nn_weight, Utils::Timer &ti
         return 0;
     };
 
-    Utils::printf<Utils::AUTO>("Neural Network Information :\n");
-    Utils::printf<Utils::AUTO>("Time :\n");
-    Utils::printf<Utils::AUTO>("  initialization process: %.4f second(s)\n", duration(timer, 1));
-    Utils::printf<Utils::AUTO>("  input layer process: %.4f second(s)\n", duration(timer, 2));
-    Utils::printf<Utils::AUTO>("  tower layers process: %.4f second(s)\n", duration(timer, 3));
-    Utils::printf<Utils::AUTO>("  output layers process: %.4f second(s)\n", duration(timer, 4));
-    Utils::printf<Utils::AUTO>("Channels / Blocks:  %d / %d\n", nn_weight->residual_channels, nn_weight->residual_blocks);
-    Utils::printf<Utils::AUTO>("Tower Struct :\n");
+    auto out = std::ostringstream{};
+    const auto channels = nn_weight->residual_channels;
+    const auto blocks = nn_weight->residual_blocks;
+
+    out << "Neural Network Information:" << std::endl
+            << "Time:" << std::endl
+            << std::fixed << std::setprecision(4)
+            << "  " << "initialization process:" << ' ' << duration(timer, 1) << "second(s)" << std::endl
+            << "  " << "input layer process:"    << ' ' << duration(timer, 2) << "second(s)" << std::endl
+            << "  " << "tower layers process:"   << ' ' << duration(timer, 3) << "second(s)" << std::endl
+            << "  " << "output layers process:"  << ' ' << duration(timer, 4) << "second(s)" << std::endl
+            << "  " << "Channels / Blocks:"      << ' ' << channels << '/' << blocks << std::endl
+            << "Tower Struct:" << std::endl;
     for (auto i = 0; i < nn_weight->residual_blocks; ++i) {
-        Utils::printf<Utils::AUTO>("  block %2d: ", i+1);
+        out << "  " << "block" << ' ' << i+1 << ':';
         if (nn_weight->residual_tower[i].apply_se) {
-            Utils::printf<Utils::AUTO>("ResidualBlock-SE\n");
+            out << ' ' << "ResidualBlock-SE" << std::endl;
         } else {
-            Utils::printf<Utils::AUTO>("ResidualBlock\n");
+            out << ' ' << "ResidualBlock" << std::endl;
         }
     }
-    Utils::printf<Utils::AUTO>("Policy Channels: %d\n", nn_weight->policy_extract_channels);
-    Utils::printf<Utils::AUTO>("Value Channels: %d\n", nn_weight->value_extract_channels);
+    out << "Policy Channels:" << ' ' << nn_weight->policy_extract_channels << std::endl;
+    out << "Value Channels:" << ' ' << nn_weight->value_extract_channels << std::endl;
+    return out.str();
 }
 
 void get_weights_from_file(std::istream &weights_file, std::vector<float> &weights) {

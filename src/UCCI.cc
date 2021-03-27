@@ -37,7 +37,7 @@ void UCCI::loop() {
         if (std::getline(std::cin, input)) {
 
             auto parser = Utils::CommandParser(input);
-            Utils::printf<Utils::EXTERN>("%s\n", input.c_str());
+            WRITING << ">>" << ' ' << input << std::endl;
 
             if (!parser.valid()) {
                 continue;
@@ -45,12 +45,11 @@ void UCCI::loop() {
 
             if (parser.get_count() == 1 && parser.find("quit")) {
                 m_ucci_engine->interrupt();
-                Utils::printf<Utils::SYNC>("bye\n");
                 break;
             }
 
             auto out = execute(parser);
-            Utils::printf<Utils::SYNC>("%s", out.c_str());
+            LOGGING << out;
         }
     }
 }

@@ -160,7 +160,6 @@ Engine::Response Engine::position(std::string pos, const int g) {
 
 Engine::Response Engine::raw_nn(const int g) {
     auto rep = std::ostringstream{};
-    auto pres = option<int>("float_precision");
     auto max_index = 0;
     auto timer = Utils::Timer{};
     auto &p = *get_position(g);
@@ -172,7 +171,7 @@ Engine::Response Engine::raw_nn(const int g) {
             for (int x = 0; x < Board::WIDTH; ++x) {
                 const auto idx = Board::get_index(x, y);
                 rep << std::fixed
-                    << std::setprecision(pres)
+                    << std::setprecision(5)
                     << nnout.policy[idx + p * Board::INTERSECTIONS]
                     << " ";
                 if (nnout.policy[idx + p * Board::INTERSECTIONS] > nnout.policy[max_index]) {
@@ -183,7 +182,7 @@ Engine::Response Engine::raw_nn(const int g) {
         }
         rep << std::endl;
     }
-    rep << "max " << max_index << " probability: " << std::setprecision(pres) << nnout.policy[max_index] << std::endl;
+    rep << "max " << max_index << " probability: " << std::fixed << std::setprecision(5) << nnout.policy[max_index] << std::endl;
     auto m = Decoder::maps2move(max_index);
     rep << "max move: " << m.to_string() << std::endl << std::endl;
 

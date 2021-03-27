@@ -39,25 +39,23 @@ void ASCII::init() {
 void ASCII::loop() {
     while (true) {
         m_ascii_engine->display();
-        Utils::printf<Utils::SYNC>("Elephant: ");
 
         auto input = std::string{};
         if (std::getline(std::cin, input)) {
 
             auto parser = Utils::CommandParser(input);
-            Utils::printf<Utils::EXTERN>("%s\n", input.c_str());
+            WRITING << ">>" << ' ' << input << std::endl;
 
             if (!parser.valid()) {
-                Utils::printf<Utils::SYNC>(" No input command\n");
+                LOGGING << "No input command." << std::endl;
                 continue;
             }
 
             if (parser.get_count() == 1 && parser.find("quit")) {
-                Utils::printf<Utils::SYNC>("Exit\n");
                 break;
             }
             auto out = execute(parser);
-            Utils::printf<Utils::SYNC>("%s\n", out.c_str());
+            LOGGING << out << std::endl;
         }
     }
 }

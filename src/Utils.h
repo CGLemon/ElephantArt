@@ -34,41 +34,46 @@
 #include <chrono>
 #include <initializer_list>
 
+#define LOGGING (Utils::Logging(__FILE__, __LINE__, false))
+#define WRITING (Utils::Logging(__FILE__, __LINE__, true))
+#define ERROR (Utils::StandError(__FILE__, __LINE__))
+#define DEBUG (Utils::UCCIDebug(__FILE__, __LINE__))
+
 namespace Utils {
 
-enum Printf_t {
-    SYNC, STATIC, AUTO, EXTERN
+class Logging : public std::ostringstream{
+public:
+    Logging(const char* file, int line, bool write_only);
+
+    ~Logging();
+
+private:
+    bool m_write_only;
+    std::string m_file;
+    int m_line;
 };
 
-/**
- * SYNC   : Printing the verbose to the terminate. It also save verbose
- *          in the log file, if the log file exist.
- *
- * STATIC : If the log file exixt, Saving verbose in the log file. If NOT,
- *          Printing the verbose to the terminate.
- *
- * AUTO   : It based on STATIC mode. The difference is the parameter
- *          "quit_verbose". If the "quit_verbose" is true, it will don't
- *          output any verbose.
- *
- * EXTERN : Only Saving verbose in the log file, if the log file exist.
- *
- */
+class StandError : public std::ostringstream{
+public:
+    StandError(const char* file, int line);
 
+    ~StandError();
 
-template <Printf_t>
-void printf_base(const char *fmt, va_list va);
+private:
+    std::string m_file;
+    int m_line;
+};
 
-template <Printf_t T>
-void printf(const char *fmt, ...) {
-    va_list va;
-    va_start(va, fmt);
-    printf_base<T>(fmt, va);
-    va_end(va);
-}
+class UCCIDebug : public std::ostringstream{
+public:
+    UCCIDebug(const char* file, int line);
 
-template <Printf_t>
-void printf(std::ostringstream &out);
+    ~UCCIDebug();
+
+private:
+    std::string m_file;
+    int m_line;
+};
 
 void space_stream(std::ostream &out, const size_t times);
 void strip_stream(std::ostream &out, const size_t times);
