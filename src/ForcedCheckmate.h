@@ -29,13 +29,15 @@ class ForcedCheckmate {
 public:
     ForcedCheckmate(Position &position);
 
-    Move find_checkmate();
+    Move find_checkmate(int maxdepth);
+
+private:
+    static constexpr int BASIC_DEPTH = 4;
+
     Move find_checkmate(std::vector<Move> movelist);
 
     void set_maxdepth(int maxdepth);
 
-private:
-    static constexpr int BASIC_DEPTH = 4;
     bool checkmate_search(Position &currpos,
                           std::vector<std::uint64_t> &buf, int depth) const;
     bool uncheckmate_search(Position &currpos,

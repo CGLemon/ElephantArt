@@ -400,7 +400,7 @@ Position::Repetition Position::get_threefold_repetitions_result() {
     return Repetition::UNKNOWN;
 }
 
-Move Position::get_forced_checkmate_move() {
+Move Position::get_forced_checkmate_move(int maxdepth) {
     auto forced = ForcedCheckmate(*this);
-    return forced.find_checkmate();
+    return forced.find_checkmate(maxdepth);
 }

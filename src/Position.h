@@ -83,7 +83,7 @@ public:
     std::array<Types::Vertices, 2> get_kings() const;
 
     Repetition get_threefold_repetitions_result();
-    Move get_forced_checkmate_move();
+    Move get_forced_checkmate_move(int maxdepth);
 
 private:
     void compute_repetitions();

@@ -27,6 +27,8 @@ void SearchParameters::reset() {
     visits             = option<int>("visits");
     playouts           = option<int>("playouts");
     random_min_visits  = option<int>("random_min_visits");
+    forced_checkmate_depth      = option<int>("forced_checkmate_depth");
+    forced_checkmate_root_depth = option<int>("forced_checkmate_root_depth");
 
     dirichlet_noise    = option<bool>("dirichlet_noise");
     collect            = option<bool>("collect");

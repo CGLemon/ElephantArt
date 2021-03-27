@@ -25,7 +25,7 @@
 #include "Random.h"
 
 ForcedCheckmate::ForcedCheckmate(Position &position) : m_rootpos(position) {
-    set_maxdepth(20);
+    set_maxdepth(BASIC_DEPTH);
     m_color = m_rootpos.get_to_move();
 }
 
@@ -33,8 +33,9 @@ void ForcedCheckmate::set_maxdepth(int maxdepth) {
     m_maxdepth = maxdepth < BASIC_DEPTH ? BASIC_DEPTH : maxdepth;
 }
 
-Move ForcedCheckmate::find_checkmate() {
+Move ForcedCheckmate::find_checkmate(int maxdepth) {
     auto movelist = m_rootpos.get_movelist();
+    set_maxdepth(maxdepth);
     return find_checkmate(movelist);
 }
 

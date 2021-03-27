@@ -77,7 +77,10 @@ bool UCTNode::expend_children(Network &network,
     const auto kings = pos.get_kings();
 
     // Probe forced checkmate sequences.
-    auto forced_move = pos.get_forced_checkmate_move();
+    const auto maxdepth = is_root ? parameters()->forced_checkmate_root_depth :
+                                        parameters()->forced_checkmate_depth;
+
+    auto forced_move = pos.get_forced_checkmate_move(maxdepth);
     if (forced_move.valid()) {
         nodelist.emplace_back(1.0f, Decoder::move2maps(forced_move));
 

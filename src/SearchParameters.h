@@ -31,6 +31,8 @@ public:
     int visits;
     int playouts;
     int random_min_visits;
+    int forced_checkmate_depth;
+    int forced_checkmate_root_depth;
 
     bool dirichlet_noise;
     bool collect;
