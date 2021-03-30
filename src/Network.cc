@@ -199,7 +199,7 @@ Network::get_output(const Position *const position,
         auto rng = Random<random_t::XoroShiro128Plus>::get_Rng();
         symm = static_cast<bool>(rng.randfix<2>());
     } else if (ensemble == SYMMETRY) {
-        symm = static_cast<bool>(Board::USING_SYMMETRY);
+        symm = static_cast<bool>(Board::MIRROR_SYMMETRY);
         assert(symm);
     }
 
