@@ -176,7 +176,7 @@ StandError::StandError(const char* file, int line) {
 
 StandError::~StandError() {
     std::lock_guard<std::mutex> lock(IOMutex);
-    std::cout << str() << std::flush;
+    std::cerr << str() << std::flush;
     if (option<std::string>("log_file") != NO_LOG_FILE_NAME) {
         auto fp = std::fstream{};  
         fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out);
