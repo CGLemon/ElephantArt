@@ -481,6 +481,7 @@ void Board::init_magics() {
         }
     };
 
+    // Elephant reference generator.
     const auto elephant_reference = [&](BitBoard &center,
                                         BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
@@ -494,6 +495,7 @@ void Board::init_magics() {
         return reference;
     };
 
+    // Horse reference generator.
     const auto horse_reference = [&](BitBoard &center,
                                      BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
@@ -520,6 +522,7 @@ void Board::init_magics() {
         return reference;
     };
 
+    // Rook reference generator.
     const auto rookrank_reference = [&](BitBoard &center,
                                         BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
@@ -534,6 +537,7 @@ void Board::init_magics() {
         return reference;
     };
 
+    // Rook reference generator.
     const auto rookfile_reference = [&](BitBoard &center,
                                         BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
@@ -548,6 +552,7 @@ void Board::init_magics() {
         return reference;
     };
 
+    // Cannon reference generator.
     const auto cannonrank_reference = [&](BitBoard &center,
                                         BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
@@ -568,6 +573,7 @@ void Board::init_magics() {
         return reference;
     };
 
+    // Cannon reference generator.
     const auto cannonfile_reference = [&](BitBoard &center,
                                           BitBoard &occupancy) -> BitBoard {
         auto reference = BitBoard(0ULL);
@@ -589,6 +595,8 @@ void Board::init_magics() {
     };
 
     auto timer = Utils::Timer{};
+
+    // Initialize the magic tables.
     set_valid(m_elephant_magics);
     set_valid(m_horse_magics);
     set_valid(m_rookrank_magics);
@@ -597,6 +605,7 @@ void Board::init_magics() {
     set_valid(m_cannonfile_magics);
 
     for (auto v = Types::VTX_BEGIN; v < Types::VTX_END; ++v) {
+        // generate magic tables.
         generate_magics(0, v, m_elephant_magics, elephant_reference);
         generate_magics(0, v, m_horse_magics, horse_reference);
         generate_magics(2, v, m_rookrank_magics, rookrank_reference);
@@ -868,6 +877,11 @@ std::uint64_t Board::calc_hash(const bool symm) const {
 }
 
 std::array<BitBoard, 2> Board::calc_attacks() {
+// http://rportal.lib.ntnu.edu.tw/bitstream/20.500.12235/106625/1/n060147070s01.pdf
+// According to "the design and implementation of the chinese chess program shark",
+// computing the attack bit board helps the program to find out check move and threat
+// move. It will be move efficiency to find out perpetual check and perpetual pursuit.
+
     auto bb_attacks = std::array<BitBoard, 2>{};
     auto movelist = std::vector<Move>{};
     bb_attacks[Types::RED] = generate_movelist(Types::RED, movelist);
@@ -1101,13 +1115,12 @@ BitBoard Board::generate_move<Types::CANNON>(Types::Color color, std::vector<Mov
     return attacks;
 }
 
-
-// Generating the all legal moves to the list.
 BitBoard Board::generate_movelist(Types::Color color, std::vector<Move> &movelist) const {
     auto attacks = BitBoard(0ULL);
 
     // We don't remove the moves which may make the king be
-    // killed. Not like the chess, to kill itself move is legal.
+    // killed. Not like chess game, to kill itself move is legal
+    // at chinese chess.
     attacks |= generate_move<Types::PAWN>    (color, movelist);
     attacks |= generate_move<Types::CANNON>  (color, movelist);
     attacks |= generate_move<Types::ROOK>    (color, movelist);
@@ -1145,7 +1158,6 @@ void Board::swap_to_move() {
     set_to_move(swap_color(m_tomove));
 }
 
-// Assume the move is legal.
 void Board::do_move_assume_legal(Move move) {
     const auto from = move.get_from();
     const auto to = move.get_to();
@@ -1165,19 +1177,24 @@ void Board::do_move_assume_legal(Move move) {
     const auto pt = get_piece_type(from);
     assert(pt != Types::EMPTY_PIECE_T);
 
-    // Capture piece.
+    // Check whether the move capures the other.
     const auto opp_color = swap_color(color);
     m_capture = m_bb_color[opp_color] & to_bitboard;
 
     auto capture_pt = Types::EMPTY_PIECE_T;
+
+    // Update it if the move capures the other.
     if (is_capture()) {
         capture_pt = get_piece_type(to);
+
+        // Update bitboard.
         if (capture_pt == Types::KING) {
             m_king_vertex[opp_color] = Types::NO_VERTEX;
         } else {
             auto &ref_bb = get_piece_bitboard_ref(capture_pt);
             ref_bb ^= to_bitboard;
         }
+        // Update color bitboard.
         m_bb_color[opp_color] ^= to_bitboard;
     }
 
@@ -1191,6 +1208,7 @@ void Board::do_move_assume_legal(Move move) {
         ref_bb ^= to_bitboard;
     }
 
+    // Update color bitboard.
     m_bb_color[color] ^= form_bitboard;
     m_bb_color[color] ^= to_bitboard;
 

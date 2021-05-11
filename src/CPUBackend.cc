@@ -135,7 +135,7 @@ void CPUBackend::forward(const std::vector<float> &planes,
                        policy_conv,
                        m_weights->p_map.weights,
                        workspace, output_pol);
-    
+
     AddSpatialBias::Forward(POLICYMAP, output_pol, m_weights->p_map.biases);
 
     // value head

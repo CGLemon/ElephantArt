@@ -32,14 +32,19 @@
 
 class Board {
 public:
+    // The board width.
     static constexpr auto WIDTH = BITBOARD_WIDTH;
-    
+
+    // The board height.
     static constexpr auto HEIGHT = BITBOARD_HEIGHT;
 
+    // The letter box size.
     static constexpr auto SHIFT = BITBOARD_SHIFT;
 
+    // The number of letter box pieces.
     static constexpr auto NUM_VERTICES = BITBOARD_NUM_VERTICES;
 
+    // The number of board intersection.
     static constexpr auto INTERSECTIONS = BITBOARD_INTERSECTIONS;
 
     // Number of symmetries.
@@ -51,43 +56,92 @@ public:
     // Imply true.
     static constexpr int MIRROR_SYMMETRY = 1;
 
+    // The symmetry index table.
     static std::array<std::array<int, INTERSECTIONS>, NUM_SYMMETRIES> symmetry_nn_idx_table;
 
+    // The symmetry vertex table.
     static std::array<std::array<Types::Vertices, NUM_VERTICES>, NUM_SYMMETRIES> symmetry_nn_vtx_table;
 
+    // Reset the board. Will clear the board.
     void reset_board();
 
+    // Get letter board the vertex.
     static Types::Vertices get_vertex(const int x, const int y);
+
+    // Get position the index.
     static int get_index(const int x, const int y);
+
+    // Change the color to other.
     static Types::Color swap_color(const Types::Color color);
+
+    // Get x value from vertex.
     static int get_x(const Types::Vertices vtx);
+
+    // Get y value from vertex.
     static int get_y(const Types::Vertices vtx);
+
+    // Get x and y values from vertex.
     static std::pair<int, int> get_xy(const Types::Vertices vtx);
+
+    // Get vertex transfered by symmetry table.
     static Types::Vertices get_symmetry_vertex(const Types::Vertices vtx);
+
+    // Get index transfered by symmetry table.
     static int get_symmetry_index(const int idx);
+
+    // Get the start position fen.
     static std::string get_start_position();
+
+    // Get the board piece chess.
     Types::Piece get_piece(const int x, const int y) const;
     Types::Piece get_piece(const Types::Vertices vtx) const;
 
+    // Get the board piece type.
     Types::Piece_t get_piece_type(const Types::Vertices vtx) const;
 
+    // Get the side to move player.
     Types::Color get_to_move() const;
+
+    // Get the game move number.
     int get_movenum() const;
+
+    // Get the game plies.
     int get_gameply() const;
+
+    // Get the position hash.
     std::uint64_t get_hash() const;
+
+    // Get the last player move.
     Move get_last_move() const;
+
+    // Get the both side of king vertex.
     std::array<Types::Vertices, 2> get_kings() const;
+
+    // Get the both side of color bitboards
     std::array<BitBoard, 2> get_colors() const;
+
+    // Get the game repetitions.
     int get_repetitions() const;
+
+    // Get the repetitions length.
     int get_cycle_length() const;
+
+    // Get the fifty-rule plies.
     int get_rule50_ply() const;
+
+    // Get the fifty-rule plies left.
     int get_rule50_ply_left() const;
 
+    // Generate all legal moves.
     BitBoard generate_movelist(Types::Color color, std::vector<Move> &movelist) const;
 
+    // Reture true if the vertex is on the board.
     static bool is_on_board(const Types::Vertices vtx);
 
+    // The board fen stream.
     void fen_stream(std::ostream &out) const;
+
+    // Get the board fen string.
     std::string get_fenstring() const;
 
     template<Types::Language> void board_stream(std::ostream &out, const Move lastmove) const;
@@ -96,15 +150,20 @@ public:
 
     bool fen2board(std::string &fen);
 
+    // Compute the position hash value.
     std::uint64_t calc_hash(const bool symm = false) const;
 
+    // Direction table.
     static constexpr std::array<Types::Direction, 8> m_dirs =
         {Types::NORTH,      Types::EAST,       Types::SOUTH,      Types::WEST,
          Types::NORTH_EAST, Types::SOUTH_EAST, Types::SOUTH_WEST, Types::NORTH_WEST};
 
+    // Initialize something.
     static void pre_initialize();
+
+    // Transfer the string to move.
     static Move text2move(std::string text);
-    
+
     std::string get_wxfstring(Move m) const;
     static std::string get_iccsstring(Move m);
 
@@ -113,9 +172,16 @@ public:
     void set_to_move(Types::Color color);
     void swap_to_move();
 
+    // Play move. Don't need to check whether the move is legal.
     void do_move_assume_legal(Move move);
+
+    // Reture true if the move is legal.
     bool is_legal(Move move) const;
+
+    // Reture true if the last player move is capturing move.
     bool is_capture() const;
+
+    // Reture true if the last player move check other king.
     bool is_check(const Types::Color color) const;
 
 private:
@@ -195,6 +261,7 @@ private:
         }
     };
 
+    // Magic bitboard tables.
     static std::array<std::array<BitBoard, NUM_VERTICES>, 2> m_pawn_attacks;
     static std::array<BitBoard, NUM_VERTICES> m_advisor_attacks;
     static std::array<BitBoard, NUM_VERTICES> m_king_attacks;
@@ -235,17 +302,26 @@ private:
 
     Types::Color m_tomove;
 
+    // Reture true if the both side of king is face to face.
     bool is_king_face_king() const;
 
+    // The game move number.
     int m_movenum;
+
+    // The game plies.
     int m_gameply;
+
+    // Last player move is captue.
     bool m_capture;
+
+    // Last player move.
     Move m_lastmove;
 
     int m_cycle_length;
     int m_repetitions;
     int m_rule50_ply;
 
+    // Position hash.
     std::uint64_t m_hash;
 
     void clear_status();
@@ -257,6 +333,7 @@ private:
     void update_zobrist_remove(Types::Piece p, Types::Vertices vtx);
     void update_zobrist_tomove(Types::Color old_color, Types::Color new_color);
 
+    // Compute the attack bitbioard.
     std::array<BitBoard, 2> calc_attacks();
 };
 
