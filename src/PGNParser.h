@@ -37,6 +37,8 @@ struct PGNRecorder {
     std::vector<ColorMovePair> moves;
 
     Format_t format;
+
+    bool valid{false};
 };
 
 class PGNParser {
@@ -48,8 +50,13 @@ public:
     void gather_pgnlist(std::string filename, std::vector<PGNRecorder> &pgns) const;
 
 private:
+    std::vector<std::string> ChopStream(std::istream &buffer) const;
+
     std::string get_pgnstring(PGNRecorder pgn) const;
+
     PGNRecorder from_position(Position &pos, PGNRecorder::Format_t fmt) const;
 
-    void from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgns) const;
+    PGNRecorder parse_pgnstring(std::string pgn, int idx) const;
+
+    // void from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgns) const;
 };

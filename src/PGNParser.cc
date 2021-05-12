@@ -56,17 +56,14 @@ void PGNParser::loadpgn(std::string filename, Position &pos) const {
 
     while(std::getline(file, line)) {
         // We remove all the line break.
-        buffer << line << " ";
+        buffer << line << ' ';
     }
     file.close();
 
-    auto pgns = std::vector<PGNRecorder>{};
-    from_pgnfile(buffer, pgns);
+    auto pgnstring_list = ChopStream(buffer);
+    auto pgn = parse_pgnstring(pgnstring_list[0], 1);
 
-    if (!pgns.empty()) {
-        auto &pgn = pgns[0];
-        pos.fen(pgn.start_fen);
-
+    if (pgn.valid) {
         for (const auto &m: pgn.moves) {
             pos.do_move_assume_legal(m.second);
         }
@@ -86,10 +83,17 @@ void PGNParser::gather_pgnlist(std::string filename, std::vector<PGNRecorder> &p
 
     while(std::getline(file, line)) {
         // We remove all the line break.
-        buffer << line << " ";
+        buffer << line << ' ';
     }
     file.close();
-    from_pgnfile(buffer, pgns);
+
+    auto pgnstring_list = ChopStream(buffer);
+    for (int i = 0; i < (int)pgnstring_list.size(); ++i) {
+        auto pgn = parse_pgnstring(pgnstring_list[i], i+1);
+        if (pgn.valid) {
+            pgns.emplace_back(pgn);
+        }
+    }
 }
 
 std::string PGNParser::get_pgnstring(PGNRecorder pgn) const {
@@ -215,7 +219,53 @@ PGNRecorder PGNParser::from_position(Position &pos, PGNRecorder::Format_t fmt) c
     return pgn;
 }
 
-void PGNParser::from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgns) const {
+std::vector<std::string> PGNParser::ChopStream(std::istream &buffer) const {
+    const auto lambda_isspace = [](std::string &str) -> bool {
+        for (const char c : str) {
+            if (!isspace(c)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    char c;
+    auto property_step = false;
+    auto in_property_lable = false;
+    auto pgn_list = std::vector<std::string>{};
+    auto temp_stream = std::ostringstream{};
+
+    while(buffer.get(c)) {
+        if (c == '[') {
+            if (!property_step) {
+                auto left = temp_stream.str();
+                if (!lambda_isspace(left)) {
+                    pgn_list.emplace_back(left);
+                }
+
+                temp_stream = std::ostringstream{};
+                property_step = true;
+            }
+            in_property_lable = true;
+        } else if (c == ']') {
+            in_property_lable = false;
+        } else if (!isspace(c)) {
+            if (!in_property_lable && property_step) {
+                property_step = false;
+            }
+        }
+        temp_stream << c;
+    }
+
+    auto left = temp_stream.str();
+    if (!lambda_isspace(left)) {
+        pgn_list.emplace_back(left);
+    }
+    return pgn_list;
+}
+
+PGNRecorder PGNParser::parse_pgnstring(std::string pgnstring, int idx) const {
+    // Get the property value.
     const auto lambda_property = [](std::istream &buf) -> auto {
         char c;
         auto name = std::ostringstream{};
@@ -240,6 +290,7 @@ void PGNParser::from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgn
         return std::make_pair<std::string, std::string>(name.str(), data.str());
     };
 
+    // Get the commit.
     const auto lambda_commit = [](std::istream &buf) -> auto {
         char c;
         auto commit = std::ostringstream{};
@@ -252,10 +303,11 @@ void PGNParser::from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgn
         return commit.str();
     };
 
+    // Get the move from string.
     const auto lambda_move = [](std::string &move, size_t size, PGNRecorder::Format_t fmt) -> auto {
         auto m = Move{};
         if (fmt == PGNRecorder::WXF) {
-            // Not complete.
+            // Not complete yet.
         } else if (fmt == PGNRecorder::ICCS && size == 5) {
             int f_x = int(move[0]) - 65;
             int f_y = int(move[1]) - 48;
@@ -289,22 +341,19 @@ void PGNParser::from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgn
     char c;
     auto cnt = size_t{0};
     auto property_step = false;
-    auto pgn = std::make_shared<PGNRecorder>();
+    auto pgn = PGNRecorder{};
     auto temp_stream = std::ostringstream{};
     auto pos = std::make_shared<Position>();
-    pgn = nullptr;
+    auto buffer = std::istringstream(pgnstring);
 
     while(buffer.get(c)) {
         if (c == '[') {
             if (!property_step) {
-                if (pgn) {
-                    pgns.emplace_back(*pgn);
-                }
                 pos->init_game(0);
-                pgn = std::make_shared<PGNRecorder>();
+                pgn.valid = true;
                 property_step = true;
             }
-            pgn->properties.insert(lambda_property(buffer));
+            pgn.properties.insert(lambda_property(buffer));
         } else if (c == '{') {
             lambda_commit(buffer); // unused
         } else if (isspace(c)) {
@@ -313,47 +362,48 @@ void PGNParser::from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgn
                 if (temp.find(".") != std::string::npos) {
                     // Do nothing.
                 } else if (cnt == 4 || cnt == 5) {
-                    auto move = lambda_move(temp, cnt, pgn->format);
+                    auto move = lambda_move(temp, cnt, pgn.format);
                     auto to_move = pos->get_to_move();
 
-                    ERROR_HANDLE(move.valid(), "Invalid Move List")
-                    ERROR_HANDLE(pos->do_move(move), "Illegal Move List")
+                    ERROR_HANDLE(move.valid(), "Invalid Move")
+                    ERROR_HANDLE(pos->do_move(move), "Illegal Move")
 
-                    pgn->moves.emplace_back(to_move, move);
+                    pgn.moves.emplace_back(to_move, move);
                 } else if (cnt == 1 || cnt == 3 || cnt == 5) {
-                    ERROR_HANDLE((pgn->properties["Result"] == temp), "Wrong Result");
+                    ERROR_HANDLE((pgn.properties["Result"] == temp), "Wrong Result");
                 }
                 temp_stream = std::ostringstream{};
                 cnt = 0;
             }
         } else {
             if (property_step) {
+                // We have already read all property value.
                 property_step = false;
 
-                ERROR_HANDLE(pgn->properties.find("Format") != std::end(pgn->properties), "Lack of Format Lable");
-                ERROR_HANDLE(pgn->properties.find("FEN") != std::end(pgn->properties), "Lack of FEN Lable");
-                ERROR_HANDLE(pgn->properties.find("Result") != std::end(pgn->properties), "Lack of Result Lable");
+                ERROR_HANDLE(pgn.properties.find("Format") != std::end(pgn.properties), "Lack of Format Lable");
+                ERROR_HANDLE(pgn.properties.find("FEN") != std::end(pgn.properties), "Lack of FEN Lable");
+                ERROR_HANDLE(pgn.properties.find("Result") != std::end(pgn.properties), "Lack of Result Lable");
 
-                if (pgn->properties["Format"] == "WXF") {
-                    pgn->format = PGNRecorder::WXF;
-                    NOT_SUPPORT_HANDLE(false, "WXF Format Not Support");
-                } else if (pgn->properties["Format"] == "ICCS") {
-                    pgn->format = PGNRecorder::ICCS;
+                if (pgn.properties["Format"] == "WXF") {
+                    pgn.format = PGNRecorder::WXF;
+                    NOT_SUPPORT_HANDLE(false, "WXF Format Not Support Now");
+                } else if (pgn.properties["Format"] == "ICCS") {
+                    pgn.format = PGNRecorder::ICCS;
                 } else {
-                    ERROR_HANDLE(pos->fen(pgn->start_fen), "Illegal Format")
+                    ERROR_HANDLE(pos->fen(pgn.start_fen), "Illegal Format")
                 }
 
-                pgn->start_fen = pgn->properties["FEN"];
-                ERROR_HANDLE(pos->fen(pgn->start_fen), "Illegal FEN Format")
+                pgn.start_fen = pgn.properties["FEN"];
+                ERROR_HANDLE(pos->fen(pgn.start_fen), "Illegal FEN Format")
 
-                if (pgn->properties["Result"] == "1-0") {
-                    pgn->result = Types::RED;
-                } else if (pgn->properties["Result"] == "0-1") {
-                    pgn->result = Types::BLACK;
-                } else if (pgn->properties["Result"] == "1/2-1/2") {
-                    pgn->result = Types::EMPTY_COLOR;
-                } else if (pgn->properties["Result"] == "*") {
-                    pgn->result = Types::INVALID_COLOR;
+                if (pgn.properties["Result"] == "1-0") {
+                    pgn.result = Types::RED;
+                } else if (pgn.properties["Result"] == "0-1") {
+                    pgn.result = Types::BLACK;
+                } else if (pgn.properties["Result"] == "1/2-1/2") {
+                    pgn.result = Types::EMPTY_COLOR;
+                } else if (pgn.properties["Result"] == "*") {
+                    pgn.result = Types::INVALID_COLOR;
                 } else {
                     ERROR_HANDLE(false, "Illegal Result Format")
                 }
@@ -363,20 +413,19 @@ void PGNParser::from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgn
         }
     }
 
+    if (error) {
+        ERROR << "The PGN format is wrong! Games:" << ' ' << idx << ','
+                  << "Cause:" << ' ' << cause << '.' << std::endl;
+        pgn = PGNRecorder{};
+    }
+    if (not_support) {
+        ERROR << "The PGN format is not support! Games:" << ' ' << idx << ','
+                  << "Cause:" << ' ' << cause << '.' << std::endl;
+        pgn = PGNRecorder{};
+    }
+
 #undef NOT_SUPPORT_HANDLE
 #undef ERROR_HANDLE
 
-    if (pgn) {
-        pgns.emplace_back(*pgn);
-    }
-    if (error) {
-        ERROR << "The PGN format is wrong! Games:" << ' ' << pgns.size() << ','
-                  << "Cause:" << ' ' << cause << '.' << std::endl;
-        pgns.clear();
-    }
-    if (not_support) {
-        ERROR << "The PGN format is not support! Games:" << ' ' << pgns.size() << ','
-                  << "Cause:" << ' ' << cause << '.' << std::endl;
-        pgns.clear();
-    }
+    return pgn;
 }
