@@ -48,17 +48,17 @@ class DataSet():
             num = data.PIECES_NUMBER[i]
             for n in range(num):
                 cp_idx = data.current_pieces[start + n]
-                if symmetry:
-                    cp_idx = symmetry_index[cp_idx]
                 if cp_idx != -1:
+                    if symmetry:
+                        cp_idx = symmetry_index[cp_idx]
                     x = self.get_x(cp_idx)
                     y = self.get_y(cp_idx)
                     input_planes[i][y][x] = 1
                     
                 op_idx = data.other_pieces[start + n]
-                if symmetry:
-                    op_idx = symmetry_index[op_idx]
                 if op_idx != -1:
+                    if symmetry:
+                        op_idx = symmetry_index[op_idx]
                     x = self.get_x(op_idx)
                     y = self.get_y(op_idx)
                     input_planes[i+7][y][x] = 1
