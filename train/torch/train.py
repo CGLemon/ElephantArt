@@ -5,7 +5,7 @@ import numpy as np
 
 from symmetry import *
 from nnprocess import NNProcess
-from chunkparser import ChunkParser
+from loader import Loader
 
 from torch.utils.data import DataLoader
 
@@ -16,7 +16,7 @@ def dump_dependent_version():
 
 class DataSet():
     def __init__(self, cfg, dirname):
-        self.parser = ChunkParser(cfg, dirname)
+        self.data_loader = Loader(cfg, dirname)
         self.cfg = cfg
         self.xsize = cfg.xsize
         self.ysize = cfg.ysize
@@ -31,8 +31,8 @@ class DataSet():
         return idx // self.xsize
 
     def __getitem__(self, idx):
-        b, s = self.parser[idx]
-        data = self.parser.unpack_v1(b, s)
+        b, s = self.data_loader[idx]
+        data = self.data_loader.unpack_v1(b, s)
 
         input_planes = np.zeros((self.input_channels, self.ysize, self.xsize))
         input_features = np.zeros(self.input_features)
@@ -97,7 +97,7 @@ class DataSet():
         )
 
     def __len__(self):
-        return len(self.parser)
+        return len(self.data_loader)
 
 class DataModule(pl.LightningDataModule):
     def __init__(self, cfg):

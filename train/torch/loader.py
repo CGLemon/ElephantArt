@@ -126,7 +126,7 @@ class Data(PiecesIndex):
             return 23
         return 0
 
-class ChunkParser:
+class Loader:
     def __init__(self, cfg, dirname):
         self.cfg = cfg
         self.dirname = dirname
