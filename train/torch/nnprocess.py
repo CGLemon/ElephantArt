@@ -167,7 +167,7 @@ class NNProcess(nn.Module):
         self.policy_map = cfg.policy_map
         self.stack = cfg.stack
 
-        self.winrate_size = cfg.winrate_size
+        self.value_misc = cfg.value_misc
         self.valuelayers = cfg.valuelayers
 
         # build network
@@ -237,7 +237,7 @@ class NNProcess(nn.Module):
         )
         self.value_fc_2 = FullyConnect(
             in_size=self.valuelayers,
-            out_size=self.winrate_size,
+            out_size=self.value_misc,
             relu=False,
             collector=self.tensor_collector
         )
@@ -336,7 +336,7 @@ class NNProcess(nn.Module):
             f.write(NNProcess.bn2text(self.value_extract))
             
             f.write(NNProcess.fullyconnect2text(self.value_extract * self.plane_size, self.valuelayers))
-            f.write(NNProcess.fullyconnect2text(self.valuelayers, self.winrate_size))
+            f.write(NNProcess.fullyconnect2text(self.valuelayers, self.value_misc))
             
             f.write("end model\n")
 
