@@ -60,7 +60,7 @@ void PGNParser::loadpgn(std::string filename, Position &pos) const {
     }
     file.close();
 
-    auto pgnstring_list = ChopStream(buffer);
+    auto pgnstring_list = chop_stream(buffer);
     auto pgn = parse_pgnstring(pgnstring_list[0], 1);
 
     if (pgn.valid) {
@@ -87,7 +87,7 @@ void PGNParser::gather_pgnlist(std::string filename, std::vector<PGNRecorder> &p
     }
     file.close();
 
-    auto pgnstring_list = ChopStream(buffer);
+    auto pgnstring_list = chop_stream(buffer);
     for (int i = 0; i < (int)pgnstring_list.size(); ++i) {
         auto pgn = parse_pgnstring(pgnstring_list[i], i+1);
         if (pgn.valid) {
@@ -219,7 +219,7 @@ PGNRecorder PGNParser::from_position(Position &pos, PGNRecorder::Format_t fmt) c
     return pgn;
 }
 
-std::vector<std::string> PGNParser::ChopStream(std::istream &buffer) const {
+std::vector<std::string> PGNParser::chop_stream(std::istream &buffer) const {
     const auto lambda_isspace = [](std::string &str) -> bool {
         for (const char c : str) {
             if (!isspace(c)) {

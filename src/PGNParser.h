@@ -50,7 +50,7 @@ public:
     void gather_pgnlist(std::string filename, std::vector<PGNRecorder> &pgns) const;
 
 private:
-    std::vector<std::string> ChopStream(std::istream &buffer) const;
+    std::vector<std::string> chop_stream(std::istream &buffer) const;
 
     std::string get_pgnstring(PGNRecorder pgn) const;
 
