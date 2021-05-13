@@ -187,10 +187,15 @@ class Network(NNProcess, pl.LightningModule):
         )
         loss = pol_loss + wdl_loss + stm_loss + move_loss + moves_left_loss + p_weights_loss
 
-        self.log("train_loss", loss, prog_bar=True)
         self.log_dict(
             {
+                "train_loss" : loss,
                 "train_pol_loss": pol_loss,
+            },
+            prog_bar=True
+        )
+        self.log_dict(
+            {
                 "train_wdl_loss": wdl_loss,
                 "train_stm_loss": stm_loss,
                 "train_move_loss": move_loss,
