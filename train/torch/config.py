@@ -63,7 +63,10 @@ class Config:
             #      8(horse moves) + 4(advisor moves) + 4(elephant moves)
 
         self.valuelayers = 256 # fixed
-        self.value_misc = 4 # one stm-winrate head + three wdl-winrate heads
+        self.value_misc = 19 # 3 wdl-winrate heads +
+                             #     1 stm-winrate head +
+                             #     1 moves left head +
+                             #     14 pieces weights heads
 
 def trainparser(json_data, config):
     # We assume that every value is valid.

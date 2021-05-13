@@ -169,8 +169,11 @@ class NNProcess(nn.Module):
 
         self.value_misc = cfg.value_misc
         self.valuelayers = cfg.valuelayers
+        self.set_layers()
 
-        # build network
+    def set_layers(self):
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+
         # input layers
         self.input_conv = ConvBlock(
             in_channels=self.input_channels,
@@ -223,6 +226,13 @@ class NNProcess(nn.Module):
             collector=self.tensor_collector
         )
 
+        # tpye ingnore, auxiliary policy.
+        self.aux_move_fc = FullyConnect(
+            in_size=self.policy_extract,
+            out_size=7,
+            relu=False,
+        )
+
         # value head
         self.value_conv = ConvBlock(
             in_channels=self.residual_channels,
@@ -260,18 +270,22 @@ class NNProcess(nn.Module):
         x = self.residual_tower(x)
 
         # policy head
-        pol = self.policy_conv(x)
-        pol = self.map_conv(pol)
+        pol_shared = self.policy_conv(x)
+        pol = self.map_conv(pol_shared)
         pol = torch.flatten(pol, start_dim=1)
+
+        aux_pol_gpool = self.avg_pool(pol_shared)
+        aux_pol_gpool = torch.flatten(aux_pol_gpool, start_dim=1, end_dim=3)
+        aux_move = self.aux_move_fc(aux_pol_gpool)
 
         # value head
         val = self.value_conv(x)
         val = torch.flatten(val, start_dim=1)
         val = self.value_fc_1(val)
         val = self.value_fc_2(val)
-        wdl, stm = torch.split(val, 3, dim=1)
+        wdl, stm, moves_left, p_weights = torch.split(val, [3, 1, 1, 14], dim=1)
 
-        return pol, wdl, torch.tanh(stm)
+        return pol, wdl, torch.tanh(stm), aux_move, moves_left, p_weights
 
     def trainable(self, t=True):
         if t==True:
