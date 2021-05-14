@@ -98,7 +98,7 @@ class DataSet():
         move[data.move] = 1
 
         # moves left
-        moves_left[0] = moves_left
+        moves_left[0] = data.moves_left
 
         return (
             torch.tensor(input_planes).float(),
