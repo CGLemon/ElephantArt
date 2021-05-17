@@ -43,7 +43,7 @@ struct NNResult {
 
     std::array<float, 14> material;
 
-    float move_left;
+    float moves_left;
 
     bool symmetry;
 

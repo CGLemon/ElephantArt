@@ -66,7 +66,7 @@ class Config:
         self.value_misc = 19 # 3 wdl-winrate heads +
                              #     1 stm-winrate head +
                              #     1 moves left head +
-                             #     14 pieces weights heads
+                             #     14 pieces material
 
 def trainparser(json_data, config):
     # We assume that every value is valid.

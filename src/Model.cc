@@ -604,7 +604,7 @@ NNResult Model::get_result(std::vector<float> &policy,
     result.winrate_misc[2] = wdl[2];                  // wdl head loss probability
     result.winrate_misc[3] = std::tanh(value[3]);     // stm head winrate
 
-    result.move_left = value[4];
+    result.moves_left = value[4];
 
     for (int i = 0; i < 14; ++i) {
         result.material[i] = value[5+i];

@@ -283,9 +283,9 @@ class NNProcess(nn.Module):
         val = torch.flatten(val, start_dim=1)
         val = self.value_fc_1(val)
         val = self.value_fc_2(val)
-        wdl, stm, moves_left, p_weights = torch.split(val, [3, 1, 1, 14], dim=1)
+        wdl, stm, moves_left, material = torch.split(val, [3, 1, 1, 14], dim=1)
 
-        return pol, wdl, torch.tanh(stm), aux_move, moves_left, p_weights
+        return pol, wdl, torch.tanh(stm), aux_move, moves_left, material
 
     def trainable(self, t=True):
         if t==True:

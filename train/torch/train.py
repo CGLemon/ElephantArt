@@ -157,7 +157,7 @@ class Network(NNProcess, pl.LightningModule):
 
     
     def compute_loss(self, pred, target):
-        (pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, p_weights) = pred
+        (pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, material) = pred
         (target_pol, target_wdl, target_stm, target_move, target_moves_left, num_pieces) = target
 
         def cross_entropy(pred, target):
@@ -173,19 +173,20 @@ class Network(NNProcess, pl.LightningModule):
         stm_loss = F.mse_loss(pred_stm.squeeze(), target_stm.squeeze())
         move_loss = 0.15 * cross_entropy(pred_move, target_move)
         moves_left_loss = 0.0012 * huber_loss(pred_moves_left, target_moves_left, 12.0)
-        p_weights_loss = 0.15 * F.mse_loss(
-            torch.tanh(torch.sum(torch.mul(p_weights, num_pieces), dim=1)).squeeze(), target_stm.squeeze())
+        material_loss = 0.15 * F.mse_loss(
+            torch.tanh(torch.sum(torch.mul(material, num_pieces), dim=1)).squeeze(), target_stm.squeeze())
 
-        return pol_loss, wdl_loss, stm_loss, move_loss, moves_left_loss, p_weights_loss
+        return pol_loss, wdl_loss, stm_loss, move_loss, moves_left_loss, material_loss
 
     def training_step(self, batch, batch_idx):
         planes, features, target_pol, target_wdl, target_stm, target_move, target_moves_left, num_pieces = batch
-        pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, p_weights = self(planes, features)
-        pol_loss, wdl_loss, stm_loss, move_loss, moves_left_loss, p_weights_loss = self.compute_loss(
-            (pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, p_weights),
+        pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, material = self(planes, features)
+
+        pol_loss, wdl_loss, stm_loss, move_loss, moves_left_loss, material_loss = self.compute_loss(
+            (pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, material),
             (target_pol, target_wdl, target_stm, target_move, target_moves_left, num_pieces)
         )
-        loss = pol_loss + wdl_loss + stm_loss + move_loss + moves_left_loss + p_weights_loss
+        loss = pol_loss + wdl_loss + stm_loss + move_loss + moves_left_loss + material_loss
 
         self.log_dict(
             {
@@ -200,20 +201,20 @@ class Network(NNProcess, pl.LightningModule):
                 "train_stm_loss": stm_loss,
                 "train_move_loss": move_loss,
                 "train_moves_left_loss": moves_left_loss,
-                "train_weights_loss": p_weights_loss,
+                "train_material_loss": material_loss,
             }
         )
         return loss
 
     def validation_step(self, batch, batch_idx):
         planes, features, target_pol, target_wdl, target_stm, target_move, target_moves_left, num_pieces = batch
-        pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, p_weights = self(planes, features)
+        pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, material = self(planes, features)
 
-        pol_loss, wdl_loss, stm_loss, move_loss, moves_left_loss, p_weights_loss = self.compute_loss(
-            (pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, p_weights),
+        pol_loss, wdl_loss, stm_loss, move_loss, moves_left_loss, material_loss = self.compute_loss(
+            (pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, material),
             (target_pol, target_wdl, target_stm, target_move, target_moves_left, num_pieces)
         )
-        loss = pol_loss + wdl_loss + stm_loss + move_loss + moves_left_loss + p_weights_loss
+        loss = pol_loss + wdl_loss + stm_loss + move_loss + moves_left_loss + material_loss
 
         self.log_dict(
             {
@@ -223,19 +224,19 @@ class Network(NNProcess, pl.LightningModule):
                 "val_stm_loss": stm_loss,
                 "val_move_loss": move_loss,
                 "val_moves_left_loss": moves_left_loss,
-                "val_weights_loss": p_weights_loss,
+                "val_material_loss": material_loss,
             }
         )
 
     def test_step(self, batch, batch_idx):
         planes, features, target_pol, target_wdl, target_stm, target_move, target_moves_left, num_pieces = batch
-        pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, p_weights = self(planes, features)
+        pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, material = self(planes, features)
 
-        pol_loss, wdl_loss, stm_loss, move_loss, moves_left_loss, p_weights_loss = self.compute_loss(
-            (pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, p_weights),
+        pol_loss, wdl_loss, stm_loss, move_loss, moves_left_loss, material_loss = self.compute_loss(
+            (pred_pol, pred_wdl, pred_stm, pred_move, pred_moves_left, material),
             (target_pol, target_wdl, target_stm, target_move, target_moves_left, num_pieces)
         )
-        loss = pol_loss + wdl_loss + stm_loss + move_loss + moves_left_loss + p_weights_loss
+        loss = pol_loss + wdl_loss + stm_loss + move_loss + moves_left_loss + material_loss
 
         self.log_dict(
             {
@@ -244,8 +245,8 @@ class Network(NNProcess, pl.LightningModule):
                 "test_wdl_loss": wdl_loss,
                 "test_stm_loss": stm_loss,
                 "test_move_loss": move_loss,
-                "test_left_loss": moves_left_loss,
-                "test_weights_loss": p_weights_loss,
+                "test_moves_left_loss": moves_left_loss,
+                "test_material_loss": material_loss,
             }
         )
 

@@ -196,7 +196,7 @@ Engine::Response Engine::raw_nn(const int g) {
     rep << std::endl << std::endl;
 
     rep << "moves left: " << std::endl;
-    rep << nnout.move_left ;
+    rep << nnout.moves_left ;
     rep << std::endl << std::endl;
 
     rep << "pieces material: " << std::endl;
