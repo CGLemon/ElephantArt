@@ -158,7 +158,7 @@ void CPUBackend::forward(const std::vector<float> &planes,
                           m_weights->v_fc1.biases,
                           value_fc, true);
 
-    FullyConnect::Forward(VALUELAYER, WINRATELAYER,
+    FullyConnect::Forward(VALUELAYER, VLAUEMISC_LAYER,
                           value_fc,
                           m_weights->v_fc2.weights,
                           m_weights->v_fc2.biases,

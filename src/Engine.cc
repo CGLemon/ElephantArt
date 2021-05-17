@@ -195,6 +195,17 @@ Engine::Response Engine::raw_nn(const int g) {
     rep << nnout.winrate_misc[3];
     rep << std::endl << std::endl;
 
+    rep << "moves left: " << std::endl;
+    rep << nnout.move_left ;
+    rep << std::endl << std::endl;
+
+    rep << "pieces material: " << std::endl;
+    for (int i = 0; i < 14; ++i) {
+        rep << nnout.material[i] << ' ';
+    }
+    rep << std::endl << std::endl;
+
+
     rep << "run time ";
     rep << microsecond;
     rep << " microsecond(s)" << std::endl;

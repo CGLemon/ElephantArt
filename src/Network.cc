@@ -162,21 +162,21 @@ void dummy_forward(std::vector<float> &policy,
 Network::Netresult
 Network::get_output_internal(const Position *const position, const bool symmetry) {
     auto policy_out = std::vector<float>(POLICYMAP * INTERSECTIONS);
-    auto winrate_out = std::vector<float>(WINRATELAYER);
+    auto value_out = std::vector<float>(VLAUEMISC_LAYER);
 
     auto input_planes = Model::gather_planes(position, symmetry);
     auto input_features = Model::gather_features(position);
 
     if (m_forward->valid()) {
-        m_forward->forward(input_planes, input_features, policy_out, winrate_out);
+        m_forward->forward(input_planes, input_features, policy_out, value_out);
     } else {
         // If we didn't load the network yet, output the random result.
-        dummy_forward(policy_out, winrate_out);
+        dummy_forward(policy_out, value_out);
     }
 
     // TODO: Remove "softmax_pol_temp" and "softmax_wdl_temp" to UCCI Option.
     const auto result = Model::get_result(policy_out,
-                                          winrate_out,
+                                          value_out,
                                           option<float>("softmax_pol_temp"),
                                           option<float>("softmax_wdl_temp"),
                                           symmetry);

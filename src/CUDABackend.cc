@@ -217,10 +217,10 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
         true                                            // relu
     );
     m_graph->v_fc2 = CUDA::FullyConnect(
-        m_maxbatch,     // max batch size
-        VALUELAYER,     // input size
-        WINRATELAYER,   // output size
-        false           // relu
+        m_maxbatch,      // max batch size
+        VALUELAYER,      // input size
+        VLAUEMISC_LAYER, // output size
+        false            // relu
     );
 
     // fill the parameters
@@ -262,7 +262,7 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
     const size_t planes_size = factor * INPUT_CHANNELS * Board::INTERSECTIONS;
     const size_t features_size = factor * INPUT_FEATURES;
     const size_t pol_size = factor * POLICYMAP * Board::INTERSECTIONS;
-    const size_t val_size = factor * WINRATELAYER;
+    const size_t val_size = factor * VLAUEMISC_LAYER;
 
     const size_t conv_op_size = factor * m_weights->residual_channels * Board::INTERSECTIONS;
 
@@ -358,7 +358,7 @@ void CUDABackend::NNGraph::batch_forward(const int batch_size,
     m_graph->v_fc2.Forward(batch_size, cuda_val_op[1], cuda_output_val, &m_handel);
 
     const auto pol_size = static_cast<size_t>(factor * POLICYMAP * Board::INTERSECTIONS);
-    const auto val_size = static_cast<size_t>(factor * WINRATELAYER);
+    const auto val_size = static_cast<size_t>(factor * VLAUEMISC_LAYER);
 
     CUDA::ReportCUDAErrors(cudaMemcpy(output_pol.data(), cuda_output_pol,
                                       pol_size, cudaMemcpyDeviceToHost));
