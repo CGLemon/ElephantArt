@@ -923,3 +923,14 @@ std::string UCT_Information::get_pvsrting(UCTNode *node) {
     }
     return res;
 }
+
+std::vector<int> UCT_Information::get_pvlist(UCTNode *node) {
+    auto pvlist = std::vector<int>{};
+    auto *next = node;
+    while (next->has_children()) {
+        const auto maps = next->get_best_move();
+        pvlist.emplace_back(maps);
+        next = next->get_child(maps);
+    }
+    return pvlist;
+}

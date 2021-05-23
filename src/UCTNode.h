@@ -207,6 +207,8 @@ public:
   static std::string get_memory_string(UCTNode *node);
 
   static std::string get_pvsrting(UCTNode *node);
+
+  static std::vector<int> get_pvlist(UCTNode *node);
 };
 
 #endif

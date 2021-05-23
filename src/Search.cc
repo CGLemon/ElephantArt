@@ -82,7 +82,7 @@ bool Search::stop_thinking(int elapsed, int limittime) const {
 }
 
 void Search::play_simulation(Position &currpos, UCTNode *const node,
-                             UCTNode *const root_node, SearchResult &search_result, int &depth) {
+                             UCTNode *const root_node, SearchResult &search_result) {
     node->increment_threads();
     if (node->expandable()) {
         if (currpos.gameover(true)) {
@@ -113,8 +113,7 @@ void Search::play_simulation(Position &currpos, UCTNode *const node,
         auto maps = next->get_maps();
         auto move = Decoder::maps2move(maps);
         currpos.do_move_assume_legal(move);
-        play_simulation(currpos, next, root_node, search_result, depth);
-        ++depth;
+        play_simulation(currpos, next, root_node, search_result);
     }
     if (search_result.valid()) {
         node->update(search_result.nn_evals());
@@ -293,10 +292,9 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         }
         increment_threads();
         while(is_running()) {
-            auto depth = 0;
             auto currpos = std::make_unique<Position>(m_rootposition);
             auto result = SearchResult{};
-            play_simulation(*currpos, m_rootnode, m_rootnode, result, depth);
+            play_simulation(*currpos, m_rootnode, m_rootnode, result);
             if (result.valid()) {
                 increment_playouts();
             }
@@ -331,11 +329,10 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
 
         increment_threads();
         while(is_running()) {
-            auto depth = 0;
             auto currpos = std::make_unique<Position>(m_rootposition);
             auto result = SearchResult{};
 
-            play_simulation(*currpos, m_rootnode, m_rootnode, result, depth);
+            play_simulation(*currpos, m_rootnode, m_rootnode, result);
             if (result.valid()) {
                 increment_playouts();
             }
@@ -354,15 +351,19 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
                 }
             }
 
+            const auto pv_depth = (int)UCT_Information::get_pvlist(m_rootnode).size();
+
             keep_running &= (!stop_thinking(elapsed, limittime));
             keep_running &= (!(limitnodes < nodes));
-            keep_running &= (!(limitdepth < depth));
+            keep_running &= (!(limitdepth < pv_depth));
             keep_running &= is_running();
             set_running(keep_running);
 
-            if (option<bool>("ucci_response") && (depth > maxdepth || !keep_running)) {
+            if (option<bool>("ucci_response") &&
+                   (pv_depth > maxdepth || !keep_running) &&
+                    m_playouts.load() >= parameters()->cap_playouts) {
                 if (keep_running) {
-                    maxdepth = depth;
+                    maxdepth = pv_depth;
                 }
                 const auto pv = UCT_Information::get_pvsrting(m_rootnode);
                 LOGGING << "info"

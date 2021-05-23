@@ -109,7 +109,7 @@ private:
     void clear_nodes();
     void increment_playouts();
     void play_simulation(Position &currpos, UCTNode *const node,
-                         UCTNode *const root_node, SearchResult &search_result, int &depth);
+                         UCTNode *const root_node, SearchResult &search_result);
     float get_min_psa_ratio();
     bool is_running();
     void set_running(bool is_running);
