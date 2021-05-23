@@ -64,20 +64,20 @@ void Network::initialize(const std::string &weightsfile) {
 #ifndef __APPLE__
 #ifdef USE_OPENBLAS
     openblas_set_num_threads(1);
-    DEBUG << "BLAS Core:" << ' ' << openblas_get_corename() << std::endl;
+    UCCI_DEBUG << "BLAS Core:" << ' ' << openblas_get_corename() << std::endl;
 #endif
 #ifdef USE_MKL
     mkl_set_num_threads(1);
     MKLVersion Version;
     mkl_get_version(&Version);
-    DEBUG << "BLAS core: MKL" << ' ' << Version.Processor << std::endl;
+    UCCI_DEBUG << "BLAS core: MKL" << ' ' << Version.Processor << std::endl;
 #endif
 #endif
 
 #ifdef USE_EIGEN
-    DEBUG << "BLAS Core: Eigen" << ' '
-              << EIGEN_WORLD_VERSION << '.' << EIGEN_MAJOR_VERSION << '.' << EIGEN_MINOR_VERSION << ' '
-              << "library." << std::endl;
+    UCCI_DEBUG << "BLAS Core: Eigen" << ' '
+                   << EIGEN_WORLD_VERSION << '.' << EIGEN_MAJOR_VERSION << '.' << EIGEN_MINOR_VERSION << ' '
+                   << "library." << std::endl;
 #endif
 
     set_cache_memory(option<int>("cache_size"));

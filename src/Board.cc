@@ -611,8 +611,8 @@ void Board::init_magics() {
     }
 
     const auto t = timer.get_duration();
-    DEBUG << "Generating the Magic Numbers spent"
-              << ' ' << t << ' ' << "second(s)" << std::endl;
+    UCCI_DEBUG << "Generating the Magic Numbers spent"
+                   << ' ' << t << ' ' << "second(s)" << std::endl;
 }
 
 void Board::dump_memory() {
@@ -636,9 +636,9 @@ void Board::dump_memory() {
         res += sizeof(BitBoard) * m_cannonrank_magics[v].attacks.capacity();
         res += sizeof(BitBoard) * m_cannonfile_magics[v].attacks.capacity();
     }
-    DEBUG << "Attacks Table Memory" << ' ' << ':' << ' '
-              << ' ' << static_cast<float>(res)/(1024.f * 1024.f)
-              << ' ' << "(Mib)" << std::endl;
+    UCCI_DEBUG << "Attacks Table Memory" << ' ' << ':' << ' '
+                   << ' ' << static_cast<float>(res)/(1024.f * 1024.f)
+                   << ' ' << "(Mib)" << std::endl;
 }
 
 void Board::pre_initialize() {

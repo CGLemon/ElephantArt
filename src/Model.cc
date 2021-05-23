@@ -226,7 +226,7 @@ void Model::load_weights(const std::string &filename,
     }
     
     if (nn_weight->loaded) {
-        DEBUG << "Loading is successful!" << std::endl;
+        UCCI_DEBUG << "Loading is successful!" << std::endl;
     }
 }
 
@@ -569,7 +569,7 @@ void Model::fill_weights(std::istream &weights_file,
             }
         }
     }
-    DEBUG << get_nn_info(nn_weight, timer);
+    UCCI_DEBUG << get_nn_info(nn_weight, timer);
 }
 
 NNResult Model::get_result(std::vector<float> &policy,

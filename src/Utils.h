@@ -37,7 +37,7 @@
 #define LOGGING (Utils::Logging(__FILE__, __LINE__, false))
 #define WRITING (Utils::Logging(__FILE__, __LINE__, true))
 #define ERROR (Utils::StandError(__FILE__, __LINE__))
-#define DEBUG (Utils::UCCIDebug(__FILE__, __LINE__))
+#define UCCI_DEBUG (Utils::UCCIDebug(__FILE__, __LINE__))
 
 namespace Utils {
 

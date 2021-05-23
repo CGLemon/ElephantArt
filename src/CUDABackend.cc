@@ -33,13 +33,13 @@ void CUDABackend::initialize(std::shared_ptr<Model::NNWeights> weights) {
     }
     reload(weights);
     prepare_worker();
-    DEBUG << "Create CUDA Network" << std::endl;
+    UCCI_DEBUG << "Create CUDA Network" << std::endl;
 }
 
 void CUDABackend::destroy() {
     release();
     quit_worker();
-    DEBUG << "Release CUDA Network" << std::endl;
+    UCCI_DEBUG << "Release CUDA Network" << std::endl;
 }
 
 void CUDABackend::reload(std::shared_ptr<Model::NNWeights> weights) {
