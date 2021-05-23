@@ -25,6 +25,7 @@ SearchParameters::SearchParameters() {
 void SearchParameters::reset() {
     threads            = option<int>("threads");
     visits             = option<int>("visits");
+    cap_playouts       = option<int>("cap_playouts");
     playouts           = option<int>("playouts");
     random_min_visits  = option<int>("random_min_visits");
     forced_checkmate_depth      = option<int>("forced_checkmate_depth");

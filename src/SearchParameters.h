@@ -30,6 +30,7 @@ public:
     int threads;
     int visits;
     int playouts;
+    int cap_playouts;
     int random_min_visits;
     int forced_checkmate_depth;
     int forced_checkmate_root_depth;

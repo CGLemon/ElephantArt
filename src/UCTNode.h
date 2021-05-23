@@ -94,6 +94,8 @@ public:
     UCTNode *uct_select_child(const Types::Color color,
                               const bool is_root);
 
+    UCTNode *prob_select_child();
+
     void apply_evals(std::shared_ptr<UCTNodeEvals> evals);
     void update(std::shared_ptr<UCTNodeEvals> evals);
 

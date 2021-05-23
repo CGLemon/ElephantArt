@@ -479,7 +479,7 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
         const auto node = child->get();
         const bool is_pointer = node == nullptr ? false : true;
 
-        // If the node was pruned. Skip this time.
+        // The node was pruned. Skip this time.
         if (is_pointer && !node->is_active()) {
             continue;
         }
@@ -507,6 +507,38 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
 
         if (value > best_value) {
             best_value = value;
+            best_node = child;
+        }
+    }
+
+    inflate(best_node);
+    return best_node->get();
+}
+
+UCTNode *UCTNode::prob_select_child() {
+    wait_expanded();
+    assert(has_children());
+
+    std::shared_ptr<UCTNodePointer> best_node = nullptr;
+    float best_prob = std::numeric_limits<float>::lowest();
+
+    for (const auto &child : m_children) {
+        const auto node = child->get();
+        const bool is_pointer = node == nullptr ? false : true;
+
+        auto prob = node->get_policy();
+
+        // The node was pruned. Skip this time.
+        if (is_pointer && !node->is_active()) {
+            continue;
+        }
+
+        if (node->is_expending()) {
+            prob = -1.0f + prob;
+        }
+
+        if (prob > best_prob) {
+            best_prob = prob;
             best_node = child;
         }
     }

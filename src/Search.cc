@@ -102,7 +102,14 @@ void Search::play_simulation(Position &currpos, UCTNode *const node,
     }
     if (node->has_children() && !search_result.valid()) {
         auto color = currpos.get_to_move();
-        auto next = node->uct_select_child(color, node == root_node);
+        UCTNode* next = nullptr;
+
+        if (m_playouts.load() < parameters()->cap_playouts) {
+            next = node->prob_select_child();
+        } else {
+            next = node->uct_select_child(color, node == root_node);
+        }
+
         auto maps = next->get_maps();
         auto move = Decoder::maps2move(maps);
         currpos.do_move_assume_legal(move);
