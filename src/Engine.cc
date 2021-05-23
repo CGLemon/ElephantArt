@@ -199,13 +199,6 @@ Engine::Response Engine::raw_nn(const int g) {
     rep << nnout.moves_left ;
     rep << std::endl << std::endl;
 
-    rep << "pieces material: " << std::endl;
-    for (int i = 0; i < 14; ++i) {
-        rep << nnout.material[i] << ' ';
-    }
-    rep << std::endl << std::endl;
-
-
     rep << "run time ";
     rep << microsecond;
     rep << " microsecond(s)" << std::endl;

@@ -35,13 +35,11 @@ static constexpr auto INPUT_CHANNELS = INPUT_MOVES * 14 + INPUT_STATUS;
 
 static constexpr auto POLICYMAP = 50;
 static constexpr auto VALUELAYER = 256;
-static constexpr auto VLAUEMISC_LAYER = 19;
+static constexpr auto VLAUEMISC_LAYER = 5;
 
 struct NNResult {
     std::array<float, POLICYMAP * Board::INTERSECTIONS> policy;
     std::array<float, 4> winrate_misc;
-
-    std::array<float, 14> material;
 
     float moves_left;
 
@@ -50,7 +48,6 @@ struct NNResult {
     NNResult() {
         policy.fill(0.0f);
         winrate_misc.fill(0.0f);
-        material.fill(0.0f);
     }
 };
 

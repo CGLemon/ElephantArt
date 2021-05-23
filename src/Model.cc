@@ -606,10 +606,6 @@ NNResult Model::get_result(std::vector<float> &policy,
 
     result.moves_left = value[4];
 
-    for (int i = 0; i < 14; ++i) {
-        result.material[i] = value[5+i];
-    }
-
     return result;
 }
 
