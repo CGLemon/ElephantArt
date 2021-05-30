@@ -57,13 +57,13 @@ Following the paper, Assessing Game Balance with AlphaZero: Exploring Alternativ
 We try to optimize the "Weights". Minimize the winrate lose. The "Weights" is we want to get. This method is not a good way. But we can get the roughly value in the short time. Here is the result.
 
 | Type           | Value(Normalized) |
-| :------------: | :------------:   |
-| Pawn           | 1  |
-| Cannon         |  3.160 |
-| Rook           |  6.384 |
-| Horse          |  2.782 |
-| Elephant       |  1.319 |
-| Advisor        |  1.124 |
+| :------------: | :---------------: |
+| Pawn           | 1                 |
+| Cannon         | 3.160             |
+| Rook           | 6.384             |
+| Horse          | 2.782             |
+| Elephant       | 1.319             |
+| Advisor        | 1.124             |
 
 <br>
 
@@ -72,11 +72,19 @@ The best opening move is not most players play opening move. It is funny.
 
 | Type                   | Move         | Probability | Winrate | Opening |
 | :------------:         | :----------: | :---------: | :-----: | :-----: |
-| Most players play move | h2e2, b2e2   |        60%  |  55%    | 中炮開局 |
-| Best move              | g3g4, c3c4   |        15%  |  60%    | 仙人指路 |
+| Most players play move | h2e2, b2e2   | 60%         | 55%     | 中炮開局 |
+| Best move              | g3g4, c3c4   | 15%         | 60%     | 仙人指路 |
 
 <br>
 
+### Policy Accuracy
+
+| Type   | Size                   | Data Set   | Accuracy | Date      |
+| :----: | :--------------------: | :--------: | :------: | :-------: |
+| Resnet | 4 blocks x 256 filters | validation | 38.5%    | 2021-5/23 |
+| Resnet | 4 blocks x 256 filters | training   | 54%      | 2021-5/23 |
+
+<br>
 
 ## Reference
 * UCCI protocol(chinese), https://www.xqbase.com/protocol/cchess_ucci.htm
