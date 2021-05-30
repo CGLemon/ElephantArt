@@ -52,9 +52,9 @@ Following the paper, Assessing Game Balance with AlphaZero: Exploring Alternativ
  
  The difference is the side player's number of pieces minus opponent’s number of pieces. We define the side player winrate is 
  
-  <img src="https://render.githubusercontent.com/render/math?math=\LARGE Winrate = tanh(multiply(D(x), Weights))">
+  <img src="https://render.githubusercontent.com/render/math?math=\LARGE Winrate = tanh(multiply(F(x), Weights))">
 
-We try to optimize the "Weights". Minimize the winrate lose. The "Weights" is we want to get. This method is not a good way. But we can get the roughly value in the short time. Here is the result.
+We try to optimize the "Weights". Minimize the winrate lose. The "Weights" means value of each piece. This method is not a good way. But we can get the roughly value in the short time. Here is the result.
 
 | Type           | Value(Normalized) |
 | :------------: | :---------------: |
