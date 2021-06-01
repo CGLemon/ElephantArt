@@ -140,8 +140,8 @@ private:
     std::vector<std::shared_ptr<const std::string>> m_commands;
     size_t m_count;
 
-    void parser(std::string &input, const size_t max);
-    void parser(std::string &&input, const size_t max);
+    void parse(std::string &input, const size_t max);
+    void parse(std::string &&input, const size_t max);
 };
 
 

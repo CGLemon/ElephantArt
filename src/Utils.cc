@@ -225,11 +225,11 @@ void strip_stream(std::ostream &out, const size_t times) {
 constexpr size_t CommandParser::MAX_BUFFER_SIZE;
 
 CommandParser::CommandParser(std::string &input) {
-    parser(std::forward<std::string>(input), MAX_BUFFER_SIZE);
+    parse(std::forward<std::string>(input), MAX_BUFFER_SIZE);
 }
 
 CommandParser::CommandParser(std::string &input, const size_t max) {
-    parser(std::forward<std::string>(input), std::min(max, MAX_BUFFER_SIZE));
+    parse(std::forward<std::string>(input), std::min(max, MAX_BUFFER_SIZE));
 }
 
 CommandParser::CommandParser(int argc, char** argv) {
@@ -237,14 +237,14 @@ CommandParser::CommandParser(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
         out << argv[i] << " ";
     }
-    parser(std::forward<std::string>(out.str()), MAX_BUFFER_SIZE);
+    parse(std::forward<std::string>(out.str()), MAX_BUFFER_SIZE);
 }
 
 bool CommandParser::valid() const {
     return m_count != 0;
 }
 
-void CommandParser::parser(std::string &input, const size_t max) {
+void CommandParser::parse(std::string &input, const size_t max) {
     m_count = 0;
     auto stream = std::istringstream{input};
     auto in = std::string{};
@@ -255,7 +255,7 @@ void CommandParser::parser(std::string &input, const size_t max) {
     }
 }
 
-void CommandParser::parser(std::string &&input, const size_t max) {
+void CommandParser::parse(std::string &&input, const size_t max) {
     m_count = 0;
     auto stream = std::istringstream{input};
     auto in = std::string{};
@@ -271,7 +271,7 @@ size_t CommandParser::get_count() const {
 }
 
 std::shared_ptr<CommandParser::Reuslt> CommandParser::get_command(size_t id) const {
-    if (!valid() || id > m_count) {
+    if (!valid() || id >= m_count) {
         return nullptr;
     }
     return std::make_shared<Reuslt>(Reuslt(*m_commands[id], (int)id));
