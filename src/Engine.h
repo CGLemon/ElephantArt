@@ -46,7 +46,6 @@ public:
     Response raw_nn(const int g = DEFUALT_POSITION);
     Response input_planes(const int g = DEFUALT_POSITION);
     Response history_board(const int g = DEFUALT_POSITION);
-    Response rand_move(const int g = DEFUALT_POSITION);
     Response nn_direct_move(const int g = DEFUALT_POSITION);
     Response uct_move(const int g = DEFUALT_POSITION);
     Response get_maps();

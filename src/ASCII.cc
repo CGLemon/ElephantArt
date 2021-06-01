@@ -106,9 +106,7 @@ std::string ASCII::execute(Utils::CommandParser &parser) {
             out << m_ascii_engine->uct_move();
         } else {
             const auto mode = parser.get_command(1)->str;
-            if (mode == "rand") {
-                out << m_ascii_engine->rand_move();
-            } else if (mode == "nn-direct") {
+            if (mode == "nn-direct") {
                 out << m_ascii_engine->nn_direct_move();
             } else if (mode == "uct") {
                 out << m_ascii_engine->uct_move();

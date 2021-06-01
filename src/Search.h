@@ -72,10 +72,14 @@ private:
 
 class SearchInformation {
 public:
-    Move move;
+    Move prob_move;
+    Move best_move;
+
     bool draw;
     int depth;
     float seconds;
+
+    int plies;
 };
 
 class SearchSetting {
@@ -96,7 +100,7 @@ public:
     ~Search();
 
     Move nn_direct_move();
-    Move random_move();
+    Move get_random_move();
     Move uct_move();
     void think(SearchSetting setting, SearchInformation *info);
     void interrupt();

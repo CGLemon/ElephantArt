@@ -18,6 +18,7 @@
 
 #include "ASCII.h"
 #include "UCCI.h"
+#include "Selfplay.h"
 #include "config.h"
 #include "Utils.h"
 
@@ -45,6 +46,10 @@ static void ucci_loop() {
     auto ucci = std::make_unique<UCCI>();
 }
 
+static void selfplay_loop() {
+    auto selfplay = std::make_unique<Selfplay>();
+}
+
 int main(int argc, char **argv) {
     const auto args = ArgsParser(argc, argv);
     args.dump();
@@ -57,7 +62,8 @@ int main(int argc, char **argv) {
         ascii_loop();
     } else if (option<std::string>("mode") == "ucci") {
         ucci_loop();
+    } else if (option<std::string>("mode") == "selfplay") {
+        selfplay_loop();
     }
-
     return 0;
 }

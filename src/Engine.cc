@@ -27,7 +27,7 @@
 #include <sstream>
 
 void Engine::initialize() {
-    const auto games = (size_t)option<int>("num_games");
+    const auto games = (size_t)option<int>("sync_games");
 
     m_positions.clear();
     m_train_group.clear();
@@ -61,7 +61,7 @@ void Engine::initialize() {
 }
 
 int Engine::clamp(const int g) const {
-    if (g < 0 || g >= option<int>("num_games")) {
+    if (g < 0 || g >= option<int>("sync_games")) {
         return DEFUALT_POSITION;
     }
     return g;
@@ -83,8 +83,8 @@ std::shared_ptr<Train> Engine::get_train(const int g) const {
 }
 
 void Engine::reset_game(const int g) {
-    assert(g >= 0 || g <= option<int>("num_games"));
-    get_position(g)->init_game(g);
+    const auto adj_g = clamp(g);
+    get_position(adj_g)->init_game(adj_g);
 }
 
 
@@ -240,21 +240,6 @@ Engine::Response Engine::history_board(const int g) {
     return rep.str();
 }
 
-Engine::Response Engine::rand_move(const int g) {
-    auto rep = std::ostringstream{};
-    const auto p = get_position(g); 
-    const auto s = get_search(g);
-
-    const auto move = s->random_move();
-    const auto success = p->do_move(move);
-#ifdef NDEBUG
-    (void) success;
-#endif
-    assert(success);
-
-    return rep.str();
-}
-
 Engine::Response Engine::nn_direct_move(const int g) {
     auto rep = std::ostringstream{};
     const auto p = get_position(g); 
@@ -307,7 +292,6 @@ Engine::Response Engine::selfplay(const int g) {
     auto s = get_search(g);
     auto t = get_train(g);
     while (!p->gameover(true)) {
-        display();
         const auto move = s->uct_move();
         const auto success = p->do_move(move);
 #ifdef NDEBUG

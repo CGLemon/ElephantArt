@@ -125,10 +125,17 @@ Move Search::uct_move() {
     auto info = SearchInformation{};
     auto setting = SearchSetting{};
     think(setting, &info);
-    // Wait the thread running finish.
+
+    // Wait the threads running finish.
     m_threadGroup->wait_all();
 
-    return info.move;
+    auto move = info.best_move;
+
+    if (info.plies < option<int>("random_plies_cnt")) {
+        move = info.prob_move;
+    }
+
+    return move;
 }
 
 std::pair<Move, Move> Search::get_best_move() const {
@@ -244,24 +251,9 @@ Move Search::nn_direct_move() {
     return move;
 }
 
-Move Search::random_move() {
-    m_rootposition = m_position;
+Move Search::get_random_move() {
 
-    auto rng = Random<random_t::XoroShiro128Plus>::get_Rng();
-    int maps = -1;
-
-    while (true) {
-        const auto randmaps = rng.randfix<POLICYMAP * Board::INTERSECTIONS>();
-
-        if (!Decoder::maps_valid(randmaps)) {
-            continue;
-        }
-
-        if (m_rootposition.is_legal(Decoder::maps2move(randmaps))) {
-            maps = randmaps;
-            break;
-        }
-    }
+    const auto maps = m_rootnode->randomize_first_proportionally(1);
 
     return Decoder::maps2move(maps);
 }
@@ -390,6 +382,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         const auto moves = get_best_move();
         const auto bestmove = moves.first;
         const auto pondermove = moves.second;
+        const auto prob_move = get_random_move();
         const auto draw_resign = get_draw_resign(color, set.draw);
 
         if (option<bool>("ucci_response")) {
@@ -404,9 +397,11 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         }
 
         if (info) {
-            info->move = bestmove;
+            info->best_move = bestmove;
+            info->prob_move = prob_move;
             info->seconds = elapsed;
             info->depth = maxdepth;
+            info->plies =  m_rootposition.get_gameply();
         }
         if (option<bool>("analysis_verbose")) {
             LOGGING << UCT_Information::get_stats_string(m_rootnode, m_rootposition);

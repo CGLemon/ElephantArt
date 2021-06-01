@@ -79,7 +79,9 @@ void init_options_map() {
     options_map["ucci_response"] << Utils::Option::setoption(true);
     options_map["log_file"] << Utils::Option::setoption(NO_LOG_FILE_NAME);
 
-    options_map["num_games"] << Utils::Option::setoption(1, 32, 1);
+    options_map["sync_games"] << Utils::Option::setoption(1, 256, 1);
+    options_map["selfplay_games"] << Utils::Option::setoption(0);
+    options_map["selfplay_directory"] << Utils::Option::setoption(std::string{});
 
     options_map["usemillisec"] << Utils::Option::setoption(false);
     options_map["cache_size"] << Utils::Option::setoption(50, 128 * 1024, 1);
@@ -108,7 +110,7 @@ void init_options_map() {
     options_map["collect"] << Utils::Option::setoption(false);
     options_map["collection_buffer_size"] << Utils::Option::setoption(1000, 10000, 0);
     options_map["random_min_visits"] << Utils::Option::setoption(1);
-    options_map["random_move_cnt"] << Utils::Option::setoption(0);
+    options_map["random_plies_cnt"] << Utils::Option::setoption(0);
 
     options_map["dirichlet_noise"] << Utils::Option::setoption(false);
     options_map["dirichlet_epsilon"] << Utils::Option::setoption(0.25f);
@@ -212,6 +214,27 @@ ArgsParser::ArgsParser(int argc, char** argv) {
     if  (const auto res = parser.find("--usemillisec")) {
         set_option("usemillisec", true);
         parser.remove_command(res->idx);
+    }
+
+    if (const auto res = parser.find_next("--selfplay-games")) {
+        if (is_parameter(res->str)) {
+            set_option("selfplay_games", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--sync-games")) {
+        if (is_parameter(res->str)) {
+            set_option("sync_games", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--selfplay-directory")) {
+        if (is_parameter(res->str)) {
+            set_option("selfplay_directory", res->get<std::string>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
     }
 
     if (const auto res = parser.find_next({"--logfile", "-l"})) {
@@ -441,6 +464,19 @@ ArgsParser::ArgsParser(int argc, char** argv) {
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
+
+    if (const auto res = parser.find({"-n", "--noise"})) {
+        set_option("dirichlet_noise", true);
+        parser.remove_command(res->idx);
+    }
+
+    if (const auto res = parser.find_next("--random-plies")) {
+        if (is_parameter(res->str)) {
+            set_option("random_plies_cnt", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
     
 #ifdef USE_CUDA
     set_option("use_gpu", true);
