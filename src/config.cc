@@ -174,12 +174,12 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         if (cnt == 0) {
             return false;
         }
-        int t = 1;
+        int t = 0;
         ERROR << "Command(s) Error:" << std::endl;
         for (auto i = size_t{0}; i < cnt; ++i) {
             const auto command = parser.get_command(i)->str;
             if (!is_parameter(command)) {
-                ERROR << " " << t << command << std::endl;
+                ERROR << ' ' << ++t << '.' << ' ' << command << std::endl;
             }
         }
         ERROR << " are not understood." << std::endl;
