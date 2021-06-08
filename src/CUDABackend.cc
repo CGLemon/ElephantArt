@@ -396,22 +396,19 @@ CUDABackend::NNGraph::~NNGraph() {
 
 void CUDABackend::worker(int gpu) {
     const auto gether_batches = [this](){
-        const size_t maxbatch = (size_t)option<int>("batchsize");
+        const auto maxbatch = (size_t)option<int>("batchsize");
         const auto gpu_waittime = option<int>("gpu_waittime");
         std::list<std::shared_ptr<ForwawrdEntry>> inputs;
+
         while(true) {
             if (!m_thread_running) {
                 return inputs;
             }
 
+            bool narrow_pipe = m_narrow_pipe.exchange(false);
             int waittime = m_waittime.load();
+
             if (m_forward_queue.size() >= maxbatch) {
-                if (waittime > gpu_waittime) {
-                    m_waittime.store(gpu_waittime);
-                } else if (waittime > 1) {
-                    waittime--;
-                    m_waittime.store(waittime);
-                }
                 break;
             }
 
@@ -419,19 +416,26 @@ void CUDABackend::worker(int gpu) {
             bool timeout = !m_cv.wait_for(lock, std::chrono::milliseconds(waittime),
                                               [maxbatch, this](){ return !(m_forward_queue.size() < maxbatch); }
                                           );
+
             if (!m_forward_queue.empty()) {
-                if (timeout && m_narrow_pipe.exchange(true) == false) {
-                    if (waittime > 1) {
-                        waittime--;
-                        m_waittime.store(waittime);
-                    }
-                    break;
+                waittime = std::min(waittime, gpu_waittime);
+
+                if (timeout && narrow_pipe) {
+                    waittime = 0;
+                } else if (waittime > 0) {
+                    waittime -= 2;
                 }
-            } else {
-                if (waittime < 20 * gpu_waittime) {
-                   waittime += 2;
-                }
+
+                waittime = std::max(waittime, 0);
                 m_waittime.store(waittime);
+
+                break;
+            } else {
+                if (waittime < gpu_waittime) {
+                    m_waittime.store(waittime+1);
+                } else if (waittime < 20 * gpu_waittime) {
+                    m_waittime.store(waittime+10);
+                }
             }
         }
 
@@ -502,8 +506,8 @@ void CUDABackend::worker(int gpu) {
             index++;
         }
 
-        if (batch_size <= (size_t)option<int>("batchsize")) {
-            m_narrow_pipe.store(false);
+        if (batch_size < (size_t)option<int>("batchsize")) {
+            m_narrow_pipe.store(true);
         }
     }
 }

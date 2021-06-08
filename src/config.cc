@@ -216,6 +216,13 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         parser.remove_command(res->idx);
     }
 
+    if (const auto res = parser.find_next("--gpu-waittime")) {
+        if (is_parameter(res->str)) {
+            set_option("gpu_waittime", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
     if (const auto res = parser.find_next("--selfplay-games")) {
         if (is_parameter(res->str)) {
             set_option("selfplay_games", res->get<int>());
