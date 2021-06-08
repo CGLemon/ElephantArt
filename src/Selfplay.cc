@@ -19,8 +19,10 @@
 #include "Selfplay.h"
 #include "config.h"
 #include "Utils.h"
+#include "Random.h"
 
-#include "Utils.h"
+#include <iomanip>
+#include <sstream>
 
 Selfplay::Selfplay() {
     init();
@@ -41,8 +43,18 @@ void Selfplay::loop() {
     LOGGING << "Object directory: " << option<std::string>("selfplay_directory")  << std::endl;
 
     m_max_games =  option<int>("selfplay_games");
-    m_data_filename = option<std::string>("selfplay_directory") + "/test.data";
-    m_pgn_filename = option<std::string>("selfplay_directory") + "/test.pgn";
+
+    auto filename_hash = Random<random_t::XoroShiro128Plus>::get_Rng().randuint64();
+    auto ss = std::ostringstream();
+
+    ss << std::hex << filename_hash << std::dec;
+
+
+    m_data_filename = option<std::string>("selfplay_directory") +
+                          "/" + ss.str() + ".data";
+
+    m_pgn_filename = option<std::string>("selfplay_directory") +
+                          "/" + ss.str() + ".pgn";
 
     set_option("ucci_response", false);
 
