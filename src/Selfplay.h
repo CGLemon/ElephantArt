@@ -24,6 +24,7 @@
 #include <thread>
 #include <memory>
 #include <atomic>
+#include <mutex>
 
 class Selfplay {
 public:
@@ -44,6 +45,7 @@ private:
 
     std::string m_pgn_filename;
     std::string m_data_filename;
+    std::mutex m_io_mtx;
 };
 
 #endif

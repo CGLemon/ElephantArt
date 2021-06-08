@@ -65,8 +65,10 @@ void Selfplay::loop() {
 
                 while (m_games.load() < m_max_games) {
                     m_selfplay_engine->selfplay(g);
-                    m_selfplay_engine->dump_collection(m_data_filename, g);
-
+                    {
+                        std::lock_guard<std::mutex> lock(m_io_mtx);
+                        m_selfplay_engine->dump_collection(m_data_filename, g);
+                    }
                     m_selfplay_engine->reset_game(g);
                     m_games.fetch_add(1);
 
