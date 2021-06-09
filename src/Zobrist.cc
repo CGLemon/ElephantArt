@@ -28,7 +28,7 @@ constexpr Zobrist::KEY Zobrist::zobrist_empty;
 constexpr Zobrist::KEY Zobrist::zobrist_redtomove;
 
 std::array<std::array<Zobrist::KEY, Zobrist::ZOBRIST_SIZE>, 18> Zobrist::zobrist;
-std::array<Zobrist::KEY, 200> Zobrist::zobrist_positions;
+std::array<Zobrist::KEY, 4096> Zobrist::zobrist_positions;
 
 template<typename T>
 bool collision(std::vector<T> &array) {

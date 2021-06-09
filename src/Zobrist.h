@@ -37,7 +37,7 @@ public:
     static constexpr KEY zobrist_redtomove = 0xabcdabcdabcdabcd;
 
     static std::array<std::array<KEY, ZOBRIST_SIZE>, 18> zobrist;
-    static std::array<KEY, 200> zobrist_positions;
+    static std::array<KEY, 4096> zobrist_positions;
 
     static void init_zobrist();
 };
