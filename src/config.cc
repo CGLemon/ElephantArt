@@ -106,8 +106,8 @@ void init_options_map() {
     options_map["cpuct_root_base"] << Utils::Option::setoption(19652.f);
     options_map["draw_factor"] << Utils::Option::setoption(0.f);
     options_map["draw_root_factor"] << Utils::Option::setoption(0.f);
-    options_map["forced_checkmate_depth"] << Utils::Option::setoption(10);
-    options_map["forced_checkmate_root_depth"] << Utils::Option::setoption(20);
+    options_map["forced_checkmate_depth"] << Utils::Option::setoption(10, 256, 0);
+    options_map["forced_checkmate_root_depth"] << Utils::Option::setoption(20, 256, 0);
 
     options_map["collect"] << Utils::Option::setoption(false);
     options_map["collection_buffer_size"] << Utils::Option::setoption(1000, 10000, 0);
@@ -493,7 +493,20 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         }
     }
 
-    
+    if (const auto res = parser.find_next("--forced-checkmate-depth")) {
+        if (is_parameter(res->str)) {
+            set_option("forced_checkmate_depth", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--forced-checkmate-root-depth")) {
+        if (is_parameter(res->str)) {
+            set_option("forced_checkmate_root_depth", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
 #ifdef USE_CUDA
     set_option("use_gpu", true);
 #endif
