@@ -37,6 +37,7 @@ public:
     bool lookup(std::uint64_t hash, EntryType &result);
     void insert(std::uint64_t hash, const EntryType &result);
     void set_memory(size_t MiB);
+    void set_playouts(size_t playouts);
 
     size_t get_estimated_size();
 
@@ -109,6 +110,12 @@ void Cache<EntryType>::set_memory(size_t MiB) {
     const double bytes = 1024.f * 1024.f * (double)MiB;
     const auto size = size_t(bytes / Cache::ENTRY_SIZE);
     resize(size);
+}
+
+template <typename EntryType>
+void Cache<EntryType>::set_playouts(size_t playouts) {
+    auto mem_used = (double)(playouts * Cache::ENTRY_SIZE) / (1024.f * 1024.f);
+    set_memory((size_t)mem_used);
 }
 
 template <typename EntryType>

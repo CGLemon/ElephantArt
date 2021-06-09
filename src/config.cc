@@ -84,7 +84,9 @@ void init_options_map() {
     options_map["selfplay_directory"] << Utils::Option::setoption(std::string{});
 
     options_map["usemillisec"] << Utils::Option::setoption(false);
-    options_map["cache_size"] << Utils::Option::setoption(50, 128 * 1024, 1);
+    options_map["cache_size"] << Utils::Option::setoption(50);
+    options_map["cache_playouts"] << Utils::Option::setoption(0);
+
     options_map["softmax_pol_temp"] << Utils::Option::setoption(1.0f);
     options_map["softmax_wdl_temp"] << Utils::Option::setoption(1.0f);
     options_map["weights_file"] << Utils::Option::setoption(NO_WEIGHT_FILE_NAME);
@@ -346,9 +348,16 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         }
     }
 
-    if (const auto res = parser.find_next("--cachesize")) {
+    if (const auto res = parser.find_next("--cache-size")) {
         if (is_parameter(res->str)) {
             set_option("cache_size", res->get<int>());
+            parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+    if (const auto res = parser.find_next("--cache-playouts")) {
+        if (is_parameter(res->str)) {
+            set_option("cache_playouts", res->get<int>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }

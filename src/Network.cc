@@ -80,7 +80,11 @@ void Network::initialize(const std::string &weightsfile) {
                    << "library." << std::endl;
 #endif
 
-    set_cache_memory(option<int>("cache_size"));
+    if (option<int>("cache_playouts") != 0) {
+        m_cache.set_playouts(option<int>("cache_playouts"));
+    } else {
+        m_cache.set_memory(option<int>("cache_size"));
+    }
 
 #ifdef USE_CUDA
     using backend = CUDABackend;
