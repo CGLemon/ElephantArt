@@ -385,98 +385,98 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 
     if (const auto res = parser.find_next("--black-pawn")) {
         if (is_parameter(res->str)) {
-            set_option<char>("black_pawn_en", res->get<char>());
+            set_option("black_pawn_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--black-horse")) {
         if (is_parameter(res->str)) {
-            set_option<char>("black_horse_en", res->get<char>());
+            set_option("black_horse_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--black-cannon")) {
         if (is_parameter(res->str)) {
-            set_option<char>("black_cannon_en", res->get<char>());
+            set_option("black_cannon_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--black-rook")) {
         if (is_parameter(res->str)) {
-            set_option<char>("black_rook_en", res->get<char>());
+            set_option("black_rook_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--black-elephant")) {
         if (is_parameter(res->str)) {
-            set_option<char>("black_elephant_en", res->get<char>());
+            set_option("black_elephant_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--black-advisor")) {
         if (is_parameter(res->str)) {
-            set_option<char>("black_advisor_en", res->get<char>());
+            set_option("black_advisor_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--black-king")) {
         if (is_parameter(res->str)) {
-            set_option<char>("black_king_en", res->get<char>());
+            set_option("black_king_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--red-pawn")) {
         if (is_parameter(res->str)) {
-            set_option<char>("red_pawn_en", res->get<char>());
+            set_option("red_pawn_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--red-horse")) {
         if (is_parameter(res->str)) {
-            set_option<char>("red_horse_en", res->get<char>());
+            set_option("red_horse_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--red-cannon")) {
         if (is_parameter(res->str)) {
-            set_option<char>("red_cannon_en", res->get<char>());
+            set_option("red_cannon_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--red-rook")) {
         if (is_parameter(res->str)) {
-            set_option<char>("red_rook_en", res->get<char>());
+            set_option("red_rook_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--red-elephant")) {
         if (is_parameter(res->str)) {
-            set_option<char>("red_elephant_en", res->get<char>());
+            set_option("red_elephant_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--red-advisor")) {
         if (is_parameter(res->str)) {
-            set_option<char>("red_advisor_en", res->get<char>());
+            set_option("red_advisor_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
     if (const auto res = parser.find_next("--red-king")) {
         if (is_parameter(res->str)) {
-            set_option<char>("red_king_en", res->get<char>());
+            set_option("red_king_en", res->get<char>());
             parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
