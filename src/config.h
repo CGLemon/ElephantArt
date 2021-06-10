@@ -30,10 +30,6 @@ const std::string PROGRAM = "ElephantArt";
 
 const std::string VERSION = "pre-alpha"; 
 
-const std::string NO_WEIGHT_FILE_NAME = "NO_WEIGHT_FILE";
-
-const std::string NO_LOG_FILE_NAME = "NO_LOG_FILE";
-
 template<typename T>
 T option(std::string name);
 

@@ -77,7 +77,7 @@ void init_options_map() {
     options_map["debug_verbose"] << Utils::Option::setoption(false);
     options_map["analysis_verbose"] << Utils::Option::setoption(false);
     options_map["ucci_response"] << Utils::Option::setoption(true);
-    options_map["log_file"] << Utils::Option::setoption(NO_LOG_FILE_NAME);
+    options_map["log_file"] << Utils::Option::setoption(std::string{});
 
     options_map["sync_games"] << Utils::Option::setoption(1, 256, 1);
     options_map["selfplay_games"] << Utils::Option::setoption(0);
@@ -89,7 +89,7 @@ void init_options_map() {
 
     options_map["softmax_pol_temp"] << Utils::Option::setoption(1.0f);
     options_map["softmax_wdl_temp"] << Utils::Option::setoption(1.0f);
-    options_map["weights_file"] << Utils::Option::setoption(NO_WEIGHT_FILE_NAME);
+    options_map["weights_file"] << Utils::Option::setoption(std::string{});
     options_map["winograd"] << Utils::Option::setoption(false);
     options_map["min_cutoff"] << Utils::Option::setoption(1);
 

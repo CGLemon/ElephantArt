@@ -159,7 +159,7 @@ Logging::~Logging() {
     if (!m_write_only) {
         std::cout << str() << std::flush;
     }
-    if (option<std::string>("log_file") != NO_LOG_FILE_NAME) {
+    if (!option<std::string>("log_file").empty()) {
         auto fp = std::fstream{};  
         fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out);
         if (fp.is_open()) {
@@ -177,7 +177,7 @@ StandError::StandError(const char* file, int line) {
 StandError::~StandError() {
     std::lock_guard<std::mutex> lock(IOMutex);
     std::cerr << str() << std::flush;
-    if (option<std::string>("log_file") != NO_LOG_FILE_NAME) {
+    if (!option<std::string>("log_file").empty()) {
         auto fp = std::fstream{};  
         fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out);
         if (fp.is_open()) {
@@ -198,7 +198,7 @@ UCCIDebug::~UCCIDebug() {
     }
 
     std::lock_guard<std::mutex> lock(IOMutex);
-    if (option<std::string>("log_file") != NO_LOG_FILE_NAME) {
+    if (!option<std::string>("log_file").empty()) {
         auto fp = std::fstream{};  
         fp.open(option<std::string>("log_file"), std::ios::app | std::ios::out);
         if (fp.is_open()) {

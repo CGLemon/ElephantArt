@@ -205,6 +205,12 @@ void Model::load_weights(const std::string &filename,
     auto buffer = std::stringstream{};
     auto line = std::string{};
 
+    if (filename.empty()) {
+        ERROR << "No weights file!" << std::endl;
+        return;
+    }
+
+
     file.open(filename.c_str());
 
     if (!file.is_open()) {

@@ -277,7 +277,7 @@ Engine::Response Engine::uct_move(const int g) {
 Engine::Response Engine::dump_collection(std::string filename, const int g) {
     auto rep = std::ostringstream{};
     auto t = get_train(g);
-    if (filename == "NO_FILE_NAME") {
+    if (filename.empty()) {
         t->data_stream(rep);
     } else {
         t->save_data(filename);
@@ -320,7 +320,7 @@ Engine::Response Engine::printf_pgn(std::string filename, const int g) {
     auto rep = std::ostringstream{};
     auto parser = PGNParser{};
     auto &p = *get_position(g);
-    if (filename != "NO_FILE_NAME") {
+    if (filename.empty()) {
         parser.savepgn(filename, p);
     } else {
         parser.pgn_stream(rep, p);
