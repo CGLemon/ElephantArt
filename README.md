@@ -2,9 +2,9 @@
 
 ## Who is he?
 
-Elephant Art 是一個基於神經網路和蒙地卡羅樹搜索的象棋引擎。並且也支援 UCCI 協議。
+Elephant Art 是一個基於神經網路和蒙地卡羅樹搜索的象棋引擎。並且支援 UCCI 協議。
 
-Elephant Art is a chinese chess engine base on convolution neural network and Monte Carlo tree search. He also support UCCI protocol.
+Elephant Art is a chinese chess engine based on convolution neural network and Monte Carlo tree search. He also support UCCI protocol.
 
 <br>
 
@@ -24,9 +24,9 @@ Elephant Art is still pre-alpha version. Many components are not complete(Includ
 
 ## More options to build
 
-Unlike the other chinese chess engine based on network. Elephant Art doesn't need any backend. But you still accelerate the network by third party blas library. Here is it.
+Unlike the other chinese chess engine based on network, Elephant Art doesn't need any blas backend library. You can still accelerate the network by third party blas library. Here is it.
 
-Accelerate the network on CPU. OpenBlas is required.
+Accelerate the network on CPU. OpenBlas is required. OpenBlas is significantly faster than built-in blas.
 
     $ cmake .. -DBLAS_BACKEND=OPENBLAS
 
@@ -42,7 +42,7 @@ Accelerate the network by GPU. CUDA and CUDNN are required. It will be faster th
 
 ## Some options to start the Elephant Art
 
-Here are some useful options you can use.
+Here are some useful options whuch you can set.
 
     --weights, -w: Load the network weights file.
 
@@ -89,10 +89,41 @@ The training pgn data is from the website, WXF webside and dpxq webside. You can
 
 <br>
 
+## Some Methods
+
+### Magic Bitboard
+Magic bitboard is a faster way to generate move list. Unlike mailbox method, magic bitboard doesn't need any search. According to Jon Dart implementation chess engine, Arasan, it gave about a 20-25% speedup. The basic ideal is that to multiply the bitboard value by a magic value. The result will be the legal moves hash value.
+
+ <img src="https://render.githubusercontent.com/render/math?math=\LARGE Hash = Bitboard \times Magic">
+
+ <img src="https://render.githubusercontent.com/render/math?math=\LARGE LegalMoves = Table[Hash]">
+
+This is the ideal condition. It is impossible to find the magic value because it is too many possible value which we need to compute. You may notice that most of information is not nessery if you understand the basic chess rule. For example, the To find the horse move just need to check around pieces. On the other hand, we only need to compute four bits. Now all we need to do is to shife the hash key value. On the above horse case, we shife the key until remaining four bits. It reduced large time to find the magic value. We rewrite the format above.
+
+ <img src="https://render.githubusercontent.com/render/math?math=\LARGE Hash = (Bitboard \times Magic) \)\gg\) Shift ">
+
+
+ <img src="https://render.githubusercontent.com/render/math?math=\LARGE LegalMoves = Table[Hash]">
+
+
+You may be worry about that can we find a magic value in any condition. The answer is yes. According to the paper, Magic Move-Bitboard Generation in Computer Chess, the multiplying operator is equal to bit shift operator. We can simply think that multiplying operator move the special bits to the lower side. The last question is how to compute the magic value. Just trial and error. No other special methods.
+
+Finally, Is the magic bitboard really faster than mailbox? The Youtuber, Maksim Korzh(aka Code Monky King), compared bitboard and mailbox. I was suprised that the mailbox is faster. Maybe there was something wrong. But it proves that mailbox is as fast as bitboard on the general case. [video](https://www.youtube.com/watch?v=GCPuD6pncbE)
+
+<br>
+
+### SMP Tree Search
+In order to speed up tree seach, a good way is use multi-cores CPU. sadly, The original MCTS algorithm is designed for one thread. Many threads will search the same path if we apply the algorithm to multi threads program without changing. It will cause large performance. A simple but useful way is to punish the searching nodes. Here is the pseudo format.
+
+ <img src="https://render.githubusercontent.com/render/math?math=\LARGE MctsValue = NodeValue - Threads \times PunishmentValue">
+
+We call the punishment is virtual loss. this method is quite to use easy varied threads. According to paper, Parallel Monte-Carlo Tree Search, it is more significantly improvement.
+
+
 ## Some Results
 
 ### Strength
-The supervised learning is not quite good. It will make too many stupid moves, kill itself move or meanless move. But he can still beat the most amateur players. May reach Taiwanese 1~2 dan level.
+The supervised learning is not quite good. It will make too many stupid moves, kill itself move or meanless move. But he can still beat the most amateur players. May reach the Taiwanese 1~2 dan level.
 
 <br>
 
@@ -145,7 +176,10 @@ coming soon...
 
 ## Reference
 * UCCI protocol(chinese), https://www.xqbase.com/protocol/cchess_ucci.htm
-* Assessing Game Balance with AlphaZero: Exploring Alternative Rule Sets in Chess, https://arxiv.org/abs/2009.04374
+* Pradyumna Kannan, April 30, 2007, Magic Move-Bitboard Generation in Computer Chess, http://pradu.us/old/Nov27_2008/Buzz/research/magic/Bitboards.pdf
+* Can MAILBOX board representation be faster than BITBOARDS? Ultimate comparison of Stockfish & QPerft, https://www.youtube.com/watch?v=GCPuD6pncbE
+* Guillaume M.J-B. Chaslot, Mark H.M. Winands, and H. Jaap van den Herik, Parallel Monte-Carlo Tree Search, https://dke.maastrichtuniversity.nl/m.winands/documents/multithreadedMCTS2.pdf
+* DeepMind Team, 2020, Assessing Game Balance with AlphaZero: Exploring Alternative Rule Sets in Chess, https://arxiv.org/abs/2009.04374
 
 <br>
 
