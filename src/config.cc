@@ -541,7 +541,10 @@ void ArgsParser::help() const {
               << "  --mode, -m [ascii/ucci]" << std::endl
               << "  --playouts, -p <integer>" << std::endl
               << "  --threads, -t <integer>" << std::endl
-              << "  --weights, -w <weight file name>" << std::endl
+              << "  --batchsize, -b <integer>" << std::endl
+              << "  --weights, -w <weights file name>" << std::endl
+              << "  --log_file, -l <log file name>" << std::endl
+              << "  --gpu, -g <integer> " << std::endl
               << "  --analysis-verbose" << std::endl;
     exit(-1);
 }
