@@ -70,7 +70,8 @@ int get_devicecount() {
     return n;
 }
 
-int get_device(int n) {
+int get_currentdevice() {
+    int n = 0;
     cudaError_t status = cudaGetDevice(&n);
     ReportCUDAErrors(status);
     return n;
@@ -85,37 +86,37 @@ void CudnnError(cudnnStatus_t status) {
     }
 }
 
-cudnnHandle_t cudnn_handle(int n) {
-    static int init[MAX_SUPPORT_GPUS] = {0};
+cudnnHandle_t cudnn_handle() {
+    static bool init[MAX_SUPPORT_GPUS] = {false};
     static cudnnHandle_t handle[MAX_SUPPORT_GPUS];
-    int i = get_device(n);
+    int i = get_currentdevice();
     if(!init[i]) {
         cudnnCreate(&handle[i]);
-        init[i] = 1;
+        init[i] = true;
     }
     return handle[i];
 }
 #endif
 
-cublasHandle_t blas_handle(int n) {
-    static int init[MAX_SUPPORT_GPUS] = {0};
+cublasHandle_t blas_handle() {
+    static bool init[MAX_SUPPORT_GPUS] = {false};
     static cublasHandle_t handle[MAX_SUPPORT_GPUS];
-    int i = get_device(n);
+    int i = get_currentdevice();
     if (!init[i]) {
         cublasCreate(&handle[i]);
-        init[i] = 1;
+        init[i] = true;
     }
     return handle[i];
 }
 
-void CudaHandel::apply(int n) {
+void CudaHandel::apply_on_current_device() {
 #ifdef USE_CUDNN
-  cudnn_handel = cudnn_handle(n);
+  cudnn_handel = cudnn_handle();
 #endif
-  cublas_handel = blas_handle(n);
+  cublas_handel = blas_handle();
 }
 
-bool is_using_cuDNN() {
+bool is_using_cudnn() {
 #ifdef USE_CUDNN
     return true;
 #else
@@ -165,7 +166,7 @@ std::string check_devices() {
     }
 
     out << "Using cuDNN: ";
-    if (is_using_cuDNN()) {
+    if (is_using_cudnn()) {
         out << "Yes\n";
 #ifdef USE_CUDNN
         const auto cudnn_version = cudnnGetVersion();

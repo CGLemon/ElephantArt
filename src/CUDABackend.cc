@@ -48,7 +48,7 @@ void CUDABackend::reload(std::shared_ptr<Model::NNWeights> weights) {
     const auto d_cnt = CUDA::get_devicecount();
     if (option<int>("gpu") >= 0) {
         m_nngraphs.emplace_back(std::make_unique<NNGraph>());
-        const auto gpu = option<int>("gpu") >= d_cnt ? 0 : option<int>("gpu");
+        const auto gpu = option<int>("gpu") > d_cnt ? 0 : option<int>("gpu");
         m_nngraphs[0]->build_graph(gpu, weights);
     } else {
         for (int i = 0; i < d_cnt; ++i) {
@@ -100,12 +100,11 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
     }
     m_graph = std::make_unique<Graph>();
     m_gpu = gpu;
-    auto d = CUDA::get_device(m_gpu);
 
-    cudaSetDevice(d);
+    cudaSetDevice(m_gpu);
 
     m_weights = weights;
-    m_handel.apply(m_gpu);    
+    m_handel.apply_on_current_device();    
     m_scratch_size = 0;
     m_maxbatch = option<int>("batchsize");
 
