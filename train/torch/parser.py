@@ -13,6 +13,9 @@ def main(args, cfg):
     train_loader = DataModule(cfg)
     Net = Network(cfg)
 
+    if args.input != None:
+        Net.load_pt(args.input + ".pt")
+
     if args.dummy != True:
         trainer = pl.Trainer(gpus=cfg.gpus, max_epochs=cfg.epochs)
         trainer.fit(Net, train_loader)
@@ -26,6 +29,8 @@ if __name__ == "__main__":
     parser.add_argument("-j", "--json", help="The json file name", type=str)
     parser.add_argument("-v", "--verbose", help="", type=int, choices=[0, 1, 2], default=0)
     parser.add_argument("-o", "--output", help="", type=str)
+    parser.add_argument("-i", "--input", help="", type=str)
+
     args = parser.parse_args()
 
     cfg = gather_config(args.json)
