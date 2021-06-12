@@ -1378,49 +1378,49 @@ std::string Board::get_wxfstring(Move move) const {
     if (!is_legal(move)) {
         return std::string{"None"};
     }
+
     auto out = std::ostringstream{};
 
     auto redside = get_to_move() == Types::RED;
-    const auto from_x = redside ? get_x(move.get_from()) : WIDTH  - get_x(move.get_from()) - 1;
+    const auto from_x = !redside ? get_x(move.get_from()) : WIDTH  - get_x(move.get_from()) - 1;
     const auto from_y = redside ? get_y(move.get_from()) : HEIGHT - get_y(move.get_from()) - 1;
-    const auto to_x = redside ? get_x(move.get_to()) : WIDTH  - get_x(move.get_to()) - 1;
+    const auto to_x = !redside ? get_x(move.get_to()) : WIDTH  - get_x(move.get_to()) - 1;
     const auto to_y = redside ? get_y(move.get_to()) : HEIGHT - get_y(move.get_to()) - 1;
 
     const auto file = static_cast<Types::File>(from_x);
-    const auto file_bb = Utils::file2bitboard(file);
 
-    // const auto x_dis = to_x - from_x;
     const auto y_dis = to_y - from_y;
 
     const auto pt = get_piece_type(move.get_from());
-    piece_stream<Types::ASCII>(out, static_cast<Types::Piece>(pt));
 
     if (pt == Types::KING || pt == Types::ADVISOR || pt == Types::ELEPHANT) {
+        piece_stream<Types::ASCII>(out, static_cast<Types::Piece>(pt));
         out << from_x + 1;
     } else if (pt == Types::HORSE || pt == Types::ROOK || pt == Types::CANNON) {
         const auto ref_bb = pt == Types::HORSE ? m_bb_horse :
                                 pt == Types::ROOK ? m_bb_rook : m_bb_cannon;
-        auto occupancy = ref_bb & m_bb_color[get_to_move()] & file_bb;
+        auto occupancy = ref_bb & m_bb_color[get_to_move()] & Utils::file2bitboard(file);
         const auto cnt = Utils::count_few(occupancy);
         assert(cnt == 1 || cnt == 2);
 
         if (cnt == 1) {
+            piece_stream<Types::ASCII>(out, static_cast<Types::Piece>(pt));
             out << from_x + 1;
-        } else if (cnt == 2){
+        } else { // cnt == 2
             auto low_vtx = Utils::extract(occupancy);
             auto high_vtx = Utils::extract(occupancy);
             if (!redside) {
                 std::swap(low_vtx, high_vtx);
             }
             move.get_to() == high_vtx ? out << '+' : out << '.';
+            piece_stream<Types::ASCII>(out, static_cast<Types::Piece>(pt));
         }
     } else if (pt == Types::PAWN) {
         auto temp = std::vector<int>{};
         auto p_cnt = 0;
         auto p_occ = BitBoard(0ULL);
         for (auto ff = Types::FILE_A; ff < Types::FILE_J; ++ff) {
-            const auto ff_bb = Utils::file2bitboard(file);
-            auto occupancy = m_bb_pawn & m_bb_color[get_to_move()] & ff_bb;
+            auto occupancy = m_bb_pawn & m_bb_color[get_to_move()] & Utils::file2bitboard(file);
             const auto cnt = Utils::count_few(occupancy);
             if (cnt >= 2) {
                 temp.emplace_back(cnt);
@@ -1434,35 +1434,33 @@ std::string Board::get_wxfstring(Move move) const {
         if (p_cnt >= 2) {
             auto num = 0;
             while (p_occ) {
-                num++;
+                num += 1;
                 if (move.get_from() == Utils::extract(p_occ)) {
                     break;
                 }
             }
 
-            if (!redside) {
+            if (redside) {
                 num = p_cnt - num + 1;
             }
 
-            auto tempout = std::ostringstream{};
-
-            if (p_cnt == 2) {
-                num == p_cnt ? tempout << '+' : tempout << '.';
-            } else if (p_cnt == 3) {
-                num == p_cnt ? tempout << '+' :
-                    num == p_cnt-1 ? tempout << '-' : tempout << '.';
+            if (num == 1) {
+                out << '+';
+            } else if (num == p_cnt) {
+                out << '-';
+            } else if (p_cnt == 3 && num == 2) {
+                out << '=';
             } else {
-                num == p_cnt ? tempout << '+' : tempout << static_cast<char>(97 + (p_cnt - num));
+                out << num;
             }
 
             if (temp.size() >= 2) {
-                out = std::ostringstream{};
                 out << from_x + 1;
+            } else {
+                piece_stream<Types::ASCII>(out, static_cast<Types::Piece>(pt));
             }
-
-            out << tempout.str();
-
         } else {
+            piece_stream<Types::ASCII>(out, static_cast<Types::Piece>(pt));
             out << from_x + 1;
         }
     } 

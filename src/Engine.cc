@@ -320,10 +320,11 @@ Engine::Response Engine::printf_pgn(std::string filename, const int g) {
     auto rep = std::ostringstream{};
     auto parser = PGNParser{};
     auto &p = *get_position(g);
+    auto fmt = option<std::string>("pgn_format");
     if (filename.empty()) {
-        parser.pgn_stream(rep, p);
+        parser.pgn_stream(rep, p, fmt);
     } else {
-        parser.savepgn(filename, p);
+        parser.savepgn(filename, p, fmt);
     }
     return rep.str();
 }

@@ -25,7 +25,15 @@
 #include <sstream>
 #include <cassert>
 
-void PGNParser::savepgn(std::string filename, Position &pos, PGNRecorder::Format_t fmt) const {
+void PGNParser::savepgn(std::string filename, Position &pos, std::string fmt_string) const {
+    auto fmt = PGNRecorder::Format_t::ICCS;
+
+    if (fmt_string.find("iccs") == 0) {
+        fmt = PGNRecorder::Format_t::ICCS;
+    } else if (fmt_string.find("wxf") == 0) {
+        fmt = PGNRecorder::Format_t::WXF;
+    }
+
     auto pgn = from_position(pos, fmt);
     auto pgnstr = get_pgnstring(pgn);
     auto file = std::ofstream{};
@@ -38,7 +46,15 @@ void PGNParser::savepgn(std::string filename, Position &pos, PGNRecorder::Format
     }
 }
 
-void PGNParser::pgn_stream(std::ostream &out, Position &pos, PGNRecorder::Format_t fmt) const {
+void PGNParser::pgn_stream(std::ostream &out, Position &pos, std::string fmt_string) const {
+    auto fmt = PGNRecorder::Format_t::ICCS;
+
+    if (fmt_string == "iccs") {
+        fmt = PGNRecorder::Format_t::ICCS;
+    } else if (fmt_string == "wxf") {
+        fmt = PGNRecorder::Format_t::WXF;
+    }
+
     auto pgn = from_position(pos, fmt);
     out << get_pgnstring(pgn);
 }
@@ -97,8 +113,6 @@ void PGNParser::gather_pgnlist(std::string filename, std::vector<PGNRecorder> &p
 }
 
 std::string PGNParser::get_pgnstring(PGNRecorder pgn) const {
-    auto pgnstream = std::ostringstream{};
-
     const auto stream_helper = [](PGNRecorder &pgn, std::string flag, std::ostream &out) {
         auto ite = pgn.properties.find(flag);
         if (ite != std::end(pgn.properties)) {
@@ -109,6 +123,17 @@ std::string PGNParser::get_pgnstring(PGNRecorder pgn) const {
                     << std::endl;
         }
     };
+
+    const auto move_stream = [](std::ostream &out, Move move,
+                                    std::shared_ptr<Position> pos, PGNRecorder::Format_t fmt) {
+        if (fmt == PGNRecorder::WXF) {
+            out << pos->get_wxfstring(move);
+        } else if (fmt == PGNRecorder::ICCS) {
+            out << Board::get_iccsstring(move);
+        }
+    };
+
+    auto pgnstream = std::ostringstream{};
 
     stream_helper(pgn, "Game", pgnstream);
     stream_helper(pgn, "Event", pgnstream);
@@ -136,11 +161,9 @@ std::string PGNParser::get_pgnstring(PGNRecorder pgn) const {
         }
 
         auto m1 = pair.second;
-        if (fmt == PGNRecorder::WXF) {
-            pgnstream << pos->get_wxfstring(m1);
-        } else if (fmt == PGNRecorder::ICCS) {
-            pgnstream << Board::get_iccsstring(m1);
-        }
+
+        move_stream(pgnstream, m1, pos, fmt);
+
         pos->do_move_assume_legal(m1);
 
         if (c1 == Types::BLACK) {
@@ -156,11 +179,9 @@ std::string PGNParser::get_pgnstring(PGNRecorder pgn) const {
 
         pair = pgn.moves[idx++];
         auto m2 = pair.second;
-        if (fmt == PGNRecorder::WXF) {
-            pgnstream << pos->get_wxfstring(m2);
-        } else if (fmt == PGNRecorder::ICCS) {
-            pgnstream << Board::get_iccsstring(m2);
-        }
+
+        move_stream(pgnstream, m2, pos, fmt);
+
         pos->do_move_assume_legal(m2);
         pgnstream << std::endl;
     }

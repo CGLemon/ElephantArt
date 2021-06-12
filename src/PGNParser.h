@@ -43,8 +43,8 @@ struct PGNRecorder {
 
 class PGNParser {
 public:
-    void savepgn(std::string filename, Position &pos, PGNRecorder::Format_t fmt = PGNRecorder::ICCS) const;
-    void pgn_stream(std::ostream &out, Position &pos, PGNRecorder::Format_t fmt = PGNRecorder::ICCS) const;
+    void savepgn(std::string filename, Position &pos, std::string fmt) const;
+    void pgn_stream(std::ostream &out, Position &pos, std::string fmt) const;
 
     void loadpgn(std::string filename, Position &pos) const;
     void gather_pgnlist(std::string filename, std::vector<PGNRecorder> &pgns) const;

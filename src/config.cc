@@ -154,6 +154,8 @@ void init_options_map() {
     options_map["red_elephant_ch"] << Utils::Option::setoption("像");
     options_map["red_advisor_ch"] << Utils::Option::setoption("仕");
     options_map["red_king_ch"] << Utils::Option::setoption("帥");
+
+    options_map["pgn_format"] << Utils::Option::setoption("iccs");
 }
 
 void init_basic_parameters() {
@@ -504,6 +506,17 @@ ArgsParser::ArgsParser(int argc, char** argv) {
         if (is_parameter(res->str)) {
             set_option("forced_checkmate_root_depth", res->get<int>());
             parser.remove_slice(res->idx-1, res->idx+1);
+        }
+    }
+
+
+    if (const auto res = parser.find_next("--pgn-format")) {
+        if (is_parameter(res->str)) {
+            if (res->str == "iccs"
+                    || res->str == "wxf") {
+                set_option("pgn_format", res->get<std::string>());
+                parser.remove_slice(res->idx-1, res->idx+1);
+            }
         }
     }
 

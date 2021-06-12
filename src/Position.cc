@@ -332,7 +332,7 @@ std::vector<std::shared_ptr<const Board>>& Position::get_history() {
 }
 
 std::string Position::get_wxfstring(Move m) const {
-    return get_wxfstring(m);
+    return board.get_wxfstring(m);
 }
 
 std::string Position::get_fen() const {
