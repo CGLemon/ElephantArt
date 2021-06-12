@@ -321,9 +321,9 @@ Engine::Response Engine::printf_pgn(std::string filename, const int g) {
     auto parser = PGNParser{};
     auto &p = *get_position(g);
     if (filename.empty()) {
-        parser.savepgn(filename, p);
-    } else {
         parser.pgn_stream(rep, p);
+    } else {
+        parser.savepgn(filename, p);
     }
     return rep.str();
 }
