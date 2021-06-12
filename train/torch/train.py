@@ -250,7 +250,7 @@ class Network(NNProcess, pl.LightningModule):
         return {
             "optimizer": adam_opt,
             "lr_scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
-                adam_opt, verbose=self.cfg.miscVerbose, min_lr=5e-6
+                adam_opt, verbose=self.cfg.miscVerbose, min_lr=self.cfg.min_lr
             ),
             "monitor": "val_loss",
         }

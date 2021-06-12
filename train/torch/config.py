@@ -37,6 +37,7 @@ class Config:
         self.epochs = None
         self.batchsize = None
         self.lr = None
+        self.min_lr = None
         self.weight_decay = None
         self.train_dir = None
         self.val_dir = None
@@ -73,6 +74,7 @@ def trainparser(json_data, config):
 
     config.gpus = train["GPUs"]
     config.lr = train["LearningRate"]
+    config.min_lr = train["MinLearningRate"]
     config.weight_decay = train["WeightDecay"]
 
     config.train_dir = train["TrainDirectory"]
