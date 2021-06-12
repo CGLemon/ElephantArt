@@ -22,6 +22,8 @@
 #ifdef USE_CUDA
 
 #include <cstdio>
+#include <string>
+
 #include <cuda_runtime.h>
 //#include <cuda_fp16.h>
 #include <cublas_v2.h>
@@ -67,7 +69,7 @@ struct CudaHandel {
     void apply(int n);
 };
 
-void check_devices();
+std::string check_devices();
 
 } // namespace CUDA
 

@@ -28,11 +28,11 @@
 #include <chrono>
 
 void CUDABackend::initialize(std::shared_ptr<Model::NNWeights> weights) {
-    if (option<bool>("debug_verbose")) {
-        CUDA::check_devices();
-    }
+    UCCI_DEBUG << CUDA::check_devices();
+
     reload(weights);
     prepare_worker();
+
     UCCI_DEBUG << "Create CUDA Network" << std::endl;
 }
 
