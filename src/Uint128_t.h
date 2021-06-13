@@ -63,7 +63,7 @@ public:
     void swap();
 
     template<Stream_t T>
-    void outStream(std::ostream &out) const;
+    void out_stream(std::ostream &out) const;
 
     void dump_status() const;
 

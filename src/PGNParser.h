@@ -57,6 +57,4 @@ private:
     PGNRecorder from_position(Position &pos, PGNRecorder::Format_t fmt) const;
 
     PGNRecorder parse_pgnstring(std::string pgn, int idx) const;
-
-    // void from_pgnfile(std::istream &buffer, std::vector<PGNRecorder> &pgns) const;
 };
