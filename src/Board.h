@@ -23,6 +23,7 @@
 #include "BitBoard.h"
 #include "Zobrist.h"
 #include "Utils.h"
+#include "Evaluate.h"
 
 #include <cassert>
 #include <array>
@@ -205,6 +206,9 @@ public:
     // Reture true if the last player move check other king.
     bool is_check(const Types::Color color) const;
 
+
+    std::array<int, 2> get_stable_values() const;
+
 private:
     #define P_  Types::R_PAWN
     #define H_  Types::R_HORSE
@@ -309,6 +313,8 @@ private:
 
     BitBoard &get_piece_bitboard_ref(Types::Piece_t pt);
 
+    std::array<int, 2> m_stable_values;
+
     std::array<BitBoard, 2> m_bb_colors;
     std::array<BitBoard, 2> m_bb_attacks;
 
@@ -354,8 +360,14 @@ private:
     void update_zobrist_remove(Types::Piece p, Types::Vertices vtx);
     void update_zobrist_tomove(Types::Color old_color, Types::Color new_color);
 
+    void update_stable_value(Types::Color color, Types::Piece p, Move &move);
+    void update_stable_value_remove(Types::Color color, Types::Piece p, Types::Vertices vtx);
+
     // Compute the attack bitbioard.
     std::array<BitBoard, 2> calc_attacks();
+
+    // Compute the board value.
+    std::array<int, 2> calc_stable_values();
 };
 
 inline Types::Vertices Board::get_vertex(const int x, const int y) {
@@ -416,6 +428,16 @@ inline void Board::update_zobrist_tomove(Types::Color old_color, Types::Color ne
     if (old_color != new_color) {
         m_hash ^= Zobrist::zobrist_redtomove;
     }
+}
+
+inline void Board::update_stable_value(Types::Color color, Types::Piece p, Move &move) {
+    m_stable_values[color] -= Evaluate::POS_VALUE[p][move.get_from()];
+    m_stable_values[color] += Evaluate::POS_VALUE[p][move.get_to()];
+}
+
+inline void Board::update_stable_value_remove(Types::Color color, Types::Piece p, Types::Vertices vtx) {
+    m_stable_values[color] -= Evaluate::POS_VALUE[p][vtx];
+    m_stable_values[color] -= Evaluate::PIECE_VALUE[p];
 }
 
 template<Types::Language L>

@@ -67,6 +67,7 @@ void Board::reset_board() {
     fen2board(start_position);
     m_hash = calc_hash();
     m_bb_attacks = calc_attacks();
+    m_stable_values = calc_stable_values();
 }
 
 void Board::clear_status() {
@@ -275,6 +276,7 @@ bool Board::fen2board(std::string &fen) {
         // Calculate the new hash value and attacks.
         m_hash = calc_hash();
         m_bb_attacks = calc_attacks();
+        m_stable_values = calc_stable_values();
     }
 
     return success;
@@ -683,7 +685,6 @@ void Board::info_stream<Types::ASCII>(std::ostream &out) const {
     }  else {
         out << "color error!";
     }
-
     out << ", Last move: " << get_last_move().to_string();
     out << ", Ply number: " << get_gameply();
     out << ", Fifty-Rule ply: " << get_rule50_ply();
@@ -886,6 +887,35 @@ std::array<BitBoard, 2> Board::calc_attacks() {
     return bb_attacks;
 }
 
+std::array<int, 2> Board::calc_stable_values() {
+    auto stable_values = std::array<int, 2>{};
+
+    stable_values[Types::RED] = 0;
+    stable_values[Types::BLACK] = 0;
+
+    for (int y = 0; y < HEIGHT; ++y) {
+        for (int x = 0; x < WIDTH; ++x) {
+            auto color = Types::INVALID_COLOR;
+            const auto vtx = get_vertex(x, y);
+
+            if (Utils::on_area(vtx, m_bb_colors[Types::RED])) {
+                color = Types::RED;
+            } else if (Utils::on_area(vtx, m_bb_colors[Types::BLACK])) {
+                color = Types::BLACK;
+            }
+
+            if (color != Types::INVALID_COLOR) {
+                const auto pis = get_piece(vtx);
+                const auto pos_value = Evaluate::POS_VALUE[pis][vtx];
+                const auto pis_value = Evaluate::PIECE_VALUE[pis];
+                stable_values[color] += pos_value;
+                stable_values[color] += pis_value;
+            }
+        }
+    }
+    return stable_values;
+}
+
 bool Board::is_on_board(const Types::Vertices vtx) {
     return START_VERTICES[vtx] != Types::INVAL_PIECE;
 }
@@ -909,7 +939,6 @@ std::string Board::get_start_position() {
     start_pos << " w - - 0 1";
     return start_pos.str();
 }
-
 
 Types::Piece Board::get_piece(const int x, const int y) const {
     return get_piece(get_vertex(x, y));
@@ -1216,14 +1245,17 @@ void Board::do_move_assume_legal(Move move) {
     // Update attacks
     m_bb_attacks = calc_attacks();
 
-    // Update zobrist.
-    update_zobrist(p , from, to);
+    // Update zobrist and stable value.
+    update_zobrist(p, from, to);
+    update_stable_value(color, p, move);
+
     if (is_capture()) {
         auto capture_p = static_cast<Types::Piece>(capture_pt) + (color == Types::RED ? 7 : 0);
         update_zobrist_remove(capture_p, to);
-    } 
+        update_stable_value_remove(opp_color, capture_p, to);
+    }
 
-    // Swap color.
+    // Swap side to move.
     swap_to_move();
 
     // Increment move number.
@@ -1514,4 +1546,8 @@ std::string Board::get_wxfstring(Move move) const {
 
 std::string Board::get_iccsstring(Move m) {
     return m.to_iccs();
+}
+
+std::array<int, 2> Board::get_stable_values() const {
+    return m_stable_values;
 }
