@@ -68,7 +68,7 @@ Move ForcedCheckmate::find_checkmate(std::vector<Move> movelist) {
         auto nextpos = std::make_shared<Position>(m_rootpos);
         nextpos->do_move_assume_legal(move);
         if (nextpos->is_check(m_color)) {
-            if (nextpos->get_repetitions() >= 2) {
+            if (nextpos->get_repetitions() >= 3) {
                 // This may cause the perpetual check. We may lose the game.
                 // Or the other best result is draw. We don't want these results.
                 continue;
@@ -111,7 +111,7 @@ bool ForcedCheckmate::checkmate_search(Position &currpos,
         auto nextpos = std::make_shared<Position>(currpos);
         nextpos->do_move_assume_legal(move);
 
-        if (nextpos->get_repetitions() >= 2) {
+        if (nextpos->get_repetitions() >= 3) {
             continue;
         }
 
