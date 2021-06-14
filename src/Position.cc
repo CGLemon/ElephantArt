@@ -346,40 +346,84 @@ int Position::get_historysize() const {
 }
 
 Position::Repetition Position::get_threefold_repetitions_result() {
-    // TODO: Support fully asian rule.
     // https://www.asianxiangqi.org/%E6%AF%94%E8%B5%9B%E8%A7%84%E4%BE%8B/%E6%AF%94%E8%B5%9B%E8%A7%84%E4%BE%8B_2017.pdf
 
-    if (get_repetitions() < 2) {
+    if (get_repetitions() < 3) {
         return Repetition::NONE;
     }
+    assert(m_history[end_idx - 1]->get_repetitions() == 2);
 
-    const auto size = get_historysize();
-    const auto to_move = get_to_move();
-    const auto opp_color = Board::swap_color(to_move);
+    auto start_index = 0;
+    for (int i = 0; i < get_historysize(); ++i) {
+        if (m_history[i]->get_repetitions() == 1) {
+            start_index = i;
+            break;
+        }
+    }
 
-    int my_ckecking_cnt = 0;
-    int opp_ckecking_cnt = 0;
+    assert(m_history[start_index-1]->get_repetitions() == 0);
+    assert(m_history[start_index+get_cycle_length()]->get_repetitions() == 2);
+    assert(get_cycle_length() >= 4);
+    assert(get_cycle_length() % 2 == 0);
 
-    assert(m_history[size - 2]->get_repetitions() == 1);
+    int curr_ckecking_cnt = 0;
+    int other_ckecking_cnt = 0;
 
-    if (is_check(opp_color)) {
-        // Current position is ckecking.
-        ++my_ckecking_cnt;
-        for (int i = 1; i < get_cycle_length(); ++i) {
-            auto &board = m_history[size - i - 1];
-            if (board->is_check(Board::swap_color(board->get_to_move()))) {
-                to_move == board->get_to_move() ? ++my_ckecking_cnt : ++opp_ckecking_cnt;
+    auto curr_bb_pursuit = onBoard;
+
+    for (int i = 0; i < get_cycle_length(); ++i) {
+        const auto curr_side  = (i%2 == 0);
+
+        const auto &board = m_history[i + start_index];
+        const auto &past_board = m_history[i + start_index-1];
+        const auto color = Board::swap_color(board->get_to_move());
+        const auto opp_color = board->get_to_move();
+        const auto last_move = board->get_last_move();
+
+        if (board->is_check(color)) {
+            if (curr_side) {
+                ++curr_ckecking_cnt;
+            } else {
+                ++other_ckecking_cnt;
             }
         }
 
-        if (my_ckecking_cnt == get_cycle_length()/2) {
-            if (my_ckecking_cnt == opp_ckecking_cnt) {
-                // This is both sides perpetual check case. The game is draw.
-                return Repetition::DRAW;
+        const auto bb_colors = board->get_bb_colors();
+        const auto bb_attack = board->get_bb_attacks()[color];
+        const auto past_bb_attack = past_board->get_bb_attacks()[color];
+
+        // New attack bits after doing a move.
+        const auto bb_pursuit = bb_colors[opp_color] &
+                                    (bb_attack ^ (bb_attack & past_bb_attack));
+
+        if (curr_side) {
+            curr_bb_pursuit &= bb_pursuit;
+        } else {
+            // Update pursuit bitboard.
+            if (Utils::on_area(last_move.get_from(), curr_bb_pursuit)) {
+                curr_bb_pursuit ^= Utils::vertex2bitboard(last_move.get_from());
+                curr_bb_pursuit ^= Utils::vertex2bitboard(last_move.get_to());
             }
-            // This is perpetual check case. We lose the game.
-            return Repetition::LOSE;
         }
+    }
+
+    if (curr_ckecking_cnt == get_cycle_length()%2) {
+        if (curr_ckecking_cnt == other_ckecking_cnt) {
+            // The case is both sides are the perpetual check. The game is draw.
+            return Repetition::DRAW;
+        }
+
+        if (curr_ckecking_cnt != 0) {
+            return Repetition::DRAW; 
+        }
+
+        // The case is the perpetual check. Current player lose the game.
+        return Repetition::LOSE;
+    }
+
+    if (!curr_bb_pursuit) {
+        // No piece is pursued in the every cycle boards. The game is draw.
+        return Repetition::DRAW;
     }
 
     const auto last_move = get_last_move(); 
@@ -387,17 +431,15 @@ Position::Repetition Position::get_threefold_repetitions_result() {
 
     assert(pt != Types::EMPTY_PIECE_T);
 
+    // TODO: Support fully asian rule.
     if (pt == Types::KING ||
-            pt == Types::PAWN ||
-            pt == Types::ADVISOR ||
-            pt == Types::ELEPHANT) {
+            pt == Types::PAWN) {
+        // We simply think the last move cause the perpetual pursuit.
         return Repetition::DRAW;
     }
 
-
-    // Perpetual pursuit
-
-    return Repetition::UNKNOWN;
+    // We simply think the case is always the perpetual pursuit case. Current player lose the game.
+    return Repetition::LOSE;
 }
 
 Move Position::get_forced_checkmate_move(int maxdepth) {

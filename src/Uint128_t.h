@@ -197,7 +197,7 @@ inline Uint128_t &Uint128_t::operator BITWISE##=( \
 
 #undef OPERATOR_BITWISE
 
-inline Uint128_t Uint128_t::operator ~() const {
+inline Uint128_t Uint128_t::operator~() const {
     return Uint128_t(~UPPER, ~LOWER);
 }
 

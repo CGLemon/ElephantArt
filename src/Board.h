@@ -117,8 +117,29 @@ public:
     // Get the both side of king vertex.
     std::array<Types::Vertices, 2> get_kings() const;
 
+    // Get the both side of attack bitboard.
+    std::array<BitBoard, 2> get_bb_attacks() const;
+
     // Get the both side of color bitboards
-    std::array<BitBoard, 2> get_colors() const;
+    std::array<BitBoard, 2> get_bb_colors() const;
+
+    // Get the pawn bitboard.
+    BitBoard get_bb_pawn() const;
+
+    // Get the horse bitboard. 
+    BitBoard get_bb_horse() const;
+
+    // Get the rook bitboard.
+    BitBoard get_bb_rook() const;
+
+    // Get the elephant bitboard.
+    BitBoard get_bb_elephant() const;
+
+    // Get the advisor bitboard.
+    BitBoard get_bb_advisor() const;
+
+    // Get the cannon bitboard.
+    BitBoard get_bb_cannon() const;
 
     // Get the game repetitions.
     int get_repetitions() const;

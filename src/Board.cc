@@ -1333,6 +1333,39 @@ std::array<Types::Vertices, 2> Board::get_kings() const {
     return m_king_vertex;
 }
 
+std::array<BitBoard, 2> Board::get_bb_attacks() const {
+    return m_bb_attacks;
+}
+
+BitBoard Board::get_bb_pawn() const {
+    return m_bb_pawn;
+}
+
+BitBoard Board::get_bb_horse() const{
+    return m_bb_horse;
+}
+
+BitBoard Board::get_bb_rook() const{
+    return m_bb_rook;
+}
+
+BitBoard Board::get_bb_elephant() const{
+    return m_bb_elephant;
+}
+
+BitBoard Board::get_bb_advisor() const {
+    return m_bb_advisor;
+}
+
+BitBoard Board::get_bb_cannon() const {
+    return m_bb_cannon;
+}
+
+std::array<BitBoard, 2> Board::get_bb_colors() const {
+    return m_bb_color;
+}
+
+
 Types::Color Board::get_to_move() const {
     return m_tomove;
 }
@@ -1367,10 +1400,6 @@ int Board::get_rule50_ply() const  {
 
 int Board::get_rule50_ply_left() const  {
     return 100 - m_rule50_ply;
-}
-
-std::array<BitBoard, 2> Board::get_colors() const {
-    return m_bb_color;
 }
 
 std::string Board::get_wxfstring(Move move) const {
