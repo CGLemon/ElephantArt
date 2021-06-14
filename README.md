@@ -1,6 +1,6 @@
 # Elephant Art
 
-## Who is he?
+## Who is He?
 
 Elephant Art 是一個基於神經網路和蒙地卡羅樹搜索的象棋引擎。並且支援 UCCI 協議。
 
@@ -22,9 +22,9 @@ Elephant Art is still pre-alpha version. Many components are not complete(Includ
 
 <br>
 
-## More options to build
+## Some Building Options
 
-Unlike the other chinese chess engine based on network, Elephant Art doesn't need any blas backend library. You can still accelerate the network by third party blas library. Here is it.
+Unlike the other chinese chess engine based on network, Elephant Art doesn't need any blas backend library. But you can still accelerate the network by third party blas library. Here is it.
 
 Accelerate the network on CPU. OpenBlas is required. OpenBlas is significantly faster than built-in blas.
 
@@ -40,7 +40,7 @@ Accelerate the network by GPU. CUDA and CUDNN are required. It will be faster th
 
 <br>
 
-## Some options to start the Elephant Art
+## Some Engine Options
 
 Here are some useful options whuch you can set.
 
@@ -106,24 +106,25 @@ This is the ideal condition. It is impossible to find the magic value because it
  <img src="https://render.githubusercontent.com/render/math?math=\LARGE LegalMoves = Table[Hash]">
 
 
-You may be worry about that can we find a magic value in any condition. The answer is yes. According to the paper, Magic Move-Bitboard Generation in Computer Chess, the multiplying operator is equal to bit shift operator. We can simply think that multiplying operator move the special bits to the lower side. The last question is how to compute the magic value. Just trial and error. No other special methods.
+You may be worry about that can we find a magic value in any condition. The answer is yes. According to the paper, Magic Move-Bitboard Generation in Computer Chess, the multiplying operator is equal to bit shift operator. We can simply think that multiplying operator move the special bits to the upper side. The last question is how to compute the magic value. Just trial and error. No other special methods.
 
 Finally, Is the magic bitboard really faster than mailbox? The Youtuber, Maksim Korzh(aka Code Monky King), compared bitboard and mailbox. I was suprised that the mailbox is faster. Maybe there was something wrong. But it proves that mailbox is as fast as bitboard on the general case. [video](https://www.youtube.com/watch?v=GCPuD6pncbE)
 
 <br>
 
-### SMP Tree Search
+### SMP MCTS
 In order to speed up tree seach, a good way is use multi-cores CPU. sadly, The original MCTS algorithm is designed for one thread. Many threads will search the same path if we apply the algorithm to multi threads program without changing. It will cause large performance. A simple but useful way is to punish the searching nodes. Here is the pseudo format.
 
  <img src="https://render.githubusercontent.com/render/math?math=\LARGE MctsValue = NodeValue - Threads \times PunishmentValue">
 
-We call the punishment is virtual loss. this method is quite to use easy varied threads. According to paper, Parallel Monte-Carlo Tree Search, it is more significantly improvement.
+We call the punishment is virtual loss. this method is quite easy to use varied threads. Every threads do same algorithm without modify. According to the paper, Parallel Monte-Carlo Tree Search, it is more significantly improvement.
 
+<br>
 
 ## Some Results
 
-### Strength
-The supervised learning is not quite good. It will make too many stupid moves, kill itself move or meanless move. But he can still beat the most amateur players. May reach the Taiwanese 1~2 dan level.
+### Supervised Learning
+The supervised learning is not good enongh. He will make too many stupid moves, kill itself move or meanless move. But he can still beat the most amateur players. May reach the Taiwanese 1~2 dan level.
 
 <br>
 
