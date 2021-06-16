@@ -34,10 +34,12 @@
 #include "Train.h"
 #include "Utils.h"
 #include "config.h"
+#include "TranspositionTable.h"
 
-class SearchResult {
+class UCTSearchResult {
 public:
-    SearchResult() = default;
+    UCTSearchResult() = default;
+
     bool valid() const { return m_nn_evals != nullptr; }
     std::shared_ptr<UCTNodeEvals> nn_evals() const { return m_nn_evals; }
 
@@ -70,6 +72,22 @@ private:
     std::shared_ptr<UCTNodeEvals> m_nn_evals{nullptr};
 };
 
+struct Stack {
+    int ply;
+};
+
+struct RootMove {
+    RootMove() = default;
+    RootMove(Move m) : move(m) {
+        pv.emplace_back(m);
+    }
+    int score;
+    Move move;
+    std::vector<Move> pv;
+
+    std::uint64_t hash;
+};
+
 class SearchInformation {
 public:
     Move prob_move;
@@ -100,29 +118,21 @@ public:
     ~Search();
 
     Move nn_direct_move();
-    Move get_random_move();
     Move uct_move();
+
+    void set_playouts(int playouts);
 
     void think(SearchSetting setting, SearchInformation *info);
     void interrupt();
     void ponderhit(bool draw);
-    void set_playouts(int playouts);
+
     std::shared_ptr<SearchParameters> parameters() const;
-    
+
 private:
-    void prepare_uct();
-    void clear_nodes();
-    void increment_playouts();
-    void play_simulation(Position &currpos, UCTNode *const node,
-                         UCTNode *const root_node, SearchResult &search_result);
-    float get_min_psa_ratio();
+    // Shared functions.
     bool is_running();
     void set_running(bool is_running);
-
     bool stop_thinking(int elapsed, int limittime) const;
-    std::pair<Move, Move> get_best_move() const;
-    std::string get_draw_resign(Types::Color colors, bool draw) const;
-
     void increment_threads();
     void decrement_threads();
 
@@ -130,20 +140,44 @@ private:
     SearchSetting m_setting;
     Position m_rootposition;
     Position & m_position;
-    Network & m_network;
-    Train & m_train;
-    UCTNode * m_rootnode{nullptr};
 
     ThreadPool m_searchpool;
     std::unique_ptr<ThreadGroup<void>> m_search_group{nullptr};
     std::shared_ptr<UCTNodeStats> m_nodestats{nullptr};
 
-    int m_maxplayouts;
-    int m_maxvisits;
     std::atomic<int> m_running_threads{0};
     std::atomic<bool> m_running{false};
-    std::atomic<int> m_playouts{0};
     Utils::Timer m_timer;
     std::shared_ptr<SearchParameters> m_parameters{nullptr};
+
+    // UCT search functions.
+    void uct_think(SearchInformation *info);
+
+    void prepare_uct();
+    void clear_nodes();
+    void increment_playouts();
+    void play_simulation(Position &currpos, UCTNode *const node,
+                         UCTNode *const root_node, UCTSearchResult &search_result);
+    float get_min_psa_ratio();
+
+    int m_maxplayouts;
+    int m_maxvisits;
+    std::atomic<int> m_playouts{0};
+    UCTNode * m_rootnode{nullptr};
+    Network & m_network;
+    Train & m_train;
+
+    // Alpha-Beta searcg functions.
+    int stack_search(Position &currpos, bool pv, Stack *ss, int alpha, int beta, int depth);
+    int stack_qsearch(Position &currpos, bool pv);
+    void alpha_beta_think(SearchInformation *info);
+
+    void prepare_root_moves();
+    void sort_root_moves();
+    int get_root_depth(int count);
+
+    TranspositionTable m_tt;
+    std::vector<RootMove> m_root_moves;
+    int m_generation{0};
 };
 #endif

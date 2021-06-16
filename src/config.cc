@@ -68,6 +68,7 @@ void init_options_map() {
     options_map["version"] << Utils::Option::setoption(VERSION);
 
     options_map["mode"] << Utils::Option::setoption("ascii");
+    options_map["search_mode"] << Utils::Option::setoption("uct");
     options_map["help"] << Utils::Option::setoption(false);
 
     options_map["gpu"] << Utils::Option::setoption(0);
@@ -261,6 +262,16 @@ ArgsParser::ArgsParser(int argc, char** argv) {
                     || res->str == "ucci"
                     || res->str == "selfplay") {
                 set_option("mode", res->get<std::string>());
+                parser.remove_slice(res->idx-1, res->idx+1);
+            }
+        }
+    }
+
+    if (const auto res = parser.find_next("--search-mode")) {
+        if (is_parameter(res->str)) {
+            if (res->str == "uct"
+                    || res->str == "alphabeta") {
+                set_option("search_mode", res->get<std::string>());
                 parser.remove_slice(res->idx-1, res->idx+1);
             }
         }

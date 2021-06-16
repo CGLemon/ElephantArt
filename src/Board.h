@@ -206,7 +206,6 @@ public:
     // Reture true if the last player move check other king.
     bool is_check(const Types::Color color) const;
 
-
     std::array<int, 2> get_stable_values() const;
 
 private:

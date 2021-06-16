@@ -45,43 +45,36 @@ void TranspositionTable::resize(size_t size) {
 
     size = std::min(size, MAX_ENTRY_SIZE);
     size = std::max(size, MIN_ENTRY_SIZE);
-    cluster_size = size/4;
+    cluster_size = size/CLUSTER_COUNT;
 
     m_entry_size = size;
     m_cluster_size = cluster_size;
     m_entry.resize(m_entry_size);
+
     m_entry.shrink_to_fit();
 }
 
-bool TranspositionTable::probe(std::uint64_t hash, TTEntry &entry) {
-    auto first_tte = get_first_tte(hash);
+TTEntry *TranspositionTable::probe(std::uint64_t hash, bool &hit) {
+    TTEntry * first_tte = get_first_tte(hash);
+    TTEntry * tte;
+
+    int lowest_generation = std::numeric_limits<int>::max();
+    int lowest_generation_index = 0;
 
     for (size_t i = 0; i < CLUSTER_COUNT; ++i) {
-        auto tte = first_tte + i;
-        if (tte->hash == hash) {
-            entry = *tte;
-            return true;
-        }
-    }
+        tte = first_tte + i;
 
-    return false;
-}
-
-void TranspositionTable::insert(std::uint64_t hash, TTEntry &entry) {
-    auto first_tte = get_first_tte(hash);
-    auto lowest_generation = std::numeric_limits<int>::max();
-    auto lowest_generation_index = 0;
-
-    for (size_t i = 0; i < CLUSTER_COUNT; ++i) {
-        auto tte = first_tte + i;
-        // Find lowest generation entry.
         if (tte->generation < lowest_generation) {
             lowest_generation = tte->generation;
             lowest_generation_index = i;
         }
+
+        if (tte->hash == hash) {
+            hit = true;
+            return tte;
+        }
     }
-    
-    // Replace lowest generation entry.
-    auto tte = first_tte + lowest_generation_index;
-    tte->save(std::move(entry));
+
+    hit = false;
+    return first_tte + lowest_generation_index;
 }

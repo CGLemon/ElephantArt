@@ -17,6 +17,26 @@
 */
 
 #include "Evaluate.h"
+#include "Position.h"
 
 constexpr int Evaluate::PIECE_VALUE[14];
 constexpr int Evaluate::POS_VALUE[14][100];
+
+
+Evaluate &Evaluate::get() {
+    static Evaluate eval;
+    return eval;
+}
+
+int Evaluate::calc_value(Position &pos, Types::Color color) const {
+    auto stable_values = pos.get_stable_values();
+    auto value = 0;
+    if (color == Types::RED) {
+        value = stable_values[Types::RED] - stable_values[Types::BLACK];
+    } else {
+        value = stable_values[Types::BLACK] - stable_values[Types::RED];
+    }
+
+    return value;
+}
+

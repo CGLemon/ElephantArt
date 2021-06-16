@@ -58,23 +58,23 @@ class TranspositionTable {
 public:
     TranspositionTable();
 
-    bool probe(std::uint64_t hash, TTEntry &entry);
-    void insert(std::uint64_t hash, TTEntry &entry);
+    TTEntry *probe(std::uint64_t hash, bool &hit);
+
     void clear();
 
     void set_memory(size_t MiB);
     void update_generation();
 
 private:
-    static constexpr size_t MAX_ENTRY_SIZE = 1000000;
-    static constexpr size_t MIN_ENTRY_SIZE = 10000;
+    static constexpr size_t MAX_ENTRY_SIZE = 10000000;
+    static constexpr size_t MIN_ENTRY_SIZE = 100000;
     static constexpr size_t ENTRY_MEM_SIZE = sizeof(TTEntry);
 
     static constexpr size_t CLUSTER_COUNT = 8;
 
-    inline std::vector<TTEntry>::iterator get_first_tte(std::uint64_t hash) {
-        auto idx = hash / m_cluster_size;
-        return  std::begin(m_entry) + CLUSTER_COUNT * idx;
+    inline TTEntry *get_first_tte(std::uint64_t hash) {
+        auto idx = hash % m_cluster_size;
+        return  m_entry.data() + CLUSTER_COUNT * idx;
     }
 
     void resize(size_t size);

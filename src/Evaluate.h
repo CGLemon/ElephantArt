@@ -21,6 +21,8 @@
 
 #include "Types.h"
 
+class Position;
+
 class Evaluate {
 public:
     static constexpr int PIECE_VALUE[14] = {44, 101, 233, 108, 23, 23, 0, 44, 101, 233, 108, 23, 23, 0}; 
@@ -196,10 +198,9 @@ public:
         }
     };
 
+    static Evaluate &get();
 
-
-private:
-
+    int calc_value(Position &pos, Types::Color color) const;
 };
 
 #endif

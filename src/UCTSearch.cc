@@ -11,6 +11,42 @@
 #include "Decoder.h"
 #include "config.h"
 
+Move get_random_move(UCTNode *node) {
+    return Decoder::maps2move(node->randomize_first_proportionally(1));
+}
+
+std::pair<Move, Move> get_best_move(UCTNode *node) {
+    const auto best_maps = node->get_best_move();
+    auto best_move = Decoder::maps2move(best_maps);
+
+    auto child = node->get_child(best_maps);
+    auto ponder_move = Move{};
+    if (child->has_children()) {
+        const auto ponder_maps = child->get_best_move();
+        ponder_move = Decoder::maps2move(ponder_maps);
+    }
+    return std::make_pair(best_move, ponder_move);
+}
+
+std::string get_draw_resign(UCTNode *node,
+                                std::shared_ptr<SearchParameters> param,
+                                Types::Color color, bool draw) {
+    const auto winrate = node->get_meaneval(color, false);
+    if (winrate < param->resign_threshold) {
+        if (draw) {
+            return std::string{"draw"};
+        } else {
+            return std::string{"resign"};
+        }
+    }
+
+    const auto draw_prob = node->get_draw();
+    if (draw_prob > param->draw_threshold) {
+        return std::string{"draw"};
+    }
+    return std::string{};
+}
+
 void Search::prepare_uct() {
     auto data = std::make_shared<UCTNodeData>();
     m_nodestats = std::make_shared<UCTNodeStats>();
@@ -58,6 +94,10 @@ void Search::increment_playouts() {
     m_playouts.fetch_add(1);
 }
 
+void Search::set_playouts(int playouts) {
+    m_playouts.store(playouts);
+}
+
 float Search::get_min_psa_ratio() {
     auto v = m_playouts.load();
     if (v >= MAX_PLAYOUTS) {
@@ -67,7 +107,7 @@ float Search::get_min_psa_ratio() {
 }
 
 void Search::play_simulation(Position &currpos, UCTNode *const node,
-                             UCTNode *const root_node, SearchResult &search_result) {
+                             UCTNode *const root_node, UCTSearchResult &search_result) {
     node->increment_threads();
     if (node->expandable()) {
         if (currpos.gameover(true)) {
@@ -104,6 +144,157 @@ void Search::play_simulation(Position &currpos, UCTNode *const node,
         node->update(search_result.nn_evals());
     }
     node->decrement_threads();
+}
+
+void Search::uct_think(SearchInformation *info) {
+    if (is_running()) {
+        return;
+    }
+
+    m_search_group->wait_all();
+    m_rootposition = m_position;
+    if (m_rootposition.gameover(true)) {
+        return;
+    }
+
+    const auto smp_worker = [this]() -> void {
+        // Waiting, until main thread searching.
+        while (m_running_threads.load() < 1 && is_running()) {
+            std::this_thread::yield();
+        }
+        increment_threads();
+        while(is_running()) {
+            auto currpos = std::make_unique<Position>(m_rootposition);
+            auto result = UCTSearchResult{};
+            play_simulation(*currpos, m_rootnode, m_rootnode, result);
+            if (result.valid()) {
+                increment_playouts();
+            }
+        };
+        decrement_threads();
+    };
+
+    const auto main_worker = [this, info]() -> void {
+        auto keep_running = true;
+        auto maxdepth = 0;
+        const auto limitnodes = m_setting.nodes;
+        const auto limitdepth = m_setting.depth;
+        auto controller = TimeControl(m_setting.milliseconds,
+                                      m_setting.movestogo,
+                                      m_setting.increment);
+        controller.set_plies(m_rootposition.get_gameply());
+
+        auto timer = Utils::Timer{};
+        auto limittime = std::numeric_limits<int>::max();
+        auto ponder_lock = false;
+
+        prepare_uct();
+        {
+            // Stop it if preparing uct is time out.  
+            if (!m_setting.ponder) {
+                limittime = controller.get_limittime();
+                ponder_lock = true;
+            }
+            const auto elapsed = timer.get_duration_milliseconds();
+            set_running(!stop_thinking(elapsed, limittime));
+        }
+
+        increment_threads();
+        while(is_running()) {
+            auto currpos = std::make_unique<Position>(m_rootposition);
+            auto result = UCTSearchResult{};
+
+            play_simulation(*currpos, m_rootnode, m_rootnode, result);
+            if (result.valid()) {
+                increment_playouts();
+            }
+
+            const auto color = m_rootposition.get_to_move();
+            const auto score = (m_rootnode->get_meaneval(color, false) - 0.5f) * 200.0f;
+            const auto nodes = m_nodestats->nodes.load() + m_nodestats->edges.load();
+            const auto elapsed = timer.get_duration_milliseconds();
+            controller.set_score(int(score));
+            {
+                std::lock_guard<std::mutex> lock(m_thinking_mtx);
+                if (!m_setting.ponder && !ponder_lock) {
+                    // The ponderhit is valid now. Start to time clock.
+                    limittime = controller.get_limittime() + elapsed;
+                    ponder_lock = true;
+                }
+            }
+
+            const auto pv_depth = (int)UCT_Information::get_pvlist(m_rootnode).size();
+
+            keep_running &= (!stop_thinking(elapsed, limittime));
+            keep_running &= (!(limitnodes < nodes));
+            keep_running &= (!(limitdepth < pv_depth));
+            keep_running &= is_running();
+            set_running(keep_running);
+
+            if (option<bool>("ucci_response") &&
+                   (pv_depth > maxdepth || !keep_running) &&
+                    m_playouts.load() >= parameters()->cap_playouts) {
+                if (keep_running) {
+                    maxdepth = pv_depth;
+                }
+                const auto pv = UCT_Information::get_pvsrting(m_rootnode);
+                LOGGING << "info"
+                            << ' ' << "depth" << ' ' << maxdepth
+                            << ' ' << "time"  << ' ' << elapsed
+                            << ' ' << "nodes" << ' ' << nodes
+                            << ' ' << "score" << ' ' << int(score)
+                            << ' ' << "pv"    << ' ' << pv
+                            << std::endl;
+            }
+        }
+
+        decrement_threads();
+
+        // Waiting, until all threads finish searching.
+        while (m_running_threads.load() != 0) {
+            std::this_thread::yield();
+        }
+
+        m_train.gather_probabilities(*m_rootnode, m_rootposition);
+
+        const auto color = m_rootposition.get_to_move();
+        const auto elapsed = timer.get_duration();
+        const auto moves = get_best_move(m_rootnode);
+        const auto bestmove = moves.first;
+        const auto pondermove = moves.second;
+        const auto prob_move = get_random_move(m_rootnode);
+        const auto draw_resign = get_draw_resign(m_rootnode, parameters(), color, m_setting.draw);
+
+        if (option<bool>("ucci_response")) {
+            LOGGING << "bestmove" << ' ' << bestmove.to_string();
+            if (pondermove.valid()) {
+                LOGGING << ' ' << "ponder" << ' ' << pondermove.to_string();
+            }
+            if (!draw_resign.empty()) {
+                LOGGING << ' ' << draw_resign;
+            }
+            LOGGING << std::endl;
+        }
+
+        if (info) {
+            info->best_move = bestmove;
+            info->prob_move = prob_move;
+            info->seconds = elapsed;
+            info->depth = maxdepth;
+            info->plies =  m_rootposition.get_gameply();
+        }
+        if (option<bool>("analysis_verbose")) {
+            LOGGING << UCT_Information::get_stats_string(m_rootnode, m_rootposition);
+            LOGGING << "Speed:" << std::endl
+                        << "  " << elapsed                   << ' ' << "second(s)" << std::endl
+                        << "  " << m_playouts.load()         << ' ' << "playout(s)" << std::endl
+                        << "  " << m_playouts.load()/elapsed << ' ' << "p/s" << std::endl;
+        }
+        clear_nodes();
+    };
+    set_running(true);
+    m_search_group->add_task(main_worker);
+    m_search_group->add_tasks(parameters()->threads-1, smp_worker);
 }
 
 Move Search::nn_direct_move() {
@@ -144,11 +335,6 @@ Move Search::nn_direct_move() {
         LOGGING << out.str();
     }
     return move;
-}
-
-Move Search::get_random_move() {
-    const auto maps = m_rootnode->randomize_first_proportionally(1);
-    return Decoder::maps2move(maps);
 }
 
 Move Search::uct_move() {

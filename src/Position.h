@@ -85,6 +85,8 @@ public:
     Repetition get_threefold_repetitions_result();
     Move get_forced_checkmate_move(int maxdepth);
 
+    std::array<int, 2> get_stable_values() const;
+
 private:
     void compute_repetitions();
 

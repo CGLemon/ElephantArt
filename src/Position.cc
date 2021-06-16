@@ -446,3 +446,7 @@ Move Position::get_forced_checkmate_move(int maxdepth) {
     auto forced = ForcedCheckmate(*this);
     return forced.find_checkmate(maxdepth);
 }
+
+std::array<int, 2> Position::get_stable_values() const {
+    return board.get_stable_values();
+}
