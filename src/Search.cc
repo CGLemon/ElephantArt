@@ -280,9 +280,8 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
 
     const auto uct_worker = [this]() -> void {
         // Waiting, until main thread searching.
-        while (m_running_threads.load() < 1 && is_running()) {
-            std::this_thread::yield();
-        }
+        while (m_running_threads.load() < 1 && is_running()) {}
+
         increment_threads();
         while(is_running()) {
             auto currpos = std::make_unique<Position>(m_rootposition);
@@ -372,9 +371,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         decrement_threads();
 
         // Waiting, until all threads finish searching.
-        while (m_running_threads.load() != 0) {
-            std::this_thread::yield();
-        }
+        while (m_running_threads.load() != 0) {}
 
         m_train.gather_probabilities(*m_rootnode, m_rootposition);
 
