@@ -68,6 +68,7 @@ void Selfplay::loop() {
                     {
                         std::lock_guard<std::mutex> lock(m_io_mtx);
                         m_selfplay_engine->dump_collection(m_data_filename, g);
+                        m_selfplay_engine->printf_pgn(m_pgn_filename, g);
                     }
                     m_selfplay_engine->reset_game(g);
                     m_games.fetch_add(1);
