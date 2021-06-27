@@ -273,6 +273,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
 
     m_search_group->wait_all();
     m_rootposition = m_position;
+    m_setting = setting;
     if (m_rootposition.gameover(true)) {
         return;
     }
@@ -294,14 +295,14 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         decrement_threads();
     };
 
-    const auto main_worker = [this, set = setting, info]() -> void {
+    const auto main_worker = [this, info]() -> void {
         auto keep_running = true;
         auto maxdepth = 0;
-        const auto limitnodes = set.nodes;
-        const auto limitdepth = set.depth;
-        auto controller = TimeControl(set.milliseconds,
-                                      set.movestogo,
-                                      set.increment);
+        const auto limitnodes = m_setting.nodes;
+        const auto limitdepth = m_setting.depth;
+        auto controller = TimeControl(m_setting.milliseconds,
+                                      m_setting.movestogo,
+                                      m_setting.increment);
         controller.set_plies(m_rootposition.get_gameply());
 
         auto timer = Utils::Timer{};
@@ -311,7 +312,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         prepare_uct();
         {
             // Stop it if preparing uct is time out.  
-            if (!set.ponder) {
+            if (!m_setting.ponder) {
                 limittime = controller.get_limittime();
                 ponder_lock = true;
             }
@@ -336,7 +337,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
             controller.set_score(int(score));
             {
                 std::lock_guard<std::mutex> lock(m_thinking_mtx);
-                if (!set.ponder && !ponder_lock) {
+                if (!m_setting.ponder && !ponder_lock) {
                     // The ponderhit is valid now. Start to time clock.
                     limittime = controller.get_limittime() + elapsed;
                     ponder_lock = true;
@@ -383,7 +384,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         const auto bestmove = moves.first;
         const auto pondermove = moves.second;
         const auto prob_move = get_random_move();
-        const auto draw_resign = get_draw_resign(color, set.draw);
+        const auto draw_resign = get_draw_resign(color, m_setting.draw);
 
         if (option<bool>("ucci_response")) {
             LOGGING << "bestmove" << ' ' << bestmove.to_string();
