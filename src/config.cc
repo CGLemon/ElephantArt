@@ -84,7 +84,7 @@ void init_options_map() {
     options_map["selfplay_directory"] << Utils::Option::setoption(std::string{});
 
     options_map["usemillisec"] << Utils::Option::setoption(false);
-    options_map["cache_size"] << Utils::Option::setoption(50);
+    options_map["cache_size"] << Utils::Option::setoption(500);
     options_map["cache_playouts"] << Utils::Option::setoption(0);
 
     options_map["softmax_pol_temp"] << Utils::Option::setoption(1.0f);
