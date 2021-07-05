@@ -33,8 +33,8 @@ class DataSet():
         out = DataSet(self.cfg, None)
         num = int(p * len(self.data_loader))
         for _ in range(num):
-            b, s = self.data_loader.buffer.pop()
-            out.data_loader.buffer.append((b, s))
+            data = self.data_loader.buffer.pop()
+            out.data_loader.buffer.append(data)
 
         return out
 
@@ -45,8 +45,7 @@ class DataSet():
         return idx // self.xsize
 
     def __getitem__(self, idx):
-        b, s = self.data_loader[idx]
-        data = self.data_loader.unpack_v1(b, s)
+        data = self.data_loader[idx]
 
         input_planes = np.zeros((self.input_channels, self.ysize, self.xsize))
         input_features = np.zeros(self.input_features)
