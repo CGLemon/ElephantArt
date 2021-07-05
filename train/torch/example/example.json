@@ -22,8 +22,8 @@
         "LearningRate": 0.001,
         "MinLearningRate" : 5e-6,
         "WeightDecay": 0.001,
-        "TrainDirectory": "train-dir",
-        "ValidationDirectory": "val-dir",
-        "TestDirectory": "test-dir"
+        "TrainDirectory": null,
+        "ValidationDirectory": null,
+        "TestDirectory": null
     } 
 }

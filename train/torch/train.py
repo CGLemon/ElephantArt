@@ -24,6 +24,20 @@ class DataSet():
         self.input_features = cfg.input_features
         self.policy_map = cfg.policy_map
 
+    def split(self, p=0.1):
+        if p > 1:
+            p = 1
+        elif p < 0:
+            p = 0
+
+        out = DataSet(self.cfg, None)
+        num = int(p * len(self.data_loader))
+        for _ in range(num):
+            b, s = self.data_loader.buffer.pop()
+            out.data_loader.buffer.append((b, s))
+
+        return out
+
     def get_x(self, idx):
         return idx % self.xsize
 
@@ -123,7 +137,10 @@ class DataModule(pl.LightningDataModule):
     def setup(self, stage):
         if stage == 'fit':
             self.train_data = DataSet(self.cfg, self.train_dir)
-            self.val_data = DataSet(self.cfg, self.val_dir)
+            if self.val_dir == None:
+                self.val_data = self.train_data.split()
+            else:
+                self.val_data = DataSet(self.cfg, self.val_dir)
 
         if stage == 'test':
             self.test_data = DataSet(self.cfg, self.test_dir)

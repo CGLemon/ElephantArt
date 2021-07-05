@@ -1,5 +1,6 @@
 import glob
 import struct
+import random
 
 # Now the version is zero. This is experiment version. We don't
 # promise that the data format will same in the future. 
@@ -225,19 +226,21 @@ class Loader:
         return data
 
     def run(self):
-        datalines = Data.get_datalines(FIXED_DATA_VERSION);
-        for name in glob.glob(self.dirname + "/*"):
-            if self.cfg.debugVerbose:
-                print(name)
+        if self.dirname != None:
+            datalines = Data.get_datalines(FIXED_DATA_VERSION);
+            for name in glob.glob(self.dirname + "/*"):
+                if self.cfg.debugVerbose:
+                    print(name)
 
-            with open(name, 'r') as f:
-                while True:
-                    if self.linesparser(datalines, f) == False:
-                        break
+                with open(name, 'r') as f:
+                    while True:
+                        if self.linesparser(datalines, f) == False:
+                            break
+            random.shuffle(self.buffer)
 
         if self.cfg.debugVerbose:
             self.dump()
-            
+
     def dump(self):
         for b, s in self.buffer:
             data = self.unpack_v1(b, s)
