@@ -149,10 +149,10 @@ class DataModule(pl.LightningDataModule):
         return DataLoader(self.train_data, num_workers=self.num_workers, shuffle=True, batch_size=self.batchsize)
 
     def val_dataloader(self):
-        return DataLoader(self.val_data, num_workers=self.num_workers, shuffle=True, batch_size=self.batchsize)
+        return DataLoader(self.val_data, num_workers=self.num_workers, batch_size=self.batchsize)
 
     def test_dataloader(self):
-        return DataLoader(self.test_data, num_workers=self.num_workers , shuffle=True, batch_size=self.batchsize)
+        return DataLoader(self.test_data, num_workers=self.num_workers, batch_size=self.batchsize)
 
 
 class Network(NNProcess, pl.LightningModule):
