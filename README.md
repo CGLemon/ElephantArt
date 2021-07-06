@@ -30,13 +30,21 @@ Accelerate the network on CPU. OpenBlas is required. OpenBlas is significantly f
 
     $ cmake .. -DBLAS_BACKEND=OPENBLAS
 
+Accelerate the network on CPU. Eigen is required. You need to download the Eigen to the "thrid_party" directory first. Eigen is significantly faster than built-in blas.
+
+    $ cmake .. -DBLAS_BACKEND=EIGEN
+
 Accelerate the network by GPU. CUDA is required. It will be faster than cuDNN in only one batch size.
 
     $ cmake .. -DGUP_BACKEND=CUDA
 
-Accelerate the network by GPU. CUDA and CUDNN are required. It will be faster than CUDA-only in large batch size.
+Accelerate the network by GPU. CUDA and cuDNN are required. It will be faster than CUDA-only in large batch size.
 
     $ cmake .. -DGUP_BACKEND=CUDA -DUSE_CUDNN=1
+
+Accelerate to load the network. FastFloat is required. You need to download the FastFloat to the "thrid_party" directory first. The link is [here](https://github.com/fastfloat/fast_float)
+
+    $ cmake .. -DUSE_FAST_PARSER=1
 
 <br>
 
@@ -69,7 +77,7 @@ Here are some useful options whuch you can set.
     $ ./Elephant --analysis-verbose
 
 
-    --mode, -m: Start with different modes. Here is UCCI mode.
+    --mode, -m: Start with different modes. Here is UCCI mode. Default is ASCII mode.
 
     $ ./Elephant -m ucci
 
@@ -80,12 +88,59 @@ Here are some useful options whuch you can set.
 
 <br>
 
+## Supervised Learning
+
+Elephant Art provide some tools to help you to train your weights. First, We need to collect some database. You can download the pgn data from this side if you need it [象棋棋譜](https://github.com/CGLemon/chinese-chess-PGN). Or you can use the pgn data which collected by you. But you should notice that Elephant Art can only parse the ICCS format pgn file. Be sure that the format is correct. Use the "supervised" command. He will product the training data. (must in ASCII mode)
+
+    $ ./Elephant supervised inputs.pgns training.data
+
+After producting the enough training data. We simply move to "train/torch" directory. Creating a now directory named "train-dir" and move the "training.data" in it. They, creating a new json file named setting.json. The setting.json is the training pipeline description. You can just copy the following setting.
+
+    ## setting.json
+    {
+        "NeuralNetwork" : {
+            "NNType": "Residual",
+            "InputChannels": 16,
+            "InputFeatures": 4,
+            "ResidualChannels": 128,
+            "PolicyExtract": 128,
+            "ValueExtract": 8,
+            "Stack" : [
+                "ResidualBlock",
+                "ResidualBlock-SE"
+            ]
+        },
+    
+        "Train" : {
+            "GPUs": null,
+            "Epochs": 200,
+            "Workers": null,
+            "BatchSize": 256,
+            "LearningRate": 0.001,
+            "MinLearningRate" : 5e-6,
+            "WeightDecay": 0.001,
+            "TrainDirectory": train-dir,
+            "ValidationDirectory": null,
+            "TestDirectory": null
+        } 
+    }
+
+Now start the training.
+
+    $ python3 parser.py -j setting.json -o weightname
+
+You will get "weightname.pt" file. The is weights for pytorch network. Elephant Art doesn't understand this format. Need to convert the pt format to text format.
+
+    $ python3 transfer.py -j setting.json -n weightname
+
+The pytorch, pytorch-lightning and pytorch-lightning dependent are required.
+
+<br>
+
 ## Experiment Network
 The network is an experiment version. The format will be changed in the future. Please check it before you use it.
 
 https://drive.google.com/drive/folders/1NDrWH5MhAeut_sWAE55uJhvui4Hvapr5?usp=sharing
-
-The training pgn data is from the website, WXF webside and dpxq webside. You can download the pgn data from this side if you need it [象棋棋譜](https://github.com/CGLemon/chinese-chess-PGN).
 
 <br>
 
@@ -123,7 +178,7 @@ We call the punishment is virtual loss. this method is quite easy to use varied 
 
 ## Some Results
 
-### Supervised Learning
+### strength
 The supervised learning is not good enongh. He will make too many stupid moves, kill itself move or meanless move. But he can still beat the most amateur players. May reach the Taiwanese 1~2 dan level.
 
 <br>
@@ -170,8 +225,10 @@ The best opening move is not most players play opening move. It is funny.
 
 <br>
 
-### Reinforcement Learning
-coming soon...
+
+##TODO
+* Reinforcement learning.
+* Algorithm to speed up.
 
 <br>
 
