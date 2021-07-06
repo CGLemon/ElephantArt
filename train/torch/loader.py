@@ -121,7 +121,7 @@ class Data(PiecesIndex):
                 elif i % 2 == 1:
                     self.probabilities.append(float(p[i]))
             self.policyindex = np.array(self.policyindex, dtype=np.int16)
-            self.probabilities = np.array(self.probabilities, dtype=np.int16)
+            self.probabilities = np.array(self.probabilities, dtype=np.float32)
 
         elif linecnt == 20:
             self.move = int(readline)
@@ -175,8 +175,7 @@ class Loader:
             self.dump()
 
     def dump(self):
-        for b, s in self.buffer:
-            data = self.buffer[idx]
+        for data in self.buffer:
             data.dump()
             print()
         print("----------------------------------------------------------")
