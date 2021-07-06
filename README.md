@@ -178,7 +178,7 @@ We call the punishment is virtual loss. this method is quite easy to use varied 
 
 ## Some Results
 
-### strength
+### Strength
 The supervised learning is not good enongh. He will make too many stupid moves, kill itself move or meanless move. But he can still beat the most amateur players. May reach the Taiwanese 1~2 dan level.
 
 <br>
@@ -226,9 +226,9 @@ The best opening move is not most players play opening move. It is funny.
 <br>
 
 
-##TODO
+## TODO
 * Reinforcement learning.
-* Algorithm to speed up.
+* Winograd algorithm to speed up network.
 
 <br>
 
