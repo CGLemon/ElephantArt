@@ -92,7 +92,7 @@ Here are some useful options whuch you can set.
 
 Elephant Art provide some tools to help you to train your weights. First, We need to collect some database. You can download the pgn data from this side if you need it [象棋棋譜](https://github.com/CGLemon/chinese-chess-PGN). Or you can use the pgn data which collected by you. But you should notice that Elephant Art can only parse the ICCS format pgn file. Be sure that the format is correct. Use the "supervised" command. He will product the training data. (must in ASCII mode)
 
-    $ ./Elephant supervised inputs.pgns training.data
+    supervised inputs.pgns training.data
 
 After producting the enough training data. We simply move to "train/torch" directory. Creating a now directory named "train-dir" and move the "training.data" in it. They, creating a new json file named setting.json. The setting.json is the training pipeline description. You can just copy the following setting.
 
