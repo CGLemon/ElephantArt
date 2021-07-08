@@ -27,7 +27,7 @@
 #include <cassert>
 
 #include "Utils.h"
-#include "SharedMutex.h"
+#include "Mutex.h"
 
 template <typename EntryType>
 class Cache {
@@ -55,7 +55,9 @@ private:
 
     void resize(size_t size);
 
-    SharedMutex m_sm;
+    using MUTEX_T = SpinMutex;
+    MUTEX_T m_mtx;
+
     size_t m_size;
 
     int m_hits;
@@ -73,7 +75,7 @@ private:
 
 template <typename EntryType>
 bool Cache<EntryType>::lookup(std::uint64_t hash, EntryType &result) {
-    LockGuard<lock_t::S_LOCK> lock(m_sm);
+    std::unique_lock<MUTEX_T> lock(m_mtx);
 
     ++m_lookups;
 
@@ -89,7 +91,7 @@ bool Cache<EntryType>::lookup(std::uint64_t hash, EntryType &result) {
 
 template <typename EntryType>
 void Cache<EntryType>::insert(std::uint64_t hash, const EntryType &result) {
-    LockGuard<lock_t::X_LOCK> lock(m_sm);
+    std::unique_lock<MUTEX_T> lock(m_mtx);
     
     if (m_cache.find(hash) == m_cache.end()) {
         m_cache.emplace(hash, std::make_unique<Entry>(result));
@@ -120,7 +122,7 @@ void Cache<EntryType>::set_playouts(size_t playouts) {
 
 template <typename EntryType>
 void Cache<EntryType>::resize(size_t size) {
-    LockGuard<lock_t::X_LOCK> lock(m_sm);
+    std::unique_lock<MUTEX_T> lock(m_mtx);
 
     m_size = size;
 
@@ -132,7 +134,7 @@ void Cache<EntryType>::resize(size_t size) {
 
 template <typename EntryType> 
 void Cache<EntryType>::clear() {
-    LockGuard<lock_t::X_LOCK> lock(m_sm);
+    std::unique_lock<MUTEX_T> lock(m_mtx);
     
     if (!m_order.empty()) {
         m_cache.clear();
@@ -147,7 +149,8 @@ size_t Cache<EntryType>::get_estimated_size() {
 
 template <typename EntryType>
 void Cache<EntryType>::clear_stats() {
-    LockGuard<lock_t::X_LOCK> lock(m_sm);
+    std::unique_lock<MUTEX_T> lock(m_mtx);
+
     m_hits = 0;
     m_lookups = 0;
     m_inserts = 0;
