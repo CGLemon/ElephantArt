@@ -16,6 +16,9 @@
     along with ElephantArt.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef NODEPOINTER_H_INCLUDE
+#define NODEPOINTER_H_INCLUDE
+
 #include <memory>
 #include <atomic>
 #include <vector>
@@ -164,3 +167,5 @@ template<typename Node, typename Data>
 inline std::shared_ptr<Data> NodePointer<Node, Data>::data() const {
     return m_data;
 }
+
+#endif
