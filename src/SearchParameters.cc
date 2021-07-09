@@ -34,6 +34,7 @@ void SearchParameters::reset() {
     dirichlet_noise    = option<bool>("dirichlet_noise");
     collect            = option<bool>("collect");
 
+    forced_policy_factor = option<float>("forced_policy_factor");
     draw_threshold     = option<float>("draw_threshold");
     resign_threshold   = option<float>("resign_threshold");
     fpu_root_reduction = option<float>("fpu_root_reduction");

@@ -38,6 +38,7 @@ public:
     bool dirichlet_noise;
     bool collect;
 
+    float forced_policy_factor;
     float draw_threshold;
     float resign_threshold;
     float fpu_root_reduction;
