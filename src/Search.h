@@ -133,7 +133,6 @@ private:
     Train & m_train;
     UCTNode * m_rootnode{nullptr};
 
-    ThreadPool m_searchpool;
     std::unique_ptr<ThreadGroup<void>> m_search_group{nullptr};
     std::shared_ptr<UCTNodeStats> m_nodestats{nullptr};
 

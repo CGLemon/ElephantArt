@@ -22,6 +22,7 @@
 #include "Decoder.h"
 #include "Utils.h"
 #include "PGNParser.h"
+#include "ThreadPool.h"
 
 #include <iomanip>
 #include <sstream>
@@ -50,6 +51,9 @@ void Engine::initialize() {
     while (m_train_group.size() < games) {
         m_train_group.emplace_back(std::make_shared<Train>());
     }
+
+    // Allocate enongh threads.
+    ThreadPool::get(option<int>("threads") * games);
 
     while (m_search_group.size() < games) {
         const auto s = m_search_group.size();

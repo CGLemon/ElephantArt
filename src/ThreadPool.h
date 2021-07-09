@@ -3,7 +3,7 @@
     Copyright (c) 2012 Jakob Progsch, Václav Zeman
     Copyright (c) 2017-2019 Gian-Carlo Pascutto and contributors
     Modifications:
-    Copyright (c) 2020 Hung Zhe Lin
+    Copyright (c) 2020-2021 Hung Zhe Lin
 
     This software is provided 'as-is', without any express or implied
     warranty. In no event will the authors be held liable for any damages
@@ -25,12 +25,10 @@
     distribution.
 */
 
-// c++11 required
+#ifndef THREAD_H_INCLUDE
+#define THREAD_H_INCLUDE
 
-#ifndef THREADPOOL_H_INCLUDE
-#define THREADPOOL_H_INCLUDE
-
-
+#include <atomic>
 #include <vector>
 #include <queue>
 #include <memory>
@@ -40,224 +38,148 @@
 #include <future>
 #include <functional>
 #include <stdexcept>
-#include <atomic>
-#include <sstream>
 #include <iostream>
 
 class ThreadPool {
 public:
-    ThreadPool() = default;
-
-    ThreadPool(size_t t);
-
-    template<typename F, typename... Args>
-    std::future<typename std::result_of<F(Args...)>::type>
-    add_task(F&& f, Args&&... args);
-
+    ThreadPool(size_t threads);
     ~ThreadPool();
 
-    void add_thread(std::function<void()> initializer);
+    static ThreadPool& get(size_t threads=0);
 
-    void initialize(size_t t);
-
-    void quit_all();
-
-    void wake_up();
-
-    void dump_status();
-
-    void idle();
-
-    int get_threads() const;
+    template<class F, class... Args>
+    auto add_task(F&& f, Args&&... args)
+        -> std::future<typename std::result_of<F(Args...)>::type>;
+    
+    size_t get_num_threads() const;
 
 private:
-    ThreadPool(const ThreadPool&) = delete;
-    ThreadPool& operator=(const ThreadPool&) = delete;
-
-    std::vector<std::thread> m_threads;
-    std::queue<std::function<void()>> m_tasks;
+    void add_thread(std::function<void()> initializer);
     
-    std::mutex m_mutex;
-    std::condition_variable m_cv;
+    bool is_stop_running() const;
 
-    std::atomic<int> m_fork_threads{0};
-    std::atomic<bool> m_quit{false};
-    std::atomic<bool> m_idle{false};
+    std::atomic<bool> m_running{false};
+
+    // Number of allocated threads.
+    std::atomic<size_t> m_num_threads{0};
+  
+    // Need to keep track of threads so we can join them.
+    std::vector<std::thread> m_workers;
+
+    // The task queue.
+    std::queue<std::function<void(void)>> m_tasks;
+
+    std::mutex m_queue_mutex;
+    
+    std::condition_variable m_cv;
 };
 
-inline ThreadPool::ThreadPool(size_t t) {
-    initialize(t);
+// Get the global thread pool.
+inline ThreadPool& ThreadPool::get(size_t threads) {
+    static ThreadPool pool(0);
+    while (threads > pool.get_num_threads()) {
+        pool.add_thread([](){});
+    }
+    while (threads < pool.get_num_threads() && threads != 0) {
+        break;
+    }
+    return pool;
 }
 
-inline void ThreadPool::initialize(size_t threads) {
-    for (size_t i = 0; i < threads; i++) {
-        add_thread([](){} /* null function */);
+// The constructor just launches some amount of workers
+inline ThreadPool::ThreadPool(size_t threads) {
+    m_running.store(false, std::memory_order_relaxed);
+    for (size_t t = 0; t < threads ; ++t) {
+        add_thread([](){});
     }
+
+    // Wait for thread construction.
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
 }
 
-inline void ThreadPool::wake_up() {
-    m_idle.store(false);
-    m_cv.notify_all();
-}
-
-inline void ThreadPool::idle() {
-    m_idle.store(true);
-}
-
-inline void  ThreadPool::dump_status() {
-    idle();
-    std::cout << "Thread pool status"                           << std::endl;
-    std::cout << " Number threads: "   << m_fork_threads.load() << std::endl;
-    std::cout << " Remainning tasks: " << m_tasks.size()        << std::endl;
-    wake_up();
-}
-
 inline void ThreadPool::add_thread(std::function<void()> initializer) {
-    m_threads.emplace_back( [this, initializer]() -> void {
-
-        m_fork_threads++;
-        initializer();
-
-        while(true) {
-            std::function<void()> task;
-            {
-                std::unique_lock<std::mutex> lock(this->m_mutex);
-                this->m_cv.wait(lock,
-                    [this](){ return this->m_quit.load() || (!this->m_tasks.empty() && !this->m_idle.load()); });
-
-                if (this->m_quit.load()) {
-                    return;
+    m_num_threads.fetch_add(1);
+    m_workers.emplace_back(
+        [this, initializer]() -> void {
+            initializer();
+            while (true) {
+                auto task = std::function<void(void)>{};
+                {
+                    std::unique_lock<std::mutex> lock(m_queue_mutex);
+                    m_cv.wait(lock,
+                        [this](){ return is_stop_running() || !m_tasks.empty(); });
+                    if (is_stop_running() && m_tasks.empty()) break;
+                    task = std::move(m_tasks.front());
+                    m_tasks.pop();
                 }
-
-                if (this->m_idle.load() || this->m_tasks.empty()) {
-                    continue;
-                }
-
-                task = std::move(this->m_tasks.front());
-                this->m_tasks.pop();
+                task();
             }
-            task();
         }
-    });
+    );
 }
 
-template<typename F, typename... Args>
-std::future<typename std::result_of<F(Args...)>::type>
-ThreadPool::add_task(F&& f, Args&&... args) {
-    const auto lambda_except = [this]() -> void {
-        if (this->m_fork_threads.load() <= 0 || this->m_quit.load()) {
-            auto out = std::ostringstream{};
-            out << "Do not allow to add a task : ";
+inline size_t ThreadPool::get_num_threads() const {
+    return m_num_threads.load(std::memory_order_relaxed);
+}
 
-            if (this->m_quit.load()) {
-                out << "Thread pool had stopped";
-            }
-            else if (this->m_fork_threads.load() <= 0) {
-                out << "No threads";
-            }
+inline bool ThreadPool::is_stop_running() const {
+    return m_running.load(std::memory_order_relaxed);
+}
 
-            throw std::runtime_error(out.str());
-        }
-    };
-
+// Add new work item to the pool.
+template<class F, class... Args>
+auto ThreadPool::add_task(F&& f, Args&&... args)
+    -> std::future<typename std::result_of<F(Args...)>::type> {
     using return_type = typename std::result_of<F(Args...)>::type;
 
-    auto task = std::make_shared< std::packaged_task<return_type()> >(
-        std::bind(std::forward<F>(f), std::forward<Args>(args)...)
-    );
+    auto task = std::make_shared<std::packaged_task<return_type()>>(
+            std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+        );
         
     std::future<return_type> res = task->get_future();
     {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        lambda_except();
+        std::lock_guard<std::mutex> lock(m_queue_mutex);
         m_tasks.emplace([task](){ (*task)(); });
     }
     m_cv.notify_one();
-
     return res;
 }
 
-inline int ThreadPool::get_threads() const {
-    return m_fork_threads.load();
-}
-
-inline void ThreadPool::quit_all() {
-    if (m_quit.load()) {
-        return;
-    }
-
-    m_quit.store(true);
-    wake_up();
-
-    for(auto &t: m_threads) {
-        m_fork_threads--;
-        t.join();
-    }
-
-    while(!m_tasks.empty()) {
-        m_tasks.pop();
+// The destructor joins all threads.
+inline ThreadPool::~ThreadPool()
+{
+    m_running.store(true, std::memory_order_relaxed);
+    m_cv.notify_all();
+    for(auto &worker: m_workers) {
+        worker.join();
     }
 }
-
-inline ThreadPool::~ThreadPool() {
-    quit_all();
-}
-
 
 template<typename T>
 class ThreadGroup {
 public:
-    ThreadGroup(ThreadPool & pool) : m_pool(pool) {}
+    ThreadGroup(ThreadPool *pool) {
+        m_pool = pool;
+    }
+    ThreadGroup(ThreadGroup &&group) {
+        m_pool = group.m_pool;
+    }
 
     template<class F, class... Args>
     void add_task(F&& f, Args&&... args) {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        m_taskresults.emplace_back(
-            m_pool.add_task(std::forward<F>(f), std::forward<Args>(args)...)
-        );
-    }
-    
-    template<class F, class... Args>
-    void add_tasks(int t, F&& f, Args&&... args) {
-        const auto threads = m_pool.get_threads();
-        t = t > threads ? t :
-                t < 0 ? 0 : t;
-        for (int i = 0; i < t; ++i) {
-            add_task(std::forward<F>(f), std::forward<Args>(args)...);
-        }
+        m_tasks_future.emplace_back(
+            m_pool->add_task(std::forward<F>(f), std::forward<Args>(args)...));
     }
 
-    template<class F, class... Args>
-    void fill_tasks(F&& f, Args&&... args) {
-        const auto threads = m_pool.get_threads();
-        for (int i = 0; i < threads; ++i) {
-            add_task(std::forward<F>(f), std::forward<Args>(args)...);
+    void wait_to_join() {
+        for (auto &&res : m_tasks_future) {
+            res.get();
         }
-    }
-
-    void wait_all() {
-        for (auto && result : m_taskresults) {
-            result.get();
-        }
-        m_taskresults.clear();
-    }
-
-    void dump_all() {
-        int i = 0;
-        for (auto && result : m_taskresults) {
-            const auto res = result.get();
-            std::cout << "[" << i++ << "] "
-                      << res << std::endl;
-        }
-        std::cout << " end " << std::endl;
-        m_taskresults.clear();
+        m_tasks_future.clear();
     }
 
 private:
-    std::mutex m_mutex;
-    ThreadPool & m_pool;
-    std::vector<std::future<T>> m_taskresults;
+    ThreadPool *m_pool;
+    std::vector<std::future<T>> m_tasks_future;
 };
-
 #endif

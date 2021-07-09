@@ -33,10 +33,7 @@ Search::Search(Position &position, Network &network, Train &train) :
     m_position(position),  m_network(network), m_train(train) {
 
     m_parameters = std::make_shared<SearchParameters>();
-
-    const auto t = m_parameters->threads;
-    m_searchpool.initialize(t);
-    m_search_group = std::make_unique<ThreadGroup<void>>(m_searchpool);
+    m_search_group = std::make_unique<ThreadGroup<void>>(&ThreadPool::get());
 
     m_maxplayouts = m_parameters->playouts;
     m_maxvisits = m_parameters->visits;
@@ -48,7 +45,7 @@ std::shared_ptr<SearchParameters> Search::parameters() const {
 
 Search::~Search() {
     clear_nodes();
-    m_search_group->wait_all();
+    m_search_group->wait_to_join();
 }
 
 void Search::increment_playouts() {
@@ -127,7 +124,7 @@ Move Search::uct_move() {
     think(setting, &info);
 
     // Wait the threads running finish.
-    m_search_group->wait_all();
+    m_search_group->wait_to_join();
 
     auto move = info.best_move;
 
@@ -271,7 +268,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         return;
     }
 
-    m_search_group->wait_all();
+    m_search_group->wait_to_join();
     m_rootposition = m_position;
     m_setting = setting;
     if (m_rootposition.gameover(true)) {
@@ -411,13 +408,16 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
         clear_nodes();
     };
     set_running(true);
+
     m_search_group->add_task(main_worker);
-    m_search_group->add_tasks(m_parameters->threads-1, uct_worker);
+    for (int i = 0; i < m_parameters->threads-1; ++i) {
+        m_search_group->add_task(uct_worker);
+    }
 }
 
 void Search::interrupt() {
     set_running(false);
-    m_search_group->wait_all();
+    m_search_group->wait_to_join();
 }
 
 void Search::ponderhit(bool draw) {
