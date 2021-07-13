@@ -90,7 +90,6 @@ private:
 
     Types::Color resigned{Types::INVALID_COLOR};
 
-    std::uint64_t position_hash;
     int m_startboard;
     std::vector<std::shared_ptr<const Board>> m_history;
 
