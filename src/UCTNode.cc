@@ -464,6 +464,7 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
     const auto cpuct_init           = is_root ? parameters()->cpuct_root_init : parameters()->cpuct_init;
     const auto cpuct_base           = is_root ? parameters()->cpuct_root_base : parameters()->cpuct_base;
     const auto draw_factor          = is_root ? parameters()->draw_root_factor : parameters()->draw_factor;
+    const auto forced_policy_factor = is_root ? parameters()->forced_policy_factor : 0.0f;
 
     const float cpuct = cpuct_init + std::log((float(parentvisits) + cpuct_base + 1) / cpuct_base);
     const float numerator = std::sqrt(float(parentvisits));
@@ -496,13 +497,20 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
         }
 
         float denom = 1.0f;
+        float bonus = 0.0f;
         if (is_pointer) {
             denom += node->get_visits();
+            auto forced_playouts = std::sqrt(forced_policy_factor *
+                                                 node->get_policy() *
+                                                 float(parentvisits));
+            bonus += (int) (forced_playouts - denom + 1.0f);
+            bonus *= 10;
+            bonus = std::max(bonus, 0.0f);
         }
 
         const float psa = child->data()->policy;
         const float puct = cpuct * psa * (numerator / denom);
-        const float value = q_value + puct;
+        const float value = q_value + puct + bonus;
         assert(value > std::numeric_limits<float>::lowest());
 
         if (value > best_value) {

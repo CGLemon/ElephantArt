@@ -98,6 +98,7 @@ void init_options_map() {
     options_map["playouts"] << Utils::Option::setoption(Search::MAX_PLAYOUTS);
     options_map["cap_playouts"] << Utils::Option::setoption(0);
     options_map["visits"] << Utils::Option::setoption(Search::MAX_PLAYOUTS);
+    options_map["forced_policy_factor"] << Utils::Option::setoption(0.f);
     options_map["fpu_reduction"] << Utils::Option::setoption(0.25f);
     options_map["fpu_root_reduction"] << Utils::Option::setoption(0.25f);
     options_map["cpuct_init"] << Utils::Option::setoption(2.5f);
@@ -263,6 +264,13 @@ ArgsParser::ArgsParser(int argc, char** argv) {
                 set_option("mode", res->get<std::string>());
                 parser.remove_slice(res->idx-1, res->idx+1);
             }
+        }
+    }
+
+    if (const auto res = parser.find_next("--forced-policy-factor")) {
+        if (is_parameter(res->str)) {
+            set_option("forced_policy_factor", res->get<float>());
+            parser.remove_slice(res->idx-1, res->idx+1);
         }
     }
 
