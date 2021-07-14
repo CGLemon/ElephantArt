@@ -98,7 +98,7 @@ void init_options_map() {
     options_map["playouts"] << Utils::Option::setoption(Search::MAX_PLAYOUTS);
     options_map["cap_playouts"] << Utils::Option::setoption(0);
     options_map["visits"] << Utils::Option::setoption(Search::MAX_PLAYOUTS);
-    options_map["forced_policy_factor"] << Utils::Option::setoption(1.f);
+    options_map["forced_policy_factor"] << Utils::Option::setoption(0.f);
     options_map["fpu_reduction"] << Utils::Option::setoption(0.25f);
     options_map["fpu_root_reduction"] << Utils::Option::setoption(0.25f);
     options_map["cpuct_init"] << Utils::Option::setoption(2.5f);
