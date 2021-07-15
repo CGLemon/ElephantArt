@@ -148,7 +148,7 @@ std::string PGNParser::get_pgnstring(PGNRecorder pgn) const {
     stream_helper(pgn, "Format", pgnstream);
 
     auto pos = std::make_shared<Position>();
-    pos->init_game(0);
+    pos->init_game();
     auto fmt = pgn.format;
     auto cnt = 1;
     for (auto idx = size_t{0}; idx < pgn.moves.size();) {
@@ -370,7 +370,7 @@ PGNRecorder PGNParser::parse_pgnstring(std::string pgnstring, int idx) const {
     while(buffer.get(c)) {
         if (c == '[') {
             if (!property_step) {
-                pos->init_game(0);
+                pos->init_game();
                 pgn.valid = true;
                 property_step = true;
             }

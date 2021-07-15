@@ -25,7 +25,7 @@
 #include <iterator>
 #include <sstream>
 
-void Position::init_game(const int tag) {
+void Position::init_game() {
     m_startboard = 0;
     m_history.clear();
     board.reset_board();

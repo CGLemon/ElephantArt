@@ -219,6 +219,67 @@ void UCTNode::set_result(Types::Color color) {
     }
 }
 
+void UCTNode::policy_target_pruning() {
+    wait_expanded();
+    assert(has_children());
+
+    auto buffer = std::vector<std::pair<int, int>>{};
+
+    int parentvisits = 0;
+    int most_visits_maps = -1;
+    int most_visits = 0;
+
+    for (const auto &child : m_children) {
+        const auto node = child->get();
+        const bool is_pointer = node == nullptr ? false : true;
+
+        if (!is_pointer || !node->is_active()) {
+            continue;
+        }
+
+        const auto visits = node->get_visits();
+        const auto maps = node->get_maps();
+        parentvisits += visits;
+        buffer.emplace_back(visits, maps);
+
+        if (most_visits < visits) {
+            most_visits = visits;
+            most_visits_maps = maps;
+        }
+    }
+
+    assert(!buffer.empty());
+
+    const auto forced_policy_factor = parameters()->forced_policy_factor;
+    for (const auto &x : buffer) {
+        const auto visits = x.first;
+        const auto maps = x.second;
+        auto node = get_child(maps);
+
+        auto forced_playouts = std::sqrt(forced_policy_factor *
+                                             node->get_policy() *
+                                             float(parentvisits));
+        auto new_visits = std::max(visits - int(forced_playouts), 0);
+        node->set_visits(new_visits);
+    }
+
+    while (true) {
+        auto node = uct_select_child(get_color(), false);
+        if (node->get_maps() == most_visits_maps) {
+            break;
+        }
+        node->set_active(false);
+    }
+
+
+    for (const auto &x : buffer) {
+        const auto visits = x.first;
+        const auto maps = x.second;
+        get_child(maps)->set_visits(visits);
+    }
+
+}
+
 const std::vector<std::shared_ptr<UCTNode::UCTNodePointer>> &UCTNode::get_children() const {
     return m_children;
 }
@@ -721,6 +782,10 @@ void UCTNode::increment_edges() {
 
 void UCTNode::decrement_edges() {
     node_status()->edges.fetch_sub(1); 
+}
+
+void UCTNode::set_visits(int v) {
+    m_visits.store(v);
 }
 
 void UCTNode::set_active(const bool active) {

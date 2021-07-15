@@ -175,8 +175,6 @@ void Search::prepare_uct() {
     set_playouts(0);
     set_running(true);
 
-    // TODO: According to "Accelerating Self-Play Learning in Go",
-    //       implement policy target pruning to improve probabilities.
     auto dirichlet = std::vector<float>{};
 
     m_rootnode->prepare_root_node(m_network, m_rootposition, dirichlet);

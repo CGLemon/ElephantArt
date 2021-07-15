@@ -68,6 +68,8 @@ public:
                          const bool is_root = false);
 
     UCTNodeEvals get_node_evals() const;
+
+    void policy_target_pruning();
     int get_maps() const;
     float get_policy() const;
     int get_visits() const;
@@ -104,6 +106,7 @@ public:
 
     void make_terminated(Types::Color color);
 
+    void set_visits(int v);
     void set_active(const bool active);
     void invalinode();
 

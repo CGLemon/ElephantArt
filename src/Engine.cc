@@ -37,10 +37,9 @@ void Engine::initialize() {
     while (m_positions.size() < games) {
         m_positions.emplace_back(std::make_shared<Position>());
     }
-    
-    int tag = 0;
+
     for (auto &p : m_positions) {
-        p->init_game(tag++);
+        p->init_game();
     }
     
     if (m_network == nullptr) {
@@ -88,7 +87,7 @@ std::shared_ptr<Train> Engine::get_train(const int g) const {
 
 void Engine::reset_game(const int g) {
     const auto adj_g = clamp(g);
-    get_position(adj_g)->init_game(adj_g);
+    get_position(adj_g)->init_game();
 }
 
 
@@ -369,7 +368,7 @@ Engine::Response Engine::ponderhit(const bool draw, const int g) {
 Engine::Response Engine::newgame(const int g) {
     auto p = get_position(g); 
     m_network->clear_cache();
-    p->init_game(clamp(g));
+    p->init_game();
     return std::string{};
 }
 

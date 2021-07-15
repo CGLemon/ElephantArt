@@ -144,14 +144,20 @@ Types::Piece_t maps2piece(int maps, Position &pos) {
     return piece;
 }
 
-void proccess_probabilities(UCTNode &node, DataCollection &data, int min_cutoff) {
+void proccess_probabilities(UCTNode &node, DataCollection &data, bool prune, int min_cutoff) {
     assert(data.probabilities.empty());
+    if (prune) {
+        node.policy_target_pruning();
+    }
 
     const auto children = node.get_children();
     auto buf = std::vector<std::pair<int, int>>{};
 
     for (const auto &child: children) {
         const auto node = child->get();
+        if (node->is_pruned()) {
+            continue;
+        }
         const auto maps = node->get_maps();
         const auto visits = node->get_visits();
         if (visits > min_cutoff) {
@@ -162,7 +168,7 @@ void proccess_probabilities(UCTNode &node, DataCollection &data, int min_cutoff)
     if (buf.empty()) {
         // If we cut off all children, don't try to cut off next time.
         assert(min_cutoff != 0);
-        proccess_probabilities(node, data, 0);
+        proccess_probabilities(node, data, false, 0);
         return;
     }
 
@@ -257,7 +263,7 @@ void Train::gather_probabilities(UCTNode &node, Position &pos) {
 
     auto data = DataCollection{};
     data.version = get_version();
-    proccess_probabilities(node, data, option<int>("min_cutoff"));
+    proccess_probabilities(node, data, true, option<int>("min_cutoff"));
 
     const auto maps = node.get_best_move();
     const auto piece = maps2piece(maps, pos);
@@ -338,7 +344,7 @@ void Train::supervised(std::string pgnfile, std::string datafile) {
         if (pgn.result == Types::INVALID_COLOR) {
             continue;
         }
-        pos->init_game(0);
+        pos->init_game();
         pos->fen(pgn.start_fen);
 
         for (const auto &pair: pgn.moves) {

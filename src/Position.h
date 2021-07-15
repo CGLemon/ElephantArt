@@ -32,7 +32,7 @@ public:
         NONE = 0, DRAW, LOSE, UNKNOWN
     };
 
-    void init_game(const int tag);
+    void init_game();
 
     void display() const;
 
