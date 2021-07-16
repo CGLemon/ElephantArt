@@ -222,6 +222,7 @@ void UCTNode::set_result(Types::Color color) {
 void UCTNode::policy_target_pruning() {
     wait_expanded();
     assert(has_children());
+    inflate_all_children();
 
     auto buffer = std::vector<std::pair<int, int>>{};
 
@@ -231,9 +232,8 @@ void UCTNode::policy_target_pruning() {
 
     for (const auto &child : m_children) {
         const auto node = child->get();
-        const bool is_pointer = node == nullptr ? false : true;
 
-        if (!is_pointer || !node->is_active()) {
+        if (!node->is_active()) {
             continue;
         }
 
@@ -270,7 +270,6 @@ void UCTNode::policy_target_pruning() {
         }
         node->set_active(false);
     }
-
 
     for (const auto &x : buffer) {
         const auto visits = x.first;

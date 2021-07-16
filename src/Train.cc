@@ -263,7 +263,7 @@ void Train::gather_probabilities(UCTNode &node, Position &pos) {
 
     auto data = DataCollection{};
     data.version = get_version();
-    proccess_probabilities(node, data, true, option<int>("min_cutoff"));
+    proccess_probabilities(node, data, false, option<int>("min_cutoff"));
 
     const auto maps = node.get_best_move();
     const auto piece = maps2piece(maps, pos);
