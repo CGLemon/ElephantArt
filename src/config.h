@@ -28,7 +28,7 @@
 
 const std::string PROGRAM = "ElephantArt";
 
-const std::string VERSION = "pre-alpha"; 
+const std::string VERSION = "alpha"; 
 
 template<typename T>
 T option(std::string name);
