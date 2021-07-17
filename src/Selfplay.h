@@ -35,6 +35,8 @@ public:
 private:
     void init();
 
+    bool handle();
+
     void loop();
 
     std::vector<std::thread> m_workers;
@@ -42,7 +44,9 @@ private:
 
     std::atomic<int> m_games;
     int m_max_games;
+    std::uint64_t m_filename_hash;
 
+    std::string m_directory;
     std::string m_pgn_filename;
     std::string m_data_filename;
     std::mutex m_io_mtx;

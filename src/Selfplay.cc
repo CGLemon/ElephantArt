@@ -20,6 +20,7 @@
 #include "config.h"
 #include "Utils.h"
 #include "Random.h"
+#include "FileSystem.h"
 
 #include <iomanip>
 #include <sstream>
@@ -34,28 +35,55 @@ void Selfplay::init() {
         m_selfplay_engine = std::make_unique<Engine>();
     }
     m_selfplay_engine->initialize();
-}
 
-void Selfplay::loop() {
     m_games.store(0);
+    m_directory = option<std::string>("selfplay_directory");
+    m_max_games = option<int>("selfplay_games");
 
-    LOGGING << "Target games: " << option<int>("selfplay_games") << std::endl;
-    LOGGING << "Object directory: " << option<std::string>("selfplay_directory")  << std::endl;
-
-    m_max_games =  option<int>("selfplay_games");
-
-    auto filename_hash = Random<random_t::XoroShiro128Plus>::get_Rng().randuint64();
+    m_filename_hash = Random<random_t::XoroShiro128Plus>::get_Rng().randuint64();
     auto ss = std::ostringstream();
 
-    ss << std::hex << filename_hash << std::dec;
-
+    ss << std::hex << m_filename_hash << std::dec;
 
     m_data_filename = option<std::string>("selfplay_directory") +
                           "/" + ss.str() + ".data";
 
     m_pgn_filename = option<std::string>("selfplay_directory") +
                           "/" + ss.str() + ".pgn";
+}
 
+bool Selfplay::handle() {
+    if (m_directory.empty()) {
+        ERROR << "No directory for saving data." << std::endl;
+        ERROR << "Please add option --selfplay-directory <directory name>." << std::endl;
+        return false;
+    }
+
+    if (m_max_games <= 0) {
+        ERROR << "The number of self-play games is zero." << std::endl;
+        ERROR << "Please add option --selfplay-games <integer>." << std::endl;
+        return false;
+    }
+    return true;
+}
+
+void Selfplay::loop() {
+    if (!handle()) {
+        return;
+    }
+
+    // Dump some infomations.
+    LOGGING << "Hash: " << m_filename_hash << std::endl;
+    LOGGING << "Target self-play games: " << m_max_games << std::endl;
+    LOGGING << "Directory for saving: " << m_directory  << std::endl;
+
+    // If the directory didn't exist, creating a new one.
+    if (!is_directory_exist(m_directory)) {
+        create_directory(m_directory);
+    }
+
+    // Close all verbose.
+    set_option("analysis-verbose", false);
     set_option("ucci_response", false);
 
     for (int g = 0; g < option<int>("sync_games"); ++g) {
@@ -67,6 +95,8 @@ void Selfplay::loop() {
                     m_selfplay_engine->selfplay(g);
                     {
                         std::lock_guard<std::mutex> lock(m_io_mtx);
+
+                        // Save selfplay data.
                         m_selfplay_engine->dump_collection(m_data_filename, g);
                         m_selfplay_engine->printf_pgn(m_pgn_filename, g);
                     }
