@@ -29,12 +29,13 @@
 
 const static std::string get_license() {
     auto out = std::ostringstream{};
-    out << "    ";
-    out << PROGRAM << " " << VERSION << " Copyright (C) 2021  Hung-Zhe Lin"    << std::endl;
-    out << "    This program comes with ABSOLUTELY NO WARRANTY."               << std::endl;
-    out << "    This is free software, and you are welcome to redistribute it" << std::endl;
-    out << "    under certain conditions; see the COPYING file for details."   << std::endl;
-
+    if (!option<bool>("quit_license")) {
+        out << "    ";
+        out << PROGRAM << " " << VERSION << " Copyright (C) 2021  Hung-Zhe Lin"    << std::endl;
+        out << "    This program comes with ABSOLUTELY NO WARRANTY."               << std::endl;
+        out << "    This is free software, and you are welcome to redistribute it" << std::endl;
+        out << "    under certain conditions; see the COPYING file for details."   << std::endl;
+    }
     return out.str();
 }
 

@@ -66,6 +66,7 @@ OPTIONS_SET_EXPASSION(char)
 void init_options_map() {
     options_map["name"] << Utils::Option::setoption(PROGRAM);
     options_map["version"] << Utils::Option::setoption(VERSION);
+    options_map["quit_license"] << Utils::Option::setoption(false);
 
     options_map["mode"] << Utils::Option::setoption("ascii");
     options_map["help"] << Utils::Option::setoption(false);
@@ -198,6 +199,11 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 
     if (const auto res = parser.find({"--help", "-h"})) {
         set_option("help", true);
+        parser.remove_command(res->idx);
+    }
+
+    if (const auto res = parser.find("--quit-license")) {
+        set_option("quit_license", true);
         parser.remove_command(res->idx);
     }
 
@@ -545,6 +551,7 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 void ArgsParser::help() const {
     ERROR << "Arguments:" << std::endl
               << "  --help, -h" << std::endl
+              << "  --quit-license" << std::endl
               << "  --chinese, -ch" << std::endl
               << "  --mode, -m [ascii/ucci]" << std::endl
               << "  --playouts, -p <integer>" << std::endl
