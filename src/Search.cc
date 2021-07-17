@@ -53,7 +53,7 @@ void Search::increment_playouts() {
 }
 
 float Search::get_min_psa_ratio() {
-    auto v = m_playouts.load();
+    auto v = (size_t)m_playouts.load();
     if (v >= MAX_PLAYOUTS) {
         return 1.0f;
     }

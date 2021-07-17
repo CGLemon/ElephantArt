@@ -95,7 +95,7 @@ public:
 
 class Search {
 public:
-    static constexpr auto MAX_PLAYOUTS = 1500000;
+    static constexpr auto MAX_PLAYOUTS = 150000000;
     Search(Position &pos, Network &network, Train &train);
     ~Search();
 

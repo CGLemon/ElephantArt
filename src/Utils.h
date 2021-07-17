@@ -75,6 +75,7 @@ private:
     int m_line;
 };
 
+std::string bool_to_str(bool);
 void space_stream(std::ostream &out, const size_t times);
 void strip_stream(std::ostream &out, const size_t times);
 

@@ -210,6 +210,13 @@ UCCIDebug::~UCCIDebug() {
     }
 }
 
+std::string bool_to_str(bool v) {
+    if (v) {
+        return std::string{"true"};
+    }
+    return std::string{"false"};
+}
+
 void space_stream(std::ostream &out, const size_t times) {
     for (auto t = size_t{0}; t < times; ++t) {
         out << " ";

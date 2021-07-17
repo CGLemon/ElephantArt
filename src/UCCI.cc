@@ -60,8 +60,12 @@ std::string UCCI::execute(Utils::CommandParser &parser) {
         out << "id name " << PROGRAM << " " << VERSION << std::endl;
         out << "id copyright 2021 NA" << std::endl;
         out << "id author NA" << std::endl;
-        out << "option usemillisec type check default false" << std::endl;
-        out << "option cachesize type spin min 1 max 131072 default 50" << std::endl;
+        out << "option usemillisec type check default "
+                << Utils::bool_to_str(option<bool>("usemillisec")) << std::endl;
+        out << "option cachesize type spin min 1 max 131072 default "
+                << option<int>("cache_size") << std::endl;
+        out << "option playouts type spin min 0 max 150000000 default "
+                << option<int>("playouts") << std::endl;
         out << "ucciok" << std::endl;
     } else if (const auto res = parser.find("isready", 0)) {
         out << "readyok" << std::endl;
