@@ -606,14 +606,15 @@ UCTNode *UCTNode::prob_select_child() {
         const auto node = child->get();
         const bool is_pointer = node == nullptr ? false : true;
 
-        auto prob = node->get_policy();
+        auto prob = child->data()->policy;
 
         // The node was pruned. Skip this time.
         if (is_pointer && !node->is_active()) {
             continue;
         }
 
-        if (node->is_expending()) {
+        // The node was expending.
+        if (is_pointer && node->is_expending()) {
             prob = -1.0f + prob;
         }
 
