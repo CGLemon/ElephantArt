@@ -20,6 +20,9 @@
 #define SEARCHPARAMETERS_H_INCLUDE
 
 #include "config.h"
+#include "Board.h"
+#include "Model.h"
+#include <array>
 
 class SearchParameters {
 public:
@@ -52,6 +55,8 @@ public:
     float dirichlet_epsilon;
     float dirichlet_factor;
     float dirichlet_init;
+
+    std::array<float, POLICYMAP * Board::INTERSECTIONS> dirichlet_buffer;
 };
 
 #endif

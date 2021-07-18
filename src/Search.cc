@@ -175,9 +175,8 @@ void Search::prepare_uct() {
     set_playouts(0);
     set_running(true);
 
-    auto dirichlet = std::vector<float>{};
 
-    m_rootnode->prepare_root_node(m_network, m_rootposition, dirichlet);
+    m_rootnode->prepare_root_node(m_network, m_rootposition);
     const auto nn_eval = m_rootnode->get_node_evals();
     m_rootnode->update(std::make_shared<UCTNodeEvals>(nn_eval));
 

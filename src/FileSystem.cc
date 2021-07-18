@@ -36,7 +36,6 @@ bool is_directory_exist(const std::string& directory) {
     return true;
 }
 
-
 std::vector<std::string> get_file_list(const std::string& directory) {
     std::vector<std::string> result;
 #ifdef WIN32

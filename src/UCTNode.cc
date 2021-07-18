@@ -499,6 +499,17 @@ std::vector<std::pair<float, int>> UCTNode::get_winrate_list(const Types::Color 
     return list;
 }
 
+float UCTNode::get_uct_policy(std::shared_ptr<UCTNodePointer> child, bool noise) const {
+    auto policy = child->data()->policy;
+    if (noise) {
+        const auto maps = child->data()->maps;
+        const auto epsilon = parameters()->dirichlet_epsilon;
+        const auto eta_a = parameters()->dirichlet_buffer[maps];
+        policy = policy * (1 - epsilon) + epsilon * eta_a;
+    }
+    return policy;
+}
+
 UCTNode *UCTNode::uct_select_child(const Types::Color color,
                                    const bool is_root) {
     wait_expanded();
@@ -525,6 +536,7 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
     const auto cpuct_base           = is_root ? parameters()->cpuct_root_base : parameters()->cpuct_base;
     const auto draw_factor          = is_root ? parameters()->draw_root_factor : parameters()->draw_factor;
     const auto forced_policy_factor = is_root ? parameters()->forced_policy_factor : 0.0f;
+    const auto noise                = is_root ? parameters()->dirichlet_noise : false;
 
     const float cpuct = cpuct_init + std::log((float(parentvisits) + cpuct_base + 1) / cpuct_base);
     const float numerator = std::sqrt(float(parentvisits));
@@ -568,7 +580,7 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
             bonus = std::max(bonus, 0.0f);
         }
 
-        const float psa = child->data()->policy;
+        const float psa = get_uct_policy(child, noise);
         const float puct = cpuct * psa * (numerator / denom);
         const float value = q_value + puct + bonus;
         assert(value > std::numeric_limits<float>::lowest());
@@ -640,60 +652,55 @@ void UCTNode::update(std::shared_ptr<UCTNodeEvals> evals) {
     Utils::atomic_add(m_accumulated_draws, evals->draw);
 }
 
-std::vector<float> UCTNode::apply_dirichlet_noise(const float epsilon, const float alpha) {
+void UCTNode::apply_dirichlet_noise(const float alpha) {
     auto child_cnt = m_children.size();
-    auto dirichlet_buffer = std::vector<float>(child_cnt);
+    auto buffer = std::vector<float>(child_cnt);
     auto gamma = std::gamma_distribution<float>(alpha, 1.0f);
 
-    std::generate(std::begin(dirichlet_buffer), std::end(dirichlet_buffer),
+    std::generate(std::begin(buffer), std::end(buffer),
                       [&gamma] () { return gamma(Random<random_t::XoroShiro128Plus>::get_Rng()); });
 
     auto sample_sum =
-        std::accumulate(std::begin(dirichlet_buffer), std::end(dirichlet_buffer), 0.0f);
+        std::accumulate(std::begin(buffer), std::end(buffer), 0.0f);
+
+    // Clear dirichlet buffer.
+    parameters()->dirichlet_buffer.fill(0.0f);
 
     // If the noise vector sums to 0 or a denormal, then don't try to
     // normalize.
     if (sample_sum < std::numeric_limits<float>::min()) {
-        std::fill(std::begin(dirichlet_buffer), std::end(dirichlet_buffer), 0.0f);
-        return dirichlet_buffer;
+        return;
     }
 
-    for (auto &v : dirichlet_buffer) {
+    for (auto &v : buffer) {
         v /= sample_sum;
     }
 
     child_cnt = 0;
-    // Be Sure all node are expended.
-    inflate_all_children();
+
     for (const auto &child : m_children) {
-        auto node = child->get();
-        auto policy = node->get_policy();
-        auto eta_a = dirichlet_buffer[child_cnt++];
-        policy = policy * (1 - epsilon) + epsilon * eta_a;
-        node->set_policy(policy);
+        const auto maps = child->data()->maps;
+        parameters()->dirichlet_buffer[maps] = buffer[child_cnt++];
     }
-    return dirichlet_buffer;
+
 }
 
 UCTNodeEvals UCTNode::prepare_root_node(Network &network,
-                                        Position &position,
-                                        std::vector<float> &dirichlet) {
+                                        Position &position) {
     const auto noise = parameters()->dirichlet_noise;
     const auto is_root = true;
     const auto success = expend_children(network, position, 0.0f, is_root);
     const auto had_childen = has_children();
-    dirichlet.clear();
     assert(success && had_childen);
 
     if (success && had_childen) {
         inflate_all_children();
         if (noise) {
             const auto legal_move = m_children.size();
-            const auto epsilon = parameters()->dirichlet_epsilon;
             const auto factor = parameters()->dirichlet_factor;
             const auto init = parameters()->dirichlet_init;
             const auto alpha = init * factor / static_cast<float>(legal_move);
-            dirichlet = apply_dirichlet_noise(epsilon, alpha);
+            apply_dirichlet_noise(alpha);
         }
     }
 

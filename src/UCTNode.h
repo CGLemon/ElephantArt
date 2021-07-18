@@ -60,8 +60,7 @@ public:
     ~UCTNode();
 
     UCTNodeEvals prepare_root_node(Network &network,
-                                   Position &position,
-                                   std::vector<float> &dirichlet);
+                                   Position &position);
     bool expend_children(Network &network,
                          Position &position,
                          const float min_psa_ratio,
@@ -149,9 +148,11 @@ private:
                         const Types::Color color);
     void inflate_all_children();
     void release_all_children();
-    std::vector<float> apply_dirichlet_noise(const float epsilon, const float alpha);
+
+    void apply_dirichlet_noise(const float alpha);
     void set_policy(const float p);
 
+    float get_uct_policy(std::shared_ptr<UCTNodePointer> child, bool noise) const;
     int get_threads() const;
     int get_virtual_loss() const;
 
