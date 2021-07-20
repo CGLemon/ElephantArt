@@ -45,11 +45,11 @@ void Selfplay::init() {
 
     ss << std::hex << m_filename_hash << std::dec;
 
-    m_data_filename = option<std::string>("selfplay_directory") +
-                          "/" + ss.str() + ".data";
+    m_data_filename = connect_path(option<std::string>("selfplay_directory"),
+                                       ss.str() + ".data");
 
-    m_pgn_filename = option<std::string>("selfplay_directory") +
-                          "/" + ss.str() + ".pgn";
+    m_pgn_filename = connect_path(option<std::string>("selfplay_directory"),
+                                      ss.str() + ".pgn");
 }
 
 bool Selfplay::handle() {
