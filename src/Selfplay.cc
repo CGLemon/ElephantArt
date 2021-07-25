@@ -31,6 +31,10 @@ Selfplay::Selfplay() {
 }
 
 void Selfplay::init() {
+    // Close all verbose.
+    set_option("analysis-verbose", false);
+    set_option("ucci_response", false);
+
     if (m_selfplay_engine == nullptr) {
         m_selfplay_engine = std::make_unique<Engine>();
     }
@@ -81,10 +85,6 @@ void Selfplay::loop() {
     if (!is_directory_exist(m_directory)) {
         create_directory(m_directory);
     }
-
-    // Close all verbose.
-    set_option("analysis-verbose", false);
-    set_option("ucci_response", false);
 
     for (int g = 0; g < option<int>("sync_games"); ++g) {
         m_workers.emplace_back(
