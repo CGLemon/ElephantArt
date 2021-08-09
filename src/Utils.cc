@@ -586,6 +586,16 @@ int Timer::get_record_count() const {
     return record_count;
 }
 
+const std::string get_current_time() {
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%Y-%m-%d-%X", &tstruct);
+
+    return buf;
+}
+
 const std::vector<float>& Utils::Timer::get_record() const {
     return m_record;
 }

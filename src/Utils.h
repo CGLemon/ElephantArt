@@ -101,7 +101,7 @@ void atomic_add(std::atomic<T> &f, T d) {
 }
 
 /**
- * Transform the string to words.
+ * Split the string to words.
  */
 class CommandParser {
 public:
@@ -260,6 +260,8 @@ private:
     std::vector<float> m_record;
     size_t record_count;
 };
+
+const std::string get_current_time();
 
 class BitIterator {
 public :

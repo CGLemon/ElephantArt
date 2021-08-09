@@ -42,7 +42,9 @@ private:
     std::vector<std::thread> m_workers;
     std::unique_ptr<Engine> m_selfplay_engine{nullptr};
 
-    std::atomic<int> m_games;
+    std::atomic<int> m_started_games;
+    std::atomic<int> m_played_games;
+
     int m_max_games;
     std::uint64_t m_filename_hash;
 

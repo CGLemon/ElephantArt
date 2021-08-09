@@ -40,7 +40,9 @@ void Selfplay::init() {
     }
     m_selfplay_engine->initialize();
 
-    m_games.store(0);
+    m_started_games.store(0);
+    m_played_games.store(0);
+
     m_directory = option<std::string>("selfplay_directory");
     m_max_games = option<int>("selfplay_games");
 
@@ -49,23 +51,23 @@ void Selfplay::init() {
 
     ss << std::hex << m_filename_hash << std::dec;
 
-    m_data_filename = connect_path(option<std::string>("selfplay_directory"),
+    m_data_filename = connect_path(m_directory,
                                        ss.str() + ".data");
 
-    m_pgn_filename = connect_path(option<std::string>("selfplay_directory"),
+    m_pgn_filename = connect_path(m_directory,
                                       ss.str() + ".pgn");
 }
 
 bool Selfplay::handle() {
     if (m_directory.empty()) {
         ERROR << "No directory for saving data." << std::endl;
-        ERROR << "Please add option --selfplay-directory <directory name>." << std::endl;
+        ERROR << "Please add the option --selfplay-directory <directory name>." << std::endl;
         return false;
     }
 
     if (m_max_games <= 0) {
         ERROR << "The number of self-play games is zero." << std::endl;
-        ERROR << "Please add option --selfplay-games <integer>." << std::endl;
+        ERROR << "Please add the option --selfplay-games <integer>." << std::endl;
         return false;
     }
     return true;
@@ -77,9 +79,10 @@ void Selfplay::loop() {
     }
 
     // Dump some infomations.
-    LOGGING << "Hash: " << m_filename_hash << std::endl;
-    LOGGING << "Target self-play games: " << m_max_games << std::endl;
-    LOGGING << "Directory for saving: " << m_directory  << std::endl;
+    LOGGING << "The hash name is: " << m_filename_hash << std::endl;
+    LOGGING << "The target self-play games: " << m_max_games << std::endl;
+    LOGGING << "The Directory for saving: " << m_directory  << std::endl;
+    LOGGING << "The start time is " << Utils::get_current_time() << std::endl;
 
     // If the directory didn't exist, creating a new one.
     if (!is_directory_exist(m_directory)) {
@@ -89,24 +92,28 @@ void Selfplay::loop() {
     for (int g = 0; g < option<int>("sync_games"); ++g) {
         m_workers.emplace_back(
             [this, g]() -> void {
-                auto main_thread = (g == 0);
+                LOGGING << "The thread " << (g+1) << " start running." << std::endl;
 
-                while (m_games.load() < m_max_games) {
+                while (m_started_games.load() < m_max_games) {
+                    m_started_games.fetch_add(1);
                     m_selfplay_engine->selfplay(g);
                     {
                         std::lock_guard<std::mutex> lock(m_io_mtx);
 
-                        // Save selfplay data.
+                        // Save the selfplay data.
                         m_selfplay_engine->dump_collection(m_data_filename, g);
                         m_selfplay_engine->printf_pgn(m_pgn_filename, g);
                     }
                     m_selfplay_engine->reset_game(g);
-                    m_games.fetch_add(1);
+                    m_played_games.fetch_add(1);
 
-                    if (main_thread) {
-                        LOGGING << "Played " << m_games.load() << " games." << std::endl;
+                    auto played_games = m_played_games.load();
+                    if (played_games % 10 == 0) {
+                        LOGGING << '['<< Utils::get_current_time() << ']'
+                                    << " Played: " << played_games << " games." << std::endl;
                     }
                 }
+                LOGGING << "The thread " << (g+1) << " terminated." << std::endl;
             }
         );
     }
