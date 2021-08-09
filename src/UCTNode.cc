@@ -186,34 +186,27 @@ void UCTNode::link_nodelist(std::vector<Network::PolicyMapsPair> &nodelist, floa
 
 void UCTNode::link_nn_output(const Network::Netresult &raw_netlist,
                              const Types::Color color){
-
-    auto stmeval = raw_netlist.winrate_misc[3];
     auto wl = raw_netlist.winrate_misc[0] - raw_netlist.winrate_misc[2];
     auto draw = raw_netlist.winrate_misc[1];
 
-    stmeval = (stmeval + 1) * 0.5f;
     wl = (wl + 1) * 0.5f;
 
     if (color == Types::BLACK) {
-        stmeval = 1.0f - stmeval;
         wl = 1.0f - wl;
     }
-    m_red_stmeval = stmeval;
+
     m_red_winloss = wl;
     m_draw = draw;
 }
 
 void UCTNode::set_result(Types::Color color) {
     if (color == Types::RED) {
-        m_red_stmeval = 1;
         m_red_winloss = 1;
         m_draw = 0;
     } else if (color == Types::BLACK) {
-        m_red_stmeval = 0;
         m_red_winloss = 0;
         m_draw = 0;
     } else if (color == Types::EMPTY_COLOR) {
-        m_red_stmeval = 0.5;
         m_red_winloss = 0.5;
         m_draw = 1;
     }
@@ -286,7 +279,6 @@ const std::vector<std::shared_ptr<UCTNode::UCTNodePointer>> &UCTNode::get_childr
 UCTNodeEvals UCTNode::get_node_evals() const {
     auto evals = UCTNodeEvals{};
 
-    evals.red_stmeval = m_red_stmeval;
     evals.red_winloss = m_red_winloss;
     evals.draw = m_draw;
 
@@ -305,13 +297,6 @@ int UCTNode::get_visits() const {
     return m_visits.load();
 }
 
-float UCTNode::get_nn_stmeval(const Types::Color color) const {
-    if (color == Types::RED) {
-        return m_red_stmeval;
-    }
-    return 1.0f - m_red_stmeval;
-}
-
 float UCTNode::get_nn_winloss(const Types::Color color) const {
     if (color == Types::RED) {
         return m_red_winloss;
@@ -319,16 +304,8 @@ float UCTNode::get_nn_winloss(const Types::Color color) const {
     return 1.0f - m_red_winloss;
 }
 
-float UCTNode::get_nn_meaneval(const Types::Color color) const {
-    return (get_nn_stmeval(color) + get_nn_winloss(color)) * 0.5f;
-}
-
 float UCTNode::get_nn_draw() const {
     return m_draw;
-}
-
-float UCTNode::get_accumulated_evals() const {
-    return m_accumulated_red_stmevals.load();
 }
 
 float UCTNode::get_accumulated_wls() const {
@@ -360,7 +337,7 @@ float UCTNode::get_eval_lcb(const Types::Color color) const {
         return get_policy() - 1e6f;
     }
 
-    const auto mean = get_meaneval(color, false);
+    const auto mean = get_winloss(color, false);
     const auto variance = get_eval_variance(1.0f, visits);
     const auto stddev = std::sqrt(variance / float(visits));
     const auto z = Utils::cached_t_quantile(visits - 1);
@@ -376,29 +353,6 @@ int UCTNode::get_virtual_loss() const {
     const auto threads = get_threads();
     const auto virtual_loss = threads * VIRTUAL_LOSS_COUNT;
     return virtual_loss;
-}
-
-float UCTNode::get_stmeval(const Types::Color color,
-                           const bool use_virtual_loss) const {
-    auto virtual_loss = get_virtual_loss();
-    auto visits = get_visits();
-
-    if (use_virtual_loss) {
-        // If this node is seaching, punish this node.
-        visits += virtual_loss;
-    }
-
-    assert(visits >= 0);
-    auto accumulated_evals = get_accumulated_evals();
-    if (color == Types::BLACK && use_virtual_loss) {
-        accumulated_evals += static_cast<float>(virtual_loss);
-    }
-    auto eval = accumulated_evals / static_cast<float>(visits);
-
-    if (color == Types::RED) {
-        return eval;
-    }
-    return 1.0f - eval;
 }
 
 float UCTNode::get_winloss(const Types::Color color,
@@ -424,16 +378,8 @@ float UCTNode::get_winloss(const Types::Color color,
     return 1.0f - wl;
 }
 
-float UCTNode::get_meaneval(const Types::Color color,
-                            const bool use_virtual_loss) const {
-    return (get_winloss(color, use_virtual_loss) + get_stmeval(color, use_virtual_loss)) * 0.5f;
-}
-
 float UCTNode::get_draw() const {
-    auto visits = get_visits();
-    auto accumulated_draws = get_accumulated_draws();
-    auto draw = accumulated_draws / static_cast<float>(visits);
-    return draw;
+    return get_accumulated_draws() / static_cast<float>(get_visits());
 }
 
 UCTNode *UCTNode::get_child(const int maps) {
@@ -489,7 +435,7 @@ std::vector<std::pair<float, int>> UCTNode::get_winrate_list(const Types::Color 
         const auto node = child->get();
         const auto visits = node->get_visits();
         const auto maps = node->get_maps();
-        const auto winrate = node->get_meaneval(color, false);
+        const auto winrate = node->get_winloss(color, false);
         if (visits > 0) {
             list.emplace_back(winrate, maps);
         }
@@ -541,7 +487,7 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
     const float cpuct = cpuct_init + std::log((float(parentvisits) + cpuct_base + 1) / cpuct_base);
     const float numerator = std::sqrt(float(parentvisits));
     const float fpu_reduction = fpu_reduction_factor * std::sqrt(total_visited_policy);
-    const float fpu_value = get_nn_meaneval(color) - fpu_reduction;
+    const float fpu_value = get_nn_winloss(color) - fpu_reduction;
 
     std::shared_ptr<UCTNodePointer> best_node = nullptr;
     float best_value = std::numeric_limits<float>::lowest();
@@ -562,7 +508,7 @@ UCTNode *UCTNode::uct_select_child(const Types::Color color,
             if (node->is_expending()) {
                 q_value = -1.0f - fpu_reduction;
             } else if (node->get_visits() > 0) {
-                const float eval = node->get_meaneval(color);
+                const float eval = node->get_winloss(color, true);
                 const float draw_value = node->get_draw() * draw_factor;
                 q_value = eval + draw_value;
             }
@@ -629,17 +575,18 @@ UCTNode *UCTNode::prob_select_child() {
 }
 
 void UCTNode::apply_evals(std::shared_ptr<UCTNodeEvals> evals) {
-    m_red_stmeval = evals->red_stmeval;
     m_red_winloss = evals->red_winloss;
     m_draw = evals->draw;
 }
 
 void UCTNode::update(std::shared_ptr<UCTNodeEvals> evals) {
-    const float eval = 0.5f * (evals->red_stmeval + evals->red_winloss);
-    const float old_stmeval = m_accumulated_red_stmevals.load();
-    const float old_winloss = m_accumulated_red_wls.load();
+    // const float eval = 0.5f * (evals->red_stmeval + evals->red_winloss);
+    const float eval = evals->red_winloss;
+    // const float old_stmeval = m_accumulated_red_stmevals.load();
+    const float old_eval = m_accumulated_red_wls.load();
     const float old_visits = m_visits.load();
-    const float old_eval = 0.5f * (old_stmeval + old_winloss);
+    // const float old_eval = 0.5f * (old_stmeval + old_winloss);
+
     const float old_delta = old_visits > 0 ? eval - old_eval / old_visits : 0.0f;
     const float new_delta = eval - (old_eval + eval) / (old_visits + 1);
 
@@ -648,7 +595,6 @@ void UCTNode::update(std::shared_ptr<UCTNodeEvals> evals) {
 
     m_visits.fetch_add(1);
     Utils::atomic_add(m_squared_eval_diff, delta);
-    Utils::atomic_add(m_accumulated_red_stmevals, evals->red_stmeval);
     Utils::atomic_add(m_accumulated_red_wls, evals->red_winloss);
     Utils::atomic_add(m_accumulated_draws, evals->draw);
 }
@@ -947,7 +893,6 @@ std::string UCT_Information::get_stats_string(UCTNode *node, Position &position)
         assert(visits != 0);
 
         const auto wl_eval = child->get_winloss(color, false);
-        const auto stm_eval = child->get_stmeval(color, false);
         const auto draw = child->get_draw();
         const auto move = Decoder::maps2move(maps);
         const auto pv_string = move.to_string() + ' ' + get_pvsrting(child);
@@ -956,7 +901,6 @@ std::string UCT_Information::get_stats_string(UCTNode *node, Position &position)
                 << std::setw(6) << move.to_string()
                 << std::setw(10) << visits
                 << std::setw(space) << wl_eval * 100.f     // win loss eval
-                << std::setw(space) << stm_eval * 100.f    // side to move eval
                 << std::setw(space) << lcb_value * 100.f   // LCB eval
                 << std::setw(space) << draw * 100.f        // draw probability
                 << std::setw(space) << pobability * 100.f  // move probability

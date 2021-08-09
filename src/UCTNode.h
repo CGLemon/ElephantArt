@@ -48,7 +48,6 @@ struct UCTNodeData {
 };
 
 struct UCTNodeEvals {
-    float red_stmeval{0.0f};
     float red_winloss{0.0f};
     float draw{0.0f}; 
 };
@@ -82,13 +81,11 @@ public:
     int randomize_first_proportionally(float random_temp);
 
     const std::vector<std::shared_ptr<UCTNodePointer>> &get_children() const;
-    float get_stmeval(const Types::Color color,
-                      const bool use_virtual_loss) const;
+
     float get_winloss(const Types::Color color,
                       const bool use_virtual_loss) const;
     float get_draw() const;
-    float get_meaneval(const Types::Color color,
-                       const bool use_virtual_loss = true) const;
+    
     UCTNode *get_child(const int maps);
     UCTNode *get();
 
@@ -122,7 +119,6 @@ public:
     std::shared_ptr<UCTNodeStats> node_status() const;
 
 private:
-    float m_red_stmeval{0.0f};
     float m_red_winloss{0.0f};
     float m_draw{0.0f};
 
@@ -134,7 +130,6 @@ private:
     std::atomic<int> m_loading_threads{0};
 
     std::atomic<float> m_squared_eval_diff{1e-4f};
-    std::atomic<float> m_accumulated_red_stmevals{0.0f};
     std::atomic<float> m_accumulated_red_wls{0.0f};
     std::atomic<float> m_accumulated_draws{0.0f};
 
@@ -156,7 +151,6 @@ private:
     int get_threads() const;
     int get_virtual_loss() const;
 
-    float get_nn_stmeval(const Types::Color color) const;
     float get_nn_winloss(const Types::Color color) const;
     float get_nn_meaneval(const Types::Color color) const;
     float get_nn_draw() const;

@@ -149,7 +149,7 @@ std::pair<Move, Move> Search::get_best_move() const {
 }
 
 std::string Search::get_draw_resign(Types::Color color, bool draw) const {
-    const auto winrate = m_rootnode->get_meaneval(color, false);
+    const auto winrate = m_rootnode->get_winloss(color, false);
     if (winrate < parameters()->resign_threshold) {
         if (draw) {
             return std::string{"draw"};
@@ -181,12 +181,10 @@ void Search::prepare_uct() {
     m_rootnode->update(std::make_shared<UCTNodeEvals>(nn_eval));
 
     const auto color = m_rootposition.get_to_move();
-    const auto stm_eval = color == Types::RED ? nn_eval.red_stmeval : 1 - nn_eval.red_stmeval;
     const auto winloss = color == Types::RED ? nn_eval.red_winloss : 1 - nn_eval.red_winloss;
     if (option<bool>("analysis_verbose")) {
         LOGGING << "Raw NN output:" << std::endl
                     << std::fixed << std::setprecision(2)
-                    << std::setw(11) << "stm eval:" << ' ' << stm_eval * 100.f << "%" << std::endl
                     << std::setw(11) << "winloss:" << ' ' << winloss * 100.f << "%" << std::endl
                     << std::setw(11) << "draw:" << ' ' << nn_eval.draw * 100.f << "%" << std::endl;
     }
@@ -324,7 +322,7 @@ void Search::think(SearchSetting setting, SearchInformation *info) {
             }
 
             const auto color = m_rootposition.get_to_move();
-            const auto score = (m_rootnode->get_meaneval(color, false) - 0.5f) * 200.0f;
+            const auto score = (m_rootnode->get_winloss(color, false) - 0.5f) * 200.0f;
             const auto nodes = m_nodestats->nodes.load() + m_nodestats->edges.load();
             const auto elapsed = timer.get_duration_milliseconds();
             controller.set_score(int(score));

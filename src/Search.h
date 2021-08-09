@@ -52,15 +52,12 @@ public:
         const auto winner = position.get_winner(true);
         assert(winner != Types::INVALID_COLOR);
         if (winner == Types::RED) {
-            m_nn_evals->red_stmeval = 1.0f;
             m_nn_evals->red_winloss = 1.0f;
             m_nn_evals->draw = 0.0f;
         } else if (winner == Types::BLACK) {
-            m_nn_evals->red_stmeval = 0.0f;
             m_nn_evals->red_winloss = 0.0f;
             m_nn_evals->draw = 0.0f;
         } else if (winner == Types::EMPTY_COLOR) {
-            m_nn_evals->red_stmeval = 0.5f;
             m_nn_evals->red_winloss = 0.5f;
             m_nn_evals->draw = 1.0f;
         }
