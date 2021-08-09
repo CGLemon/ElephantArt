@@ -48,9 +48,7 @@ private:
 
     Position &m_rootpos;
     Types::Color m_color;
-    int m_relaxed_move;
     int m_maxdepth;
-    float m_factor;
 };
 
 #endif
