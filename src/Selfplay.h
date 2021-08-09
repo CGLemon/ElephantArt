@@ -17,7 +17,7 @@
 */
 
 #ifndef SELFPLAY_H_INCLUDE
-#define SELFPLAY_H_INCLUD
+#define SELFPLAY_H_INCLUDE
 
 #include "Engine.h"
 
