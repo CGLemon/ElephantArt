@@ -269,7 +269,6 @@ void UCTNode::policy_target_pruning() {
         const auto maps = x.second;
         get_child(maps)->set_visits(visits);
     }
-
 }
 
 const std::vector<std::shared_ptr<UCTNode::UCTNodePointer>> &UCTNode::get_children() const {
@@ -580,12 +579,9 @@ void UCTNode::apply_evals(std::shared_ptr<UCTNodeEvals> evals) {
 }
 
 void UCTNode::update(std::shared_ptr<UCTNodeEvals> evals) {
-    // const float eval = 0.5f * (evals->red_stmeval + evals->red_winloss);
     const float eval = evals->red_winloss;
-    // const float old_stmeval = m_accumulated_red_stmevals.load();
     const float old_eval = m_accumulated_red_wls.load();
     const float old_visits = m_visits.load();
-    // const float old_eval = 0.5f * (old_stmeval + old_winloss);
 
     const float old_delta = old_visits > 0 ? eval - old_eval / old_visits : 0.0f;
     const float new_delta = eval - (old_eval + eval) / (old_visits + 1);
@@ -629,7 +625,6 @@ void UCTNode::apply_dirichlet_noise(const float alpha) {
         const auto maps = child->data()->maps;
         parameters()->dirichlet_buffer[maps] = buffer[child_cnt++];
     }
-
 }
 
 UCTNodeEvals UCTNode::prepare_root_node(Network &network,
