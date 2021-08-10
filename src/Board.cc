@@ -29,7 +29,7 @@ constexpr std::array<Types::Piece, Board::NUM_VERTICES> Board::START_VERTICES;
 
 constexpr std::array<Types::Direction, 8> Board::m_dirs;
 
-std::array<std::array<int, Board::INTERSECTIONS>, Board::NUM_SYMMETRIES> Board::symmetry_nn_idx_table;
+std::array<std::array<int, Board::NUM_INTERSECTIONS>, Board::NUM_SYMMETRIES> Board::symmetry_nn_idx_table;
 std::array<std::array<Types::Vertices, Board::NUM_VERTICES>, Board::NUM_SYMMETRIES> Board::symmetry_nn_vtx_table;
 
 std::array<std::array<BitBoard, Board::NUM_VERTICES>, 2> Board::m_pawn_attacks;
@@ -93,7 +93,7 @@ void Board::init_symmetry() {
         for (int vtx = 0; vtx < NUM_VERTICES; ++vtx) {
             symmetry_nn_vtx_table[symm][vtx] = Types::NO_VERTEX;
         }
-        for (int idx = 0; idx < INTERSECTIONS; ++idx) {
+        for (int idx = 0; idx < NUM_INTERSECTIONS; ++idx) {
             symmetry_nn_idx_table[symm][idx] = 0;
         }
     }

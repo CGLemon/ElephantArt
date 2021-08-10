@@ -208,7 +208,7 @@ Move Search::nn_direct_move() {
     auto analysis = std::vector<std::pair<float, int>>();
     auto acc = 0.0f;
     auto eval = m_network.get_output(&m_rootposition);
-    for (int m = 0; m < POLICYMAP * Board::INTERSECTIONS; ++m) {
+    for (int m = 0; m < POLICYMAP * Board::NUM_INTERSECTIONS; ++m) {
         if (!Decoder::maps_valid(m)) {
             continue;
         }

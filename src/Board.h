@@ -45,7 +45,7 @@ public:
     static constexpr auto NUM_VERTICES = BITBOARD_NUM_VERTICES;
 
     // The number of board intersection.
-    static constexpr auto INTERSECTIONS = BITBOARD_INTERSECTIONS;
+    static constexpr auto NUM_INTERSECTIONS = BITBOARD_NUM_INTERSECTIONS;
 
     // Number of symmetries.
     static constexpr int NUM_SYMMETRIES = 2;
@@ -57,7 +57,7 @@ public:
     static constexpr int MIRROR_SYMMETRY = 1;
 
     // The symmetry index table.
-    static std::array<std::array<int, INTERSECTIONS>, NUM_SYMMETRIES> symmetry_nn_idx_table;
+    static std::array<std::array<int, NUM_INTERSECTIONS>, NUM_SYMMETRIES> symmetry_nn_idx_table;
 
     // The symmetry vertex table.
     static std::array<std::array<Types::Vertices, NUM_VERTICES>, NUM_SYMMETRIES> symmetry_nn_vtx_table;

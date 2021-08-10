@@ -175,10 +175,10 @@ Engine::Response Engine::raw_nn(const int g) {
                 const auto idx = Board::get_index(x, y);
                 rep << std::fixed
                     << std::setprecision(5)
-                    << nnout.policy[idx + p * Board::INTERSECTIONS]
+                    << nnout.policy[idx + p * Board::NUM_INTERSECTIONS]
                     << " ";
-                if (nnout.policy[idx + p * Board::INTERSECTIONS] > nnout.policy[max_index]) {
-                    max_index = idx + p * Board::INTERSECTIONS;
+                if (nnout.policy[idx + p * Board::NUM_INTERSECTIONS] > nnout.policy[max_index]) {
+                    max_index = idx + p * Board::NUM_INTERSECTIONS;
                 }
             }
             rep << std::endl;
@@ -219,7 +219,7 @@ Engine::Response Engine::input_planes(const int g) {
             for (int x = 0; x < Board::WIDTH; ++x) {
                 const auto idx = Board::get_index(x, y);
                 rep << std::setw(5)
-                    << input_planes[idx + p * Board::INTERSECTIONS]
+                    << input_planes[idx + p * Board::NUM_INTERSECTIONS]
                     << " ";
             }
             rep << std::endl;

@@ -38,7 +38,7 @@ static constexpr auto VALUELAYER = 256;
 static constexpr auto VLAUEMISC_LAYER = 5;
 
 struct NNResult {
-    std::array<float, POLICYMAP * Board::INTERSECTIONS> policy;
+    std::array<float, POLICYMAP * Board::NUM_INTERSECTIONS> policy;
     std::array<float, 4> winrate_misc;
 
     float moves_left;

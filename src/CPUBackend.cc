@@ -48,9 +48,9 @@ void CPUBackend::forward(const std::vector<float> &planes,
     auto workspace_size = Convolve3::get_workspace_size(max_channels);
     auto workspace = std::vector<float>(workspace_size);
 
-    auto conv_out = std::vector<float>(output_channels * Board::INTERSECTIONS);
-    auto conv_in = std::vector<float>(output_channels * Board::INTERSECTIONS);
-    auto res = std::vector<float>(output_channels * Board::INTERSECTIONS);
+    auto conv_out = std::vector<float>(output_channels * Board::NUM_INTERSECTIONS);
+    auto conv_in = std::vector<float>(output_channels * Board::NUM_INTERSECTIONS);
+    auto res = std::vector<float>(output_channels * Board::NUM_INTERSECTIONS);
     
     // input
     Convolve3::Forward(INPUT_CHANNELS, output_channels,
@@ -120,7 +120,7 @@ void CPUBackend::forward(const std::vector<float> &planes,
     // policy head
 
     const auto policy_extract_channels = m_weights->policy_extract_channels;
-    auto policy_conv = std::vector<float>(policy_extract_channels * Board::INTERSECTIONS);
+    auto policy_conv = std::vector<float>(policy_extract_channels * Board::NUM_INTERSECTIONS);
 
     Convolve3::Forward(output_channels, policy_extract_channels,
                        conv_out,
@@ -140,7 +140,7 @@ void CPUBackend::forward(const std::vector<float> &planes,
 
     // value head
     const auto value_extract_channels = m_weights->value_extract_channels;
-    auto value_conv = std::vector<float>(value_extract_channels * Board::INTERSECTIONS);
+    auto value_conv = std::vector<float>(value_extract_channels * Board::NUM_INTERSECTIONS);
     auto value_fc = std::vector<float>(VALUELAYER);
     
     Convolve1::Forward(output_channels, value_extract_channels,
@@ -152,7 +152,7 @@ void CPUBackend::forward(const std::vector<float> &planes,
                        m_weights->v_ex_bn.means,
                        m_weights->v_ex_bn.stddevs);
     
-    FullyConnect::Forward(value_extract_channels * Board::INTERSECTIONS, VALUELAYER,
+    FullyConnect::Forward(value_extract_channels * Board::NUM_INTERSECTIONS, VALUELAYER,
                           value_conv,
                           m_weights->v_fc1.weights,
                           m_weights->v_fc1.biases,

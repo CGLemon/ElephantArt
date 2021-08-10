@@ -22,10 +22,10 @@
 #include <cassert>
 #include <sstream>
 
-std::array<Move, POLICYMAP * Board::INTERSECTIONS> Decoder::policymaps_moves;
-std::array<bool, POLICYMAP * Board::INTERSECTIONS> Decoder::policymaps_valid;
+std::array<Move, POLICYMAP * Board::NUM_INTERSECTIONS> Decoder::policymaps_moves;
+std::array<bool, POLICYMAP * Board::NUM_INTERSECTIONS> Decoder::policymaps_valid;
 std::unordered_map<std::uint16_t, int> Decoder::moves_map;
-std::array<int, POLICYMAP * Board::INTERSECTIONS> Decoder::symmetry_maps;
+std::array<int, POLICYMAP * Board::NUM_INTERSECTIONS> Decoder::symmetry_maps;
 
 void Decoder::initialize() {
     const auto in_boundary = [](const int x, const int y) -> bool {
@@ -67,7 +67,7 @@ void Decoder::initialize() {
             }
             
             const auto idx = Board::get_index(x, y);
-            const auto m_offset = idx + p * Board::INTERSECTIONS;
+            const auto m_offset = idx + p * Board::NUM_INTERSECTIONS;
 
             const int ms[18] = {
                 1, 2, 3, 4, 5, 6, 7, 8, 9,
@@ -89,7 +89,7 @@ void Decoder::initialize() {
                 continue;
             }
             const auto idx = Board::get_index(x, y);
-            const auto m_offset = idx + (p + 18) * Board::INTERSECTIONS;
+            const auto m_offset = idx + (p + 18) * Board::NUM_INTERSECTIONS;
 
             const int ms[16] = {
                 1, 2, 3, 4, 5, 6, 7, 8,
@@ -111,7 +111,7 @@ void Decoder::initialize() {
                 continue;
             }
             const auto idx = Board::get_index(x, y);
-            const auto m_offset = idx + (p + 34) * Board::INTERSECTIONS;
+            const auto m_offset = idx + (p + 34) * Board::NUM_INTERSECTIONS;
 
             const int ms[8][2] = {
                 {2,1}, {2,-1}, {-2,1}, {-2,-1},
@@ -133,7 +133,7 @@ void Decoder::initialize() {
                 continue;
             }
             const auto idx = Board::get_index(x, y);
-            const auto m_offset = idx + (p + 42) * Board::INTERSECTIONS;
+            const auto m_offset = idx + (p + 42) * Board::NUM_INTERSECTIONS;
 
             const int ms[4][2] = {
                 {1,1}, {1,-1}, {-1,1}, {-1,-1}
@@ -154,7 +154,7 @@ void Decoder::initialize() {
                 continue;
             }
             const auto idx = Board::get_index(x, y);
-            const auto m_offset = idx + (p + 46) * Board::INTERSECTIONS;
+            const auto m_offset = idx + (p + 46) * Board::NUM_INTERSECTIONS;
 
             const int ms[4][2] = {
                 {2,2}, {2,-2}, {-2,2}, {-2,-2}
@@ -165,7 +165,7 @@ void Decoder::initialize() {
         }
     }
 
-    for (int idx = 0; idx < POLICYMAP * Board::INTERSECTIONS; ++idx) {
+    for (int idx = 0; idx < POLICYMAP * Board::NUM_INTERSECTIONS; ++idx) {
         const auto &move = policymaps_moves[idx];
         if (move.valid()) {
             assert(moves_map.find(move.get_data()) == std::end(moves_map));
@@ -180,7 +180,7 @@ void Decoder::initialize() {
         return Move(symm_f_vtx, symm_t_vtx);
     };
 
-    for (int maps = 0; maps < POLICYMAP * Board::INTERSECTIONS; ++maps) {
+    for (int maps = 0; maps < POLICYMAP * Board::NUM_INTERSECTIONS; ++maps) {
         if (maps_valid(maps)) {
             const auto symm_move = get_symmetry_move(maps2move(maps));
             const auto symm_maps = move2maps(symm_move);
@@ -192,7 +192,7 @@ void Decoder::initialize() {
 }
 
 Move Decoder::maps2move(const int maps) {
-    assert(maps >= 0 && maps < POLICYMAP * Board::INTERSECTIONS);
+    assert(maps >= 0 && maps < POLICYMAP * Board::NUM_INTERSECTIONS);
     return policymaps_moves[maps];
 }
 
@@ -208,7 +208,7 @@ int Decoder::move2maps(const Move &move) {
 }
 
 int Decoder::get_symmetry_maps(const int maps) {
-    assert(maps >= 0 && maps < POLICYMAP * Board::INTERSECTIONS);
+    assert(maps >= 0 && maps < POLICYMAP * Board::NUM_INTERSECTIONS);
     return symmetry_maps[maps];
 }
 
@@ -219,7 +219,7 @@ std::string Decoder::get_mapstring() {
         for (int y = 0; y < Board::HEIGHT; ++y) {
             for (int x = 0; x < Board::WIDTH; ++x) {
                 const auto idx = Board::get_index(x, y);
-                out << policymaps_moves[p * Board::INTERSECTIONS + idx].to_string();
+                out << policymaps_moves[p * Board::NUM_INTERSECTIONS + idx].to_string();
                 if (x != Board::WIDTH-1) {
                     out << " ";
                 }

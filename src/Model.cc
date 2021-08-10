@@ -108,7 +108,7 @@ void fill_piece_planes(const std::shared_ptr<const Board> board,
                        std::vector<float>::iterator black,
                        const bool symmetry) {
     
-    for (auto idx = size_t{0}; idx < Board::INTERSECTIONS; ++idx) {
+    for (auto idx = size_t{0}; idx < Board::NUM_INTERSECTIONS; ++idx) {
         const auto sym_idx = Board::symmetry_nn_idx_table[static_cast<int>(symmetry)][idx];
         const auto x = sym_idx % Board::WIDTH;
         const auto y = sym_idx / Board::WIDTH;
@@ -116,9 +116,9 @@ void fill_piece_planes(const std::shared_ptr<const Board> board,
         const auto pis = board->get_piece(vtx);
         
         if (static_cast<int>(pis) <  7) {
-            red[static_cast<int>(pis) * Board::INTERSECTIONS + idx] = static_cast<float>(true);
+            red[static_cast<int>(pis) * Board::NUM_INTERSECTIONS + idx] = static_cast<float>(true);
         } else if (static_cast<int>(pis) < 14) {
-            black[(static_cast<int>(pis)-7) * Board::INTERSECTIONS + idx] = static_cast<float>(true);
+            black[(static_cast<int>(pis)-7) * Board::NUM_INTERSECTIONS + idx] = static_cast<float>(true);
         }
         assert(pis != Types::INVAL_PIECE);
     }
@@ -135,14 +135,14 @@ std::vector<float> Model::gather_planes(const Position *const pos, const bool sy
     // planes  8-14: Next player pieces position.
     // planes 15-16: Current player is red or not.
 
-    auto input_data = std::vector<float>(INPUT_CHANNELS * Board::INTERSECTIONS, 0.0f);
+    auto input_data = std::vector<float>(INPUT_CHANNELS * Board::NUM_INTERSECTIONS, 0.0f);
     auto color = pos->get_to_move();
     auto blk_iterator = std::begin(input_data);
     auto red_iterator = std::begin(input_data);
     if (color == Types::BLACK) {
-        std::advance(red_iterator, (INPUT_MOVES * 7) * Board::INTERSECTIONS);
+        std::advance(red_iterator, (INPUT_MOVES * 7) * Board::NUM_INTERSECTIONS);
     } else {
-        std::advance(blk_iterator, (INPUT_MOVES * 7) * Board::INTERSECTIONS);
+        std::advance(blk_iterator, (INPUT_MOVES * 7) * Board::NUM_INTERSECTIONS);
     }
 
     const auto maxsize = pos->get_historysize();
@@ -157,20 +157,20 @@ std::vector<float> Model::gather_planes(const Position *const pos, const bool sy
                               blk_iterator,
                               symmetry);
         }
-        std::advance(red_iterator, 7 * Board::INTERSECTIONS);
-        std::advance(blk_iterator, 7 * Board::INTERSECTIONS);
+        std::advance(red_iterator, 7 * Board::NUM_INTERSECTIONS);
+        std::advance(blk_iterator, 7 * Board::NUM_INTERSECTIONS);
     }
 
-    auto status_iterator = std::begin(input_data) + INPUT_MOVES * 14 * Board::INTERSECTIONS;
+    auto status_iterator = std::begin(input_data) + INPUT_MOVES * 14 * Board::NUM_INTERSECTIONS;
 
     // plane 15-16
-    auto middle = status_iterator + Board::INTERSECTIONS;
+    auto middle = status_iterator + Board::NUM_INTERSECTIONS;
     if (color == Types::RED) {
         std::fill(status_iterator, middle, 1.f);
     } else {
         std::fill(middle, std::end(input_data), 1.f);
     }
-    std::advance(status_iterator, 2 * Board::INTERSECTIONS);
+    std::advance(status_iterator, 2 * Board::NUM_INTERSECTIONS);
     assert(status_iterator == std::end(input_data));
 
     return input_data;
@@ -512,7 +512,7 @@ void Model::fill_weights(std::istream &weights_file,
         if (v_ex_conv_shape[2] != 1) {
             throw "The value layer kernel size is wrong";
         }
-        if (v_fc1_shape[0] != v_ex_conv_shape[1] * Board::INTERSECTIONS ||
+        if (v_fc1_shape[0] != v_ex_conv_shape[1] * Board::NUM_INTERSECTIONS ||
             v_fc1_shape[1] != VALUELAYER ||
             v_fc2_shape[0] != v_fc1_shape[1] ||
             v_fc2_shape[1] != VLAUEMISC_LAYER) {
@@ -591,13 +591,13 @@ NNResult Model::get_result(std::vector<float> &policy,
     // Probabilities
     const auto probabilities = Activation::Softmax(policy, p_softmax_temp);
     for (auto p = size_t{0}; p < POLICYMAP; ++p) {
-        for (auto idx = size_t{0}; idx < Board::INTERSECTIONS; ++idx) {
-            int maps = idx + p * Board::INTERSECTIONS;
+        for (auto idx = size_t{0}; idx < Board::NUM_INTERSECTIONS; ++idx) {
+            int maps = idx + p * Board::NUM_INTERSECTIONS;
             if (symmetry) {
                 maps = Decoder::get_symmetry_maps(maps);
             }
 
-            result.policy[idx + p * Board::INTERSECTIONS] = probabilities[maps];
+            result.policy[idx + p * Board::NUM_INTERSECTIONS] = probabilities[maps];
         }
     }
 

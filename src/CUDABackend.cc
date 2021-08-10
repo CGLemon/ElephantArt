@@ -210,10 +210,10 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
         value_extract_channels  // channels
     );
     m_graph->v_fc1 = CUDA::FullyConnect(
-        m_maxbatch,                                     // max batch size
-        value_extract_channels * Board::INTERSECTIONS,  // input size
-        VALUELAYER,                                     // output size
-        true                                            // relu
+        m_maxbatch,                                        // max batch size
+        value_extract_channels * Board::NUM_INTERSECTIONS, // input size
+        VALUELAYER,                                        // output size
+        true                                               // relu
     );
     m_graph->v_fc2 = CUDA::FullyConnect(
         m_maxbatch,      // max batch size
@@ -258,15 +258,15 @@ void CUDABackend::NNGraph::build_graph(const int gpu, std::shared_ptr<Model::NNW
     m_graph->v_fc2.LoadingWeight(weights->v_fc2.weights, m_weights->v_fc2.biases);
 
     const size_t factor = m_maxbatch * sizeof(float);
-    const size_t planes_size = factor * INPUT_CHANNELS * Board::INTERSECTIONS;
+    const size_t planes_size = factor * INPUT_CHANNELS * Board::NUM_INTERSECTIONS;
     const size_t features_size = factor * INPUT_FEATURES;
-    const size_t pol_size = factor * POLICYMAP * Board::INTERSECTIONS;
+    const size_t pol_size = factor * POLICYMAP * Board::NUM_INTERSECTIONS;
     const size_t val_size = factor * VLAUEMISC_LAYER;
 
-    const size_t conv_op_size = factor * m_weights->residual_channels * Board::INTERSECTIONS;
+    const size_t conv_op_size = factor * m_weights->residual_channels * Board::NUM_INTERSECTIONS;
 
-    const size_t pol_op1_size = factor * policy_extract_channels * Board::INTERSECTIONS;
-    const size_t val_op1_size = factor * value_extract_channels * Board::INTERSECTIONS;
+    const size_t pol_op1_size = factor * policy_extract_channels * Board::NUM_INTERSECTIONS;
+    const size_t val_op1_size = factor * value_extract_channels * Board::NUM_INTERSECTIONS;
     const size_t val_op2_size = factor * VALUELAYER;
 
     CUDA::ReportCUDAErrors(cudaMalloc(&cuda_scratch, m_scratch_size));
@@ -294,7 +294,7 @@ void CUDABackend::NNGraph::batch_forward(const int batch_size,
     assert(m_maxbatch >= batch_size);
 
     const size_t factor = batch_size * sizeof(float);
-    const size_t planes_s = factor * INPUT_CHANNELS * Board::INTERSECTIONS;
+    const size_t planes_s = factor * INPUT_CHANNELS * Board::NUM_INTERSECTIONS;
     const size_t features_s = factor * INPUT_FEATURES;
 
     CUDA::ReportCUDAErrors(cudaMemcpy(cuda_input_planes, planes.data(),
@@ -335,7 +335,7 @@ void CUDABackend::NNGraph::batch_forward(const int batch_size,
             const auto tower_channels = m_weights->residual_channels;
             m_graph->tower_bnorm[t_offset+1].Forward(batch_size,
                                                      cuda_conv_op[2], cuda_conv_op[0]);
-            CUDA::copy(cuda_conv_op[0], cuda_conv_op[2], batch_size * tower_channels * Board::INTERSECTIONS);
+            CUDA::copy(cuda_conv_op[0], cuda_conv_op[2], batch_size * tower_channels * Board::NUM_INTERSECTIONS);
         }
     }
 
@@ -356,7 +356,7 @@ void CUDABackend::NNGraph::batch_forward(const int batch_size,
     m_graph->v_fc1.Forward(batch_size, cuda_val_op[0], cuda_val_op[1], &m_handel);
     m_graph->v_fc2.Forward(batch_size, cuda_val_op[1], cuda_output_val, &m_handel);
 
-    const auto pol_size = static_cast<size_t>(factor * POLICYMAP * Board::INTERSECTIONS);
+    const auto pol_size = static_cast<size_t>(factor * POLICYMAP * Board::NUM_INTERSECTIONS);
     const auto val_size = static_cast<size_t>(factor * VLAUEMISC_LAYER);
 
     CUDA::ReportCUDAErrors(cudaMemcpy(output_pol.data(), cuda_output_pol,

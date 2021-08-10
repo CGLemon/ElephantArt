@@ -189,7 +189,7 @@ void proccess_inputs(Position &pos, DataCollection &data) {
     auto &history = data.pieces_history;
     for (auto p = 0; p < INPUT_MOVES; ++p) {
         history.emplace_back(DataCollection::PositionPieces{});
-        for (auto idx = size_t{0}; idx < Board::INTERSECTIONS; ++idx) {
+        for (auto idx = size_t{0}; idx < Board::NUM_INTERSECTIONS; ++idx) {
             const auto x = idx % Board::WIDTH;
             const auto y = idx / Board::WIDTH;
             const auto vtx = Board::get_vertex(x, y);

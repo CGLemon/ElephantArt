@@ -165,7 +165,7 @@ void dummy_forward(std::vector<float> &policy,
 
 Network::Netresult
 Network::get_output_internal(const Position *const position, const bool symmetry) {
-    auto policy_out = std::vector<float>(POLICYMAP * INTERSECTIONS);
+    auto policy_out = std::vector<float>(POLICYMAP * NUM_INTERSECTIONS);
     auto value_out = std::vector<float>(VLAUEMISC_LAYER);
 
     auto input_planes = Model::gather_planes(position, symmetry);

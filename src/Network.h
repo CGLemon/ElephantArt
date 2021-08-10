@@ -52,7 +52,7 @@ public:
     void set_cache_memory(const int MiB);
 
 private:
-    static constexpr auto INTERSECTIONS = Board::INTERSECTIONS;
+    static constexpr auto NUM_INTERSECTIONS = Board::NUM_INTERSECTIONS;
 
     bool probe_cache(const Position *const position,
                      Network::Netresult &result);

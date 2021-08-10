@@ -54,7 +54,7 @@ struct DataCollection {
     int repetitions;
     int moves_left{0};
 
-    std::array<float, Board::INTERSECTIONS * INPUT_CHANNELS> input_planes;
+    std::array<float, Board::NUM_INTERSECTIONS * INPUT_CHANNELS> input_planes;
     std::array<float, INPUT_FEATURES> input_features;
 
     PIECES_HISTORY pieces_history;

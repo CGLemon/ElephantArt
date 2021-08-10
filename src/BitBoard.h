@@ -35,7 +35,7 @@ static constexpr int BITBOARD_WIDTH = MARCRO_WIDTH;
 static constexpr int BITBOARD_HEIGHT = MARCRO_HEIGHT;
 static constexpr int BITBOARD_SHIFT = MARCRO_SHIFT;
 static constexpr int BITBOARD_NUM_VERTICES = BITBOARD_SHIFT * MARCRO_HEIGHT;
-static constexpr int BITBOARD_INTERSECTIONS = MARCRO_WIDTH * MARCRO_HEIGHT;
+static constexpr int BITBOARD_NUM_INTERSECTIONS = MARCRO_WIDTH * MARCRO_HEIGHT;
 
 const BitBoard FirstPosition(0ULL, 1ULL);
 

@@ -56,7 +56,7 @@ public:
     float dirichlet_factor;
     float dirichlet_init;
 
-    std::array<float, POLICYMAP * Board::INTERSECTIONS> dirichlet_buffer;
+    std::array<float, POLICYMAP * Board::NUM_INTERSECTIONS> dirichlet_buffer;
 };
 
 #endif

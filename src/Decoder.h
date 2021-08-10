@@ -41,9 +41,9 @@ public:
 
 private:
     static std::unordered_map<std::uint16_t, int> moves_map;
-    static std::array<Move, POLICYMAP * Board::INTERSECTIONS> policymaps_moves;
-    static std::array<bool, POLICYMAP * Board::INTERSECTIONS> policymaps_valid;
-    static std::array<int, POLICYMAP * Board::INTERSECTIONS> symmetry_maps;
+    static std::array<Move, POLICYMAP * Board::NUM_INTERSECTIONS> policymaps_moves;
+    static std::array<bool, POLICYMAP * Board::NUM_INTERSECTIONS> policymaps_valid;
+    static std::array<int, POLICYMAP * Board::NUM_INTERSECTIONS> symmetry_maps;
 };
 
 #endif
