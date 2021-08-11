@@ -27,6 +27,7 @@
 
 void Position::init_game() {
     m_startboard = 0;
+    m_simple_rule = option<bool>("simple_rule");
     m_history.clear();
     board.reset_board();
     push_board();
@@ -345,8 +346,9 @@ int Position::get_historysize() const {
 }
 
 Position::Repetition Position::get_threefold_repetitions_result() {
+    // The full asian rule is here.
     // https://www.asianxiangqi.org/%E6%AF%94%E8%B5%9B%E8%A7%84%E4%BE%8B/%E6%AF%94%E8%B5%9B%E8%A7%84%E4%BE%8B_2017.pdf
-
+    printf("get_threefold_repetitions_result: %d\n", get_repetitions());
     if (get_repetitions() < 3) {
         return Repetition::NONE;
     }
@@ -406,7 +408,7 @@ Position::Repetition Position::get_threefold_repetitions_result() {
         }
     }
 
-    if (curr_ckecking_cnt == get_cycle_length()%2) {
+    if (curr_ckecking_cnt == get_cycle_length()/2) {
         if (curr_ckecking_cnt == other_ckecking_cnt) {
             // The case is both sides are the perpetual check. The game is draw.
             return Repetition::DRAW;
@@ -422,6 +424,12 @@ Position::Repetition Position::get_threefold_repetitions_result() {
 
     if (!curr_bb_pursuit) {
         // No piece is pursued in the every cycle boards. The game is draw.
+        return Repetition::DRAW;
+    }
+
+    if (m_simple_rule) {
+        // The others case is perpetual pursuit, and we simply think all perpetual pursuit is
+        // draw.
         return Repetition::DRAW;
     }
 

@@ -91,6 +91,8 @@ private:
     Types::Color resigned{Types::INVALID_COLOR};
 
     int m_startboard;
+    bool m_simple_rule;
+
     std::vector<std::shared_ptr<const Board>> m_history;
 
 };

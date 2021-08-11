@@ -70,6 +70,7 @@ void init_options_map() {
 
     options_map["mode"] << Utils::Option::setoption("ascii");
     options_map["help"] << Utils::Option::setoption(false);
+    options_map["simple_rule"] << Utils::Option::setoption(false);
 
     options_map["gpu"] << Utils::Option::setoption(0);
     options_map["batchsize"] << Utils::Option::setoption(1, 256, 1);
@@ -540,6 +541,11 @@ ArgsParser::ArgsParser(int argc, char** argv) {
 
     if (const auto res = parser.find("--debug-mode")) {
         set_option("debug_verbose", true);
+        parser.remove_command(res->idx);
+    }
+
+    if (const auto res = parser.find("--simple-rule")) {
+        set_option("simple_rule", true);
         parser.remove_command(res->idx);
     }
 
