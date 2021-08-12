@@ -348,7 +348,7 @@ int Position::get_historysize() const {
 Position::Repetition Position::get_threefold_repetitions_result() {
     // The full asian rule is here.
     // https://www.asianxiangqi.org/%E6%AF%94%E8%B5%9B%E8%A7%84%E4%BE%8B/%E6%AF%94%E8%B5%9B%E8%A7%84%E4%BE%8B_2017.pdf
-    printf("get_threefold_repetitions_result: %d\n", get_repetitions());
+
     if (get_repetitions() < 3) {
         return Repetition::NONE;
     }
@@ -397,11 +397,11 @@ Position::Repetition Position::get_threefold_repetitions_result() {
         const auto bb_pursuit = bb_colors[opp_color] &
                                     (bb_attack ^ (bb_attack & past_bb_attack));
 
-        if (curr_side) {
+        if (!curr_side) {
             curr_bb_pursuit &= bb_pursuit;
         } else {
-            // Update pursuit bitboard.
-            if (Utils::on_area(last_move.get_from(), curr_bb_pursuit)) {
+            if (Utils::on_area(last_move.get_from(), curr_bb_pursuit) && i != 0) {
+                // Update pursuit bitboard.
                 curr_bb_pursuit ^= Utils::vertex2bitboard(last_move.get_from());
                 curr_bb_pursuit ^= Utils::vertex2bitboard(last_move.get_to());
             }
